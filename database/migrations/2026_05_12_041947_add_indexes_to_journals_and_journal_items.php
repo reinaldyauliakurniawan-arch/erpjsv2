@@ -1,0 +1,32 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::table('journals', function (Blueprint $table) {
+            $table->index('date');
+        });
+
+        Schema::table('journal_items', function (Blueprint $table) {
+            $table->index('account_id');
+            $table->index('journal_id');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::table('journals', function (Blueprint $table) {
+            $table->dropIndex(['date']);
+        });
+
+        Schema::table('journal_items', function (Blueprint $table) {
+            $table->dropIndex(['account_id']);
+            $table->dropIndex(['journal_id']);
+        });
+    }
+};

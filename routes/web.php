@@ -1,0 +1,166 @@
+<?php
+
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\Admin\FinanceController;
+use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
+use App\Http\Controllers\Admin\TutorController;
+use App\Http\Controllers\Admin\ProgramController;
+use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\Admin\ImportController;
+use App\Http\Controllers\Admin\ExportController;
+use App\Http\Controllers\Admin\PayrollController;
+use App\Http\Controllers\Admin\ClassroomController;
+use App\Http\Controllers\Admin\ClassSessionController;
+use App\Http\Controllers\Tutor\DashboardController as TutorDashboard;
+use App\Http\Controllers\Tutor\AttendanceController as TutorAttendance;
+use App\Http\Controllers\Tutor\AvailabilityController as TutorAvailability;
+use App\Http\Controllers\Student\DashboardController as StudentDashboard;
+use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\JournalController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Tutor\ScheduleController as TutorSchedule;
+use App\Http\Controllers\Admin\ScheduleController as AdminSchedule;
+use App\Http\Controllers\Admin\AttendanceController as AdminAttendance;
+use App\Http\Controllers\DashboardController;
+use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Admin\TrackerController;
+
+Route::get('/', function () {
+    return redirect()->route('login');
+});
+
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware(['auth', 'verified'])
+    ->name('dashboard');
+
+Route::middleware('auth')->group(function () {
+    Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
+    Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
+    Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
+
+    // Admin routes — operasional
+    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function() {
+        Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('dashboard');
+
+        Route::get('/students/data', [StudentController::class, 'data'])->name('students.data');
+        Route::resource('students', StudentController::class);
+        Route::resource('programs', ProgramController::class);
+        Route::get('/enrollments/data', [EnrollmentController::class, 'data'])->name('enrollments.data');
+        Route::resource('enrollments', EnrollmentController::class);
+        Route::resource('classrooms', ClassroomController::class);
+        Route::resource('tutors', TutorController::class);
+        Route::resource('class-sessions', ClassSessionController::class);
+        Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/users', [App\Http\Controllers\Admin\SettingsController::class, 'storeUser'])->name('settings.users.store');
+        Route::patch('/settings/users/{user}', [App\Http\Controllers\Admin\SettingsController::class, 'updateUser'])->name('settings.users.update');
+        Route::delete('/settings/users/{user}', [App\Http\Controllers\Admin\SettingsController::class, 'destroyUser'])->name('settings.users.destroy');
+
+        Route::post('/enrollments/{id}/expire', [EnrollmentController::class, 'expire'])->name('enrollments.expire');
+        Route::post('/enrollments/{id}/graduate', [EnrollmentController::class, 'graduate'])->name('enrollments.graduate');
+        Route::post('/enrollments/{id}/assign-tutor', [EnrollmentController::class, 'assignTutor'])->name('enrollments.assign-tutor');
+        Route::post('/enrollments/{id}/remove-tutor', [EnrollmentController::class, 'removeTutor'])->name('enrollments.remove-tutor');
+        Route::patch('/enrollments/{id}/tutor/{tutorId}/status', [EnrollmentController::class, 'updateTutorStatus'])->name('enrollments.tutor-status');
+
+        Route::post('/tutors/{id}/confirm-enrollment', [TutorController::class, 'confirmEnrollment'])->name('tutors.confirm-enrollment');
+        Route::post('/tutors/{id}/rates', [TutorController::class, 'storeRate'])->name('tutors.rates.store');
+        Route::post('/tutors/{id}/availability', [TutorController::class, 'storeAvailability'])->name('tutors.availability.store');
+        Route::post('/tutors/{id}/availability/custom', [TutorController::class, 'storeCustomAvailability'])->name('tutors.availability.custom');
+        Route::delete('/tutors/{id}/availability/{availabilityId}', [TutorController::class, 'destroyAvailability'])->name('tutors.availability.destroy');
+        Route::post('room-bookings', [App\Http\Controllers\Admin\RoomBookingController::class, 'store'])->name('room-bookings.store');
+        Route::delete('room-bookings/{id}', [App\Http\Controllers\Admin\RoomBookingController::class, 'destroy'])->name('room-bookings.destroy');
+
+        Route::post('/enrollments/{enrollmentId}/installments/{installmentId}/paid', [EnrollmentController::class, 'markInstallmentPaid'])->name('enrollments.installments.paid');
+
+        Route::post('/class-sessions/{id}/assign', [ClassSessionController::class, 'assignEnrollment'])->name('class-sessions.assign');
+        Route::post('/class-sessions/{id}/remove', [ClassSessionController::class, 'removeEnrollment'])->name('class-sessions.remove');
+        Route::post('/class-sessions/{id}/assign-tutor', [ClassSessionController::class, 'assignTutor'])->name('class-sessions.assign-tutor');
+        Route::post('/class-sessions/{id}/remove-tutor', [ClassSessionController::class, 'removeTutor'])->name('class-sessions.remove-tutor');
+        Route::patch('/class-sessions/{id}/tutor/{tutorId}/status', [ClassSessionController::class, 'updateTutorStatus'])->name('class-sessions.tutor-status');
+
+        // Imports — operasional
+        Route::get('/imports', [ImportController::class, 'index'])->name('imports.index');
+        Route::post('/imports/classrooms', [ImportController::class, 'importClassrooms'])->name('imports.classrooms');
+        Route::post('/imports/programs', [ImportController::class, 'importPrograms'])->name('imports.programs');
+        Route::post('/imports/tutors', [ImportController::class, 'importTutors'])->name('imports.tutors');
+        Route::post('/imports/students', [ImportController::class, 'importStudents'])->name('imports.students');
+
+        // Exports — operasional
+        Route::get('/exports/attendance', [ExportController::class, 'exportAttendance'])->name('exports.attendance');
+        Route::get('/exports/template/{type}', [ExportController::class, 'downloadTemplate'])->name('exports.template');
+
+        Route::get('/schedule', [AdminSchedule::class, 'index'])->name('schedule.index');
+        Route::patch('/schedules/{id}', [AdminSchedule::class, 'update'])->name('schedule.update');
+        Route::delete('/schedules/{id}', [AdminSchedule::class, 'destroy'])->name('schedule.destroy');
+        Route::post('/schedules', [AdminSchedule::class, 'store'])->name('schedule.store');
+        Route::get('/attendance/data', [AdminAttendance::class, 'data'])->name('attendance.data');
+        Route::get('/attendance', [AdminAttendance::class, 'index'])->name('attendance.index');
+        Route::delete('/attendance/{id}', [AdminAttendance::class, 'destroy'])->name('attendance.destroy');
+        Route::patch('/attendance/{id}', [AdminAttendance::class, 'update'])->name('attendance.update');
+        Route::patch('/schedule/attendance/{id}', [AdminSchedule::class, 'updateAttendance'])->name('schedule.update-attendance');
+        Route::get('/tracker', [App\Http\Controllers\Admin\TrackerController::class, 'index'])->name('tracker.index');
+        Route::post('/tracker/columns', [App\Http\Controllers\Admin\TrackerController::class, 'storeColumn'])->name('tracker.columns.store');
+        Route::delete('/tracker/columns/{column}', [App\Http\Controllers\Admin\TrackerController::class, 'destroyColumn'])->name('tracker.columns.destroy');
+        Route::post('/tracker/toggle', [App\Http\Controllers\Admin\TrackerController::class, 'toggle'])->name('tracker.toggle');
+    });
+
+    // CFO routes — finance
+    Route::prefix('finance')->name('finance.')->middleware('role:cfo')->group(function() {
+        Route::get('/', [FinanceController::class, 'dashboard'])->name('index');
+        Route::get('/finance/reports', [FinanceController::class, 'reports'])->name('reports');
+        Route::post('/finance/pending-rates/{id}/assign', [FinanceController::class, 'assignRate'])->name('rate.assign');
+
+        Route::resource('accounts', AccountController::class);
+        Route::get('/journals/data', [JournalController::class, 'data'])->name('journals.data');
+        Route::resource('journals', JournalController::class)->only(['index', 'create', 'store', 'show']);
+        Route::post('/journals/{journal}/reverse', [JournalController::class, 'reverse'])->name('journals.reverse');
+
+
+        Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');
+        Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('reports.profit-loss');
+        Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
+        Route::get('/reports/deferred-revenue', [ReportController::class, 'deferredRevenue'])->name('reports.deferred-revenue');
+
+        // Exports — finance
+        Route::get('/exports/journals', [ExportController::class, 'exportJournals'])->name('exports.journals');
+        Route::get('/exports/payroll', [ExportController::class, 'exportPayroll'])->name('exports.payroll');
+        Route::get('/exports/trial-balance', [ExportController::class, 'exportTrialBalance'])->name('exports.trial-balance');
+        Route::get('/exports/profit-loss', [ExportController::class, 'exportProfitLoss'])->name('exports.profit-loss');
+        Route::get('/exports/balance-sheet', [ExportController::class, 'exportBalanceSheet'])->name('exports.balance-sheet');
+        Route::get('/exports/coa', [ExportController::class, 'exportCoA'])->name('exports.coa');
+        Route::get('/exports/finance-template/{type}', [ExportController::class, 'downloadTemplate'])->name('exports.finance-template');
+
+        // Imports — finance
+        Route::post('/imports/coa', [ImportController::class, 'importCOA'])->name('imports.coa');
+        Route::post('/imports/journals', [ImportController::class, 'importJournals'])->name('imports.journals');
+        Route::get('/finance/imports', [ImportController::class, 'financeImports'])->name('finance.imports');
+
+        Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
+        Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
+        Route::post('/payroll/{id}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
+    });
+
+    // Tutor routes
+    Route::prefix('tutor')->name('tutor.')->middleware('role:tutor')->group(function() {
+        Route::get('/dashboard', [TutorDashboard::class, 'index'])->name('dashboard');
+        Route::get('/attendance/data', [TutorAttendance::class, 'data'])->name('attendance.data');
+        Route::get('/attendance', [TutorAttendance::class, 'index'])->name('attendance.index');
+        Route::get('/attendance/create', [TutorAttendance::class, 'create'])->name('attendance.create');
+        Route::get('/schedule', [TutorSchedule::class, 'index'])->name('schedule.index');
+        Route::post('/attendance', [TutorAttendance::class, 'store'])->name('attendance.store');
+        Route::delete('/attendance/{id}', [TutorAttendance::class, 'destroy'])->name('attendance.destroy');
+        Route::get('/availability', [TutorAvailability::class, 'index'])->name('availability.index');
+        Route::post('/availability', [TutorAvailability::class, 'store'])->name('availability.store');
+        Route::delete('/availability/{id}', [TutorAvailability::class, 'destroy'])->name('availability.destroy');
+        Route::patch('/availability/{id}', [TutorAvailability::class, 'update'])->name('availability.update');
+        Route::post('/room-bookings', [App\Http\Controllers\Tutor\RoomBookingController::class, 'store'])->name('room-bookings.store');
+        Route::delete('/room-bookings/{id}', [App\Http\Controllers\Tutor\RoomBookingController::class, 'destroy'])->name('room-bookings.destroy');
+    });
+
+    // Student routes
+    Route::prefix('student')->name('student.')->middleware('role:student')->group(function() {
+        Route::get('/dashboard', [StudentDashboard::class, 'index'])->name('dashboard');
+    });
+});
+
+require __DIR__.'/auth.php';

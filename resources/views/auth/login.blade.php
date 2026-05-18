@@ -1,0 +1,55 @@
+<x-guest-layout>
+    <x-auth-session-status class="mb-md" :status="session('status')" />
+
+    <form method="POST" action="{{ route('login') }}" class="space-y-md">
+        @csrf
+
+        {{-- Email --}}
+        <div class="fieldset">
+            <label class="fieldset-legend text-on-surface">Email</label>
+            <input id="email" type="email" name="email"
+                value="{{ old('email') }}"
+                required autofocus autocomplete="username"
+                placeholder="nama@email.com"
+                class="input w-full @error('email') input-error @enderror" />
+            @error('email')
+                <p class="label text-error">{{ $message }}</p>
+            @enderror
+        </div>
+
+        {{-- Password --}}
+        <div class="fieldset">
+            <label class="fieldset-legend text-on-surface">Password</label>
+            <input id="password" type="password" name="password"
+                required autocomplete="current-password"
+                placeholder="••••••••"
+                class="input w-full @error('password') input-error @enderror" />
+            @error('password')
+                <p class="label text-error">{{ $message }}</p>
+            @enderror
+        </div>
+
+        {{-- Remember + Forgot --}}
+        <div class="flex items-center justify-between">
+            <label class="flex items-center gap-sm cursor-pointer">
+                <input type="checkbox" name="remember" class="checkbox checkbox-sm" />
+                <span class="text-body-md text-on-surface-variant">Ingat saya</span>
+            </label>
+            @if (Route::has('password.request'))
+                <a href="{{ route('password.request') }}"
+                   class="text-body-md text-primary-container hover:underline">
+                    Lupa password?
+                </a>
+            @endif
+        </div>
+
+        {{-- Submit --}}
+        <button type="submit" class="btn btn-block bg-primary-container text-on-primary border-none hover:opacity-90">
+            Masuk
+        </button>
+
+    </form>
+</x-guest-layout>
+
+
+

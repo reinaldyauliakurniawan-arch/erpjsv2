@@ -1,0 +1,1061 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites>
+  <testsuite name="C:\laragon\www\just-speak\phpunit.xml" tests="74" assertions="61" errors="32" failures="11" skipped="0" time="21.604689">
+    <testsuite name="Unit" tests="21" assertions="14" errors="11" failures="1" skipped="0" time="9.573015">
+      <testsuite name="Tests\Unit\Services\AccountingServiceTest" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" tests="8" assertions="12" errors="0" failures="0" skipped="0" time="7.883270">
+        <testcase name="it_creates_a_balanced_journal_entry" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" line="37" class="Tests\Unit\Services\AccountingServiceTest" classname="Tests.Unit.Services.AccountingServiceTest" assertions="4" time="7.224454"/>
+        <testcase name="it_returns_the_created_journal_instance" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" line="60" class="Tests\Unit\Services\AccountingServiceTest" classname="Tests.Unit.Services.AccountingServiceTest" assertions="2" time="0.081749"/>
+        <testcase name="it_throws_balance_mismatch_when_debit_not_equal_credit" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" line="79" class="Tests\Unit\Services\AccountingServiceTest" classname="Tests.Unit.Services.AccountingServiceTest" assertions="1" time="0.092630"/>
+        <testcase name="it_allows_tiny_floating_point_difference_within_tolerance" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" line="93" class="Tests\Unit\Services\AccountingServiceTest" classname="Tests.Unit.Services.AccountingServiceTest" assertions="1" time="0.103847"/>
+        <testcase name="it_throws_idempotency_exception_on_duplicate_reference" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" line="112" class="Tests\Unit\Services\AccountingServiceTest" classname="Tests.Unit.Services.AccountingServiceTest" assertions="1" time="0.093518"/>
+        <testcase name="it_does_not_create_duplicate_journal_on_idempotency_failure" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" line="127" class="Tests\Unit\Services\AccountingServiceTest" classname="Tests.Unit.Services.AccountingServiceTest" assertions="1" time="0.105663"/>
+        <testcase name="it_throws_account_not_found_for_invalid_account_code" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" line="148" class="Tests\Unit\Services\AccountingServiceTest" classname="Tests.Unit.Services.AccountingServiceTest" assertions="1" time="0.085562"/>
+        <testcase name="it_rolls_back_transaction_when_account_not_found" file="C:\laragon\www\just-speak\tests\Unit\Services\AccountingServiceTest.php" line="162" class="Tests\Unit\Services\AccountingServiceTest" classname="Tests.Unit.Services.AccountingServiceTest" assertions="1" time="0.095848"/>
+      </testsuite>
+      <testsuite name="Tests\Unit\Services\EnrollmentServiceTest" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" tests="13" assertions="2" errors="11" failures="1" skipped="0" time="1.689745">
+        <testcase name="it_enrolls_student_into_private_class_and_creates_user" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="91" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.140904">
+          <error type="BadMethodCallException">Tests\Unit\Services\EnrollmentServiceTest::it_enrolls_student_into_private_class_and_creates_user&#13;
+BadMethodCallException: Call to undefined method Database\Factories\TutorFactory::withUser()
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:1143
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:94</error>
+        </testcase>
+        <testcase name="it_auto_creates_class_session_for_private_program" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="111" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.227406">
+          <error type="App\Exceptions\AccountNotFoundException">Tests\Unit\Services\EnrollmentServiceTest::it_auto_creates_class_session_for_private_program&#13;
+App\Exceptions\AccountNotFoundException: Account with code 2101 not found.
+&#13;
+C:\laragon\www\just-speak\app\Services\AccountingService.php:55
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\AccountingService.php:43
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:141
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:35
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:115</error>
+        </testcase>
+        <testcase name="it_names_private_session_with_tutor_prefix_when_tutor_provided" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="123" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.111162">
+          <error type="BadMethodCallException">Tests\Unit\Services\EnrollmentServiceTest::it_names_private_session_with_tutor_prefix_when_tutor_provided&#13;
+BadMethodCallException: Call to undefined method Database\Factories\TutorFactory::withUser()
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:1143
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:126</error>
+        </testcase>
+        <testcase name="it_attaches_tutors_with_pending_status" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="138" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.075163">
+          <error type="BadMethodCallException">Tests\Unit\Services\EnrollmentServiceTest::it_attaches_tutors_with_pending_status&#13;
+BadMethodCallException: Call to undefined method Database\Factories\TutorFactory::withUser()
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:1143
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:141</error>
+        </testcase>
+        <testcase name="it_creates_journal_entry_for_full_upfront_payment" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="156" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.132911">
+          <error type="App\Exceptions\AccountNotFoundException">Tests\Unit\Services\EnrollmentServiceTest::it_creates_journal_entry_for_full_upfront_payment&#13;
+App\Exceptions\AccountNotFoundException: Account with code 2101 not found.
+&#13;
+C:\laragon\www\just-speak\app\Services\AccountingService.php:55
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\AccountingService.php:43
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:141
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:35
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:160</error>
+        </testcase>
+        <testcase name="it_does_not_create_journal_when_no_payment_made" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="166" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.113247">
+          <error type="ErrorException">Tests\Unit\Services\EnrollmentServiceTest::it_does_not_create_journal_when_no_payment_made&#13;
+ErrorException: Trying to access array offset on null
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php:258
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:137
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:35
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:176</error>
+        </testcase>
+        <testcase name="group_enrollment_sets_waitlist_when_below_min_quota" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="186" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.093680">
+          <error type="Illuminate\Database\QueryException">Tests\Unit\Services\EnrollmentServiceTest::group_enrollment_sets_waitlist_when_below_min_quota&#13;
+Illuminate\Database\QueryException: SQLSTATE[01000]: Warning: 1265 Data truncated for column 'status' at row 1 (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `class_sessions` (`name`, `program_id`, `status`, `updated_at`, `created_at`) values (illo ut quas, 7, pending, 2026-05-12 08:11:38, 2026-05-12 08:11:38))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:189</error>
+        </testcase>
+        <testcase name="group_enrollment_activates_all_waitlist_when_quota_reached" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="205" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.105614">
+          <error type="Illuminate\Database\QueryException">Tests\Unit\Services\EnrollmentServiceTest::group_enrollment_activates_all_waitlist_when_quota_reached&#13;
+Illuminate\Database\QueryException: SQLSTATE[01000]: Warning: 1265 Data truncated for column 'status' at row 1 (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `class_sessions` (`name`, `program_id`, `status`, `updated_at`, `created_at`) values (recusandae molestiae numquam, 8, pending, 2026-05-12 08:11:39, 2026-05-12 08:11:39))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:208</error>
+        </testcase>
+        <testcase name="group_enrollment_throws_when_class_session_not_provided" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="232" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="1" time="0.105731"/>
+        <testcase name="it_throws_domain_exception_when_room_is_full" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="245" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="1" time="0.113265">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Unit\Services\EnrollmentServiceTest::it_throws_domain_exception_when_room_is_full&#13;
+Failed asserting that exception of type "Illuminate\Database\QueryException" matches expected exception "App\Exceptions\DomainException". Message was: "SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (5, 11, ?, installment, unpaid, graduate, 1418270, 20, 2014-12-07, 2026-05-12 08:11:39, 2026-05-12 08:11:39))" at
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:47
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:830
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:592
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Arr.php:842
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Collection.php:827
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:584
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:538
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:522
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Concerns\GuardsAttributes.php:181
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:521
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:438
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:327
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:253
+.</failure>
+        </testcase>
+        <testcase name="it_creates_installments_when_payment_method_is_installment" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="273" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.131176">
+          <error type="App\Exceptions\AccountNotFoundException">Tests\Unit\Services\EnrollmentServiceTest::it_creates_installments_when_payment_method_is_installment&#13;
+App\Exceptions\AccountNotFoundException: Account with code 2101 not found.
+&#13;
+C:\laragon\www\just-speak\app\Services\AccountingService.php:55
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\AccountingService.php:43
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:141
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:35
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:285</error>
+        </testcase>
+        <testcase name="it_creates_journal_only_for_first_installment_amount" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="292" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.221496">
+          <error type="App\Exceptions\AccountNotFoundException">Tests\Unit\Services\EnrollmentServiceTest::it_creates_journal_only_for_first_installment_amount&#13;
+App\Exceptions\AccountNotFoundException: Account with code 2101 not found.
+&#13;
+C:\laragon\www\just-speak\app\Services\AccountingService.php:55
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\AccountingService.php:43
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:141
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:35
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:304</error>
+        </testcase>
+        <testcase name="it_creates_schedules_for_enrollment" file="C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php" line="316" class="Tests\Unit\Services\EnrollmentServiceTest" classname="Tests.Unit.Services.EnrollmentServiceTest" assertions="0" time="0.117990">
+          <error type="App\Exceptions\AccountNotFoundException">Tests\Unit\Services\EnrollmentServiceTest::it_creates_schedules_for_enrollment&#13;
+App\Exceptions\AccountNotFoundException: Account with code 2101 not found.
+&#13;
+C:\laragon\www\just-speak\app\Services\AccountingService.php:55
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\AccountingService.php:43
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:141
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Concerns\ManagesTransactions.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\DatabaseManager.php:496
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Facades\Facade.php:363
+C:\laragon\www\just-speak\app\Services\EnrollmentService.php:35
+C:\laragon\www\just-speak\tests\Unit\Services\EnrollmentServiceTest.php:328</error>
+        </testcase>
+      </testsuite>
+    </testsuite>
+    <testsuite name="Feature" tests="53" assertions="47" errors="21" failures="10" skipped="0" time="12.031674">
+      <testsuite name="Tests\Feature\Admin\EnrollmentControllerTest" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" tests="19" assertions="9" errors="12" failures="2" skipped="0" time="6.589552">
+        <testcase name="admin_can_view_enrollment_list" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="41" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.199298">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::admin_can_view_enrollment_list&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (9, 15, ?, installment, partial, waitlist, 1734848, 13, 1998-08-15, 2026-05-12 08:11:39, 2026-05-12 08:11:39))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:334
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:43</error>
+        </testcase>
+        <testcase name="guest_cannot_access_enrollment_list" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="52" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="2" time="0.256201"/>
+        <testcase name="admin_can_view_enrollment_create_form" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="63" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="2" time="0.209037"/>
+        <testcase name="admin_can_store_enrollment_with_full_upfront_payment" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="72" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="1" time="2.823422">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\EnrollmentControllerTest::admin_can_store_enrollment_with_full_upfront_payment&#13;
+Expected response status code [201, 301, 302, 303, 307, 308] but received 500.
+Failed asserting that false is true.&#13;
+&#13;
+The following exception occurred during the last request:
+
+ReflectionException: Class "App\Http\Requests\Admin\StoreEnrollmentRequest" does not exist in C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ResolvesRouteDependencies.php:88
+Stack trace:
+#0 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ResolvesRouteDependencies.php(88): ReflectionClass-&gt;__construct('App\\Http\\Reques...')
+#1 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ResolvesRouteDependencies.php(51): Illuminate\Routing\ControllerDispatcher-&gt;transformDependency(Object(ReflectionParameter), Array, Object(stdClass))
+#2 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ResolvesRouteDependencies.php(30): Illuminate\Routing\ControllerDispatcher-&gt;resolveMethodDependencies(Array, Object(ReflectionMethod))
+#3 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ControllerDispatcher.php(59): Illuminate\Routing\ControllerDispatcher-&gt;resolveClassMethodDependencies(Array, Object(App\Http\Controllers\Admin\EnrollmentController), 'store')
+#4 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ControllerDispatcher.php(40): Illuminate\Routing\ControllerDispatcher-&gt;resolveParameters(Object(Illuminate\Routing\Route), Object(App\Http\Controllers\Admin\EnrollmentController), 'store')
+#5 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Route.php(269): Illuminate\Routing\ControllerDispatcher-&gt;dispatch(Object(Illuminate\Routing\Route), Object(App\Http\Controllers\Admin\EnrollmentController), 'store')
+#6 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Route.php(215): Illuminate\Routing\Route-&gt;runController()
+#7 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(822): Illuminate\Routing\Route-&gt;run()
+#8 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(180): Illuminate\Routing\Router-&gt;Illuminate\Routing\{closure}(Object(Illuminate\Http\Request))
+#9 C:\laragon\www\just-speak\app\Http\Middleware\RoleMiddleware.php(13): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#10 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\RoleMiddleware-&gt;handle(Object(Illuminate\Http\Request), Object(Closure), 'admin')
+#11 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Middleware\SubstituteBindings.php(52): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#12 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Routing\Middleware\SubstituteBindings-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#13 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Auth\Middleware\Authenticate.php(63): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#14 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Auth\Middleware\Authenticate-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#15 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\PreventRequestForgery.php(104): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#16 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestForgery-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#17 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\View\Middleware\ShareErrorsFromSession.php(48): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#18 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\View\Middleware\ShareErrorsFromSession-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#19 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Session\Middleware\StartSession.php(120): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#20 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Session\Middleware\StartSession.php(63): Illuminate\Session\Middleware\StartSession-&gt;handleStatefulRequest(Object(Illuminate\Http\Request), Object(Illuminate\Session\Store), Object(Closure))
+#21 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Session\Middleware\StartSession-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#22 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse.php(36): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#23 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#24 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Cookie\Middleware\EncryptCookies.php(74): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#25 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Cookie\Middleware\EncryptCookies-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#26 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(137): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#27 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(821): Illuminate\Pipeline\Pipeline-&gt;then(Object(Closure))
+#28 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(800): Illuminate\Routing\Router-&gt;runRouteWithinStack(Object(Illuminate\Routing\Route), Object(Illuminate\Http\Request))
+#29 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(764): Illuminate\Routing\Router-&gt;runRoute(Object(Illuminate\Http\Request), Object(Illuminate\Routing\Route))
+#30 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(753): Illuminate\Routing\Router-&gt;dispatchToRoute(Object(Illuminate\Http\Request))
+#31 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(200): Illuminate\Routing\Router-&gt;dispatch(Object(Illuminate\Http\Request))
+#32 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(180): Illuminate\Foundation\Http\Kernel-&gt;Illuminate\Foundation\Http\{closure}(Object(Illuminate\Http\Request))
+#33 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TransformsRequest.php(21): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#34 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull.php(31): Illuminate\Foundation\Http\Middleware\TransformsRequest-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#35 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#36 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TransformsRequest.php(21): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#37 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TrimStrings.php(51): Illuminate\Foundation\Http\Middleware\TransformsRequest-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#38 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\TrimStrings-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#39 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Http\Middleware\ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#40 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\ValidatePostSize-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#41 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance.php(109): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#42 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#43 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Http\Middleware\HandleCors.php(61): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#44 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\HandleCors-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#45 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Http\Middleware\TrustProxies.php(58): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#46 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\TrustProxies-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#47 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks.php(22): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#48 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#49 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Http\Middleware\ValidatePathEncoding.php(28): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#50 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\ValidatePathEncoding-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#51 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(137): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#52 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(175): Illuminate\Pipeline\Pipeline-&gt;then(Object(Closure))
+#53 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(144): Illuminate\Foundation\Http\Kernel-&gt;sendRequestThroughRouter(Object(Illuminate\Http\Request))
+#54 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\MakesHttpRequests.php(607): Illuminate\Foundation\Http\Kernel-&gt;handle(Object(Illuminate\Http\Request))
+#55 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\MakesHttpRequests.php(397): Illuminate\Foundation\Testing\TestCase-&gt;call('POST', 'http://localhos...', Array, Array, Array, Array)
+#56 C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php(78): Illuminate\Foundation\Testing\TestCase-&gt;post('http://localhos...', Array)
+#57 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestCase.php(1310): Tests\Feature\Admin\EnrollmentControllerTest-&gt;admin_can_store_enrollment_with_full_upfront_payment()
+#58 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestCase.php(1344): PHPUnit\Framework\TestCase-&gt;invokeTestMethod('admin_can_store...', Array)
+#59 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestCase.php(520): PHPUnit\Framework\TestCase-&gt;runTest()
+#60 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestRunner\TestRunner.php(99): PHPUnit\Framework\TestCase-&gt;runBare()
+#61 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestCase.php(360): PHPUnit\Framework\TestRunner-&gt;run(Object(Tests\Feature\Admin\EnrollmentControllerTest))
+#62 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestSuite.php(374): PHPUnit\Framework\TestCase-&gt;run()
+#63 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestSuite.php(374): PHPUnit\Framework\TestSuite-&gt;run()
+#64 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestSuite.php(374): PHPUnit\Framework\TestSuite-&gt;run()
+#65 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\TextUI\TestRunner.php(64): PHPUnit\Framework\TestSuite-&gt;run()
+#66 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\TextUI\Application.php(229): PHPUnit\TextUI\TestRunner-&gt;run(Object(PHPUnit\TextUI\Configuration\Configuration), Object(PHPUnit\Runner\ResultCache\DefaultResultCache), Object(PHPUnit\Framework\TestSuite))
+#67 C:\laragon\www\just-speak\vendor\phpunit\phpunit\phpunit(104): PHPUnit\TextUI\Application-&gt;run(Array)
+#68 {main}
+
+----------------------------------------------------------------------------------
+
+Class "App\Http\Requests\Admin\StoreEnrollmentRequest" does not exist
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:201
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:91</failure>
+          <system-out>public function rules(): array
+{
+    return [
+        'new_student.name'         =&gt; 'required|string|max:255',
+        'new_student.email'        =&gt; 'required|email|unique:users,email',
+        'new_student.phone'        =&gt; 'nullable|string|max:20',
+
+        'program_id'               =&gt; 'required|exists:programs,id',
+        'class_session_id'         =&gt; 'nullable|exists:class_sessions,id',
+        'enrollment_date'          =&gt; 'required|date',
+        'expiry_date'              =&gt; 'required|date|after:enrollment_date',
+        'payment_method'           =&gt; 'required|string|in:full upfront,installment,ala carte',
+        'schedules'                =&gt; 'required|array|min:1',
+        'schedules.*.classroom_id' =&gt; 'required|exists:classrooms,id',
+        'schedules.*.day'          =&gt; 'required|string',
+        'schedules.*.time_block'   =&gt; 'required|string',
+        'installments'             =&gt; 'required_if:payment_method,installment|array',
+        'installments.*.amount'    =&gt; 'required_with:installments|numeric',
+        'installments.*.due_date'  =&gt; 'required_with:installments|date',
+        'tutor_ids'                =&gt; 'nullable|array',
+        'tutor_ids.*'              =&gt; 'exists:tutors,id',
+    ];
+}
+public function rules(): array
+{
+    return [
+        'new_student.name'         =&gt; 'required|string|max:255',
+        'new_student.email'        =&gt; 'required|email|unique:users,email',
+        'new_student.phone'        =&gt; 'nullable|string|max:20',
+
+        'program_id'               =&gt; 'required|exists:programs,id',
+        'class_session_id'         =&gt; 'nullable|exists:class_sessions,id',
+        'enrollment_date'          =&gt; 'required|date',
+        'expiry_date'              =&gt; 'required|date|after:enrollment_date',
+        'payment_method'           =&gt; 'required|string|in:full upfront,installment,ala carte',
+        'schedules'                =&gt; 'required|array|min:1',
+        'schedules.*.classroom_id' =&gt; 'required|exists:classrooms,id',
+        'schedules.*.day'          =&gt; 'required|string',
+        'schedules.*.time_block'   =&gt; 'required|string',
+        'installments'             =&gt; 'required_if:payment_method,installment|array',
+        'installments.*.amount'    =&gt; 'required_with:installments|numeric',
+        'installments.*.due_date'  =&gt; 'required_with:installments|date',
+        'tutor_ids'                =&gt; 'nullable|array',
+        'tutor_ids.*'              =&gt; 'exists:tutors,id',
+    ];
+}
+public function rules(): array
+{
+    return [
+        'new_student.name'         =&gt; 'required|string|max:255',
+        'new_student.email'        =&gt; 'required|email|unique:users,email',
+        'new_student.phone'        =&gt; 'nullable|string|max:20',
+
+        'program_id'               =&gt; 'required|exists:programs,id',
+        'class_session_id'         =&gt; 'nullable|exists:class_sessions,id',
+        'enrollment_date'          =&gt; 'required|date',
+        'expiry_date'              =&gt; 'required|date|after:enrollment_date',
+        'payment_method'           =&gt; 'required|string|in:full upfront,installment,ala carte',
+        'schedules'                =&gt; 'required|array|min:1',
+        'schedules.*.classroom_id' =&gt; 'required|exists:classrooms,id',
+        'schedules.*.day'          =&gt; 'required|string',
+        'schedules.*.time_block'   =&gt; 'required|string',
+        'installments'             =&gt; 'required_if:payment_method,installment|array',
+        'installments.*.amount'    =&gt; 'required_with:installments|numeric',
+        'installments.*.due_date'  =&gt; 'required_with:installments|date',
+        'tutor_ids'                =&gt; 'nullable|array',
+        'tutor_ids.*'              =&gt; 'exists:tutors,id',
+    ];
+}
+public function rules(): array
+{
+    return [
+        'new_student.name'         =&gt; 'required|string|max:255',
+        'new_student.email'        =&gt; 'required|email|unique:users,email',
+        'new_student.phone'        =&gt; 'nullable|string|max:20',
+
+        'program_id'               =&gt; 'required|exists:programs,id',
+        'class_session_id'         =&gt; 'nullable|exists:class_sessions,id',
+        'enrollment_date'          =&gt; 'required|date',
+        'expiry_date'              =&gt; 'required|date|after:enrollment_date',
+        'payment_method'           =&gt; 'required|string|in:full upfront,installment,ala carte',
+        'schedules'                =&gt; 'required|array|min:1',
+        'schedules.*.classroom_id' =&gt; 'required|exists:classrooms,id',
+        'schedules.*.day'          =&gt; 'required|string',
+        'schedules.*.time_block'   =&gt; 'required|string',
+        'installments'             =&gt; 'required_if:payment_method,installment|array',
+        'installments.*.amount'    =&gt; 'required_with:installments|numeric',
+        'installments.*.due_date'  =&gt; 'required_with:installments|date',
+        'tutor_ids'                =&gt; 'nullable|array',
+        'tutor_ids.*'              =&gt; 'exists:tutors,id',
+    ];
+}
+</system-out>
+        </testcase>
+        <testcase name="store_enrollment_fails_with_missing_required_fields" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="99" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="1" time="1.566576">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\EnrollmentControllerTest::store_enrollment_fails_with_missing_required_fields&#13;
+Session is missing expected key [errors].
+Failed asserting that false is true.&#13;
+&#13;
+The following exception occurred during the last request:
+
+ReflectionException: Class "App\Http\Requests\Admin\StoreEnrollmentRequest" does not exist in C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ResolvesRouteDependencies.php:88
+Stack trace:
+#0 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ResolvesRouteDependencies.php(88): ReflectionClass-&gt;__construct('App\\Http\\Reques...')
+#1 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ResolvesRouteDependencies.php(51): Illuminate\Routing\ControllerDispatcher-&gt;transformDependency(Object(ReflectionParameter), Array, Object(stdClass))
+#2 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ResolvesRouteDependencies.php(30): Illuminate\Routing\ControllerDispatcher-&gt;resolveMethodDependencies(Array, Object(ReflectionMethod))
+#3 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ControllerDispatcher.php(59): Illuminate\Routing\ControllerDispatcher-&gt;resolveClassMethodDependencies(Array, Object(App\Http\Controllers\Admin\EnrollmentController), 'store')
+#4 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\ControllerDispatcher.php(40): Illuminate\Routing\ControllerDispatcher-&gt;resolveParameters(Object(Illuminate\Routing\Route), Object(App\Http\Controllers\Admin\EnrollmentController), 'store')
+#5 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Route.php(269): Illuminate\Routing\ControllerDispatcher-&gt;dispatch(Object(Illuminate\Routing\Route), Object(App\Http\Controllers\Admin\EnrollmentController), 'store')
+#6 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Route.php(215): Illuminate\Routing\Route-&gt;runController()
+#7 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(822): Illuminate\Routing\Route-&gt;run()
+#8 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(180): Illuminate\Routing\Router-&gt;Illuminate\Routing\{closure}(Object(Illuminate\Http\Request))
+#9 C:\laragon\www\just-speak\app\Http\Middleware\RoleMiddleware.php(13): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#10 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): App\Http\Middleware\RoleMiddleware-&gt;handle(Object(Illuminate\Http\Request), Object(Closure), 'admin')
+#11 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Middleware\SubstituteBindings.php(52): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#12 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Routing\Middleware\SubstituteBindings-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#13 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Auth\Middleware\Authenticate.php(63): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#14 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Auth\Middleware\Authenticate-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#15 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\PreventRequestForgery.php(104): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#16 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestForgery-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#17 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\View\Middleware\ShareErrorsFromSession.php(48): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#18 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\View\Middleware\ShareErrorsFromSession-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#19 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Session\Middleware\StartSession.php(120): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#20 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Session\Middleware\StartSession.php(63): Illuminate\Session\Middleware\StartSession-&gt;handleStatefulRequest(Object(Illuminate\Http\Request), Object(Illuminate\Session\Store), Object(Closure))
+#21 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Session\Middleware\StartSession-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#22 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse.php(36): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#23 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#24 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Cookie\Middleware\EncryptCookies.php(74): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#25 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Cookie\Middleware\EncryptCookies-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#26 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(137): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#27 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(821): Illuminate\Pipeline\Pipeline-&gt;then(Object(Closure))
+#28 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(800): Illuminate\Routing\Router-&gt;runRouteWithinStack(Object(Illuminate\Routing\Route), Object(Illuminate\Http\Request))
+#29 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(764): Illuminate\Routing\Router-&gt;runRoute(Object(Illuminate\Http\Request), Object(Illuminate\Routing\Route))
+#30 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Routing\Router.php(753): Illuminate\Routing\Router-&gt;dispatchToRoute(Object(Illuminate\Http\Request))
+#31 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(200): Illuminate\Routing\Router-&gt;dispatch(Object(Illuminate\Http\Request))
+#32 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(180): Illuminate\Foundation\Http\Kernel-&gt;Illuminate\Foundation\Http\{closure}(Object(Illuminate\Http\Request))
+#33 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TransformsRequest.php(21): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#34 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull.php(31): Illuminate\Foundation\Http\Middleware\TransformsRequest-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#35 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\ConvertEmptyStringsToNull-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#36 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TransformsRequest.php(21): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#37 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\TrimStrings.php(51): Illuminate\Foundation\Http\Middleware\TransformsRequest-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#38 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\TrimStrings-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#39 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Http\Middleware\ValidatePostSize.php(27): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#40 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\ValidatePostSize-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#41 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance.php(109): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#42 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\PreventRequestsDuringMaintenance-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#43 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Http\Middleware\HandleCors.php(61): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#44 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\HandleCors-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#45 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Http\Middleware\TrustProxies.php(58): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#46 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\TrustProxies-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#47 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks.php(22): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#48 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Foundation\Http\Middleware\InvokeDeferredCallbacks-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#49 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Http\Middleware\ValidatePathEncoding.php(28): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#50 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(219): Illuminate\Http\Middleware\ValidatePathEncoding-&gt;handle(Object(Illuminate\Http\Request), Object(Closure))
+#51 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Pipeline\Pipeline.php(137): Illuminate\Pipeline\Pipeline-&gt;Illuminate\Pipeline\{closure}(Object(Illuminate\Http\Request))
+#52 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(175): Illuminate\Pipeline\Pipeline-&gt;then(Object(Closure))
+#53 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Http\Kernel.php(144): Illuminate\Foundation\Http\Kernel-&gt;sendRequestThroughRouter(Object(Illuminate\Http\Request))
+#54 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\MakesHttpRequests.php(607): Illuminate\Foundation\Http\Kernel-&gt;handle(Object(Illuminate\Http\Request))
+#55 C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Foundation\Testing\Concerns\MakesHttpRequests.php(397): Illuminate\Foundation\Testing\TestCase-&gt;call('POST', 'http://localhos...', Array, Array, Array, Array)
+#56 C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php(102): Illuminate\Foundation\Testing\TestCase-&gt;post('http://localhos...', Array)
+#57 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestCase.php(1310): Tests\Feature\Admin\EnrollmentControllerTest-&gt;store_enrollment_fails_with_missing_required_fields()
+#58 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestCase.php(1344): PHPUnit\Framework\TestCase-&gt;invokeTestMethod('store_enrollmen...', Array)
+#59 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestCase.php(520): PHPUnit\Framework\TestCase-&gt;runTest()
+#60 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestRunner\TestRunner.php(99): PHPUnit\Framework\TestCase-&gt;runBare()
+#61 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestCase.php(360): PHPUnit\Framework\TestRunner-&gt;run(Object(Tests\Feature\Admin\EnrollmentControllerTest))
+#62 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestSuite.php(374): PHPUnit\Framework\TestCase-&gt;run()
+#63 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestSuite.php(374): PHPUnit\Framework\TestSuite-&gt;run()
+#64 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\Framework\TestSuite.php(374): PHPUnit\Framework\TestSuite-&gt;run()
+#65 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\TextUI\TestRunner.php(64): PHPUnit\Framework\TestSuite-&gt;run()
+#66 C:\laragon\www\just-speak\vendor\phpunit\phpunit\src\TextUI\Application.php(229): PHPUnit\TextUI\TestRunner-&gt;run(Object(PHPUnit\TextUI\Configuration\Configuration), Object(PHPUnit\Runner\ResultCache\DefaultResultCache), Object(PHPUnit\Framework\TestSuite))
+#67 C:\laragon\www\just-speak\vendor\phpunit\phpunit\phpunit(104): PHPUnit\TextUI\Application-&gt;run(Array)
+#68 {main}
+
+----------------------------------------------------------------------------------
+
+Class "App\Http\Requests\Admin\StoreEnrollmentRequest" does not exist
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1568
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1679
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:103</failure>
+          <system-out>public function rules(): array
+{
+    return [
+        'new_student.name'         =&gt; 'required|string|max:255',
+        'new_student.email'        =&gt; 'required|email|unique:users,email',
+        'new_student.phone'        =&gt; 'nullable|string|max:20',
+
+        'program_id'               =&gt; 'required|exists:programs,id',
+        'class_session_id'         =&gt; 'nullable|exists:class_sessions,id',
+        'enrollment_date'          =&gt; 'required|date',
+        'expiry_date'              =&gt; 'required|date|after:enrollment_date',
+        'payment_method'           =&gt; 'required|string|in:full upfront,installment,ala carte',
+        'schedules'                =&gt; 'required|array|min:1',
+        'schedules.*.classroom_id' =&gt; 'required|exists:classrooms,id',
+        'schedules.*.day'          =&gt; 'required|string',
+        'schedules.*.time_block'   =&gt; 'required|string',
+        'installments'             =&gt; 'required_if:payment_method,installment|array',
+        'installments.*.amount'    =&gt; 'required_with:installments|numeric',
+        'installments.*.due_date'  =&gt; 'required_with:installments|date',
+        'tutor_ids'                =&gt; 'nullable|array',
+        'tutor_ids.*'              =&gt; 'exists:tutors,id',
+    ];
+}
+public function rules(): array
+{
+    return [
+        'new_student.name'         =&gt; 'required|string|max:255',
+        'new_student.email'        =&gt; 'required|email|unique:users,email',
+        'new_student.phone'        =&gt; 'nullable|string|max:20',
+
+        'program_id'               =&gt; 'required|exists:programs,id',
+        'class_session_id'         =&gt; 'nullable|exists:class_sessions,id',
+        'enrollment_date'          =&gt; 'required|date',
+        'expiry_date'              =&gt; 'required|date|after:enrollment_date',
+        'payment_method'           =&gt; 'required|string|in:full upfront,installment,ala carte',
+        'schedules'                =&gt; 'required|array|min:1',
+        'schedules.*.classroom_id' =&gt; 'required|exists:classrooms,id',
+        'schedules.*.day'          =&gt; 'required|string',
+        'schedules.*.time_block'   =&gt; 'required|string',
+        'installments'             =&gt; 'required_if:payment_method,installment|array',
+        'installments.*.amount'    =&gt; 'required_with:installments|numeric',
+        'installments.*.due_date'  =&gt; 'required_with:installments|date',
+        'tutor_ids'                =&gt; 'nullable|array',
+        'tutor_ids.*'              =&gt; 'exists:tutors,id',
+    ];
+}
+public function rules(): array
+{
+    return [
+        'new_student.name'         =&gt; 'required|string|max:255',
+        'new_student.email'        =&gt; 'required|email|unique:users,email',
+        'new_student.phone'        =&gt; 'nullable|string|max:20',
+
+        'program_id'               =&gt; 'required|exists:programs,id',
+        'class_session_id'         =&gt; 'nullable|exists:class_sessions,id',
+        'enrollment_date'          =&gt; 'required|date',
+        'expiry_date'              =&gt; 'required|date|after:enrollment_date',
+        'payment_method'           =&gt; 'required|string|in:full upfront,installment,ala carte',
+        'schedules'                =&gt; 'required|array|min:1',
+        'schedules.*.classroom_id' =&gt; 'required|exists:classrooms,id',
+        'schedules.*.day'          =&gt; 'required|string',
+        'schedules.*.time_block'   =&gt; 'required|string',
+        'installments'             =&gt; 'required_if:payment_method,installment|array',
+        'installments.*.amount'    =&gt; 'required_with:installments|numeric',
+        'installments.*.due_date'  =&gt; 'required_with:installments|date',
+        'tutor_ids'                =&gt; 'nullable|array',
+        'tutor_ids.*'              =&gt; 'exists:tutors,id',
+    ];
+}
+public function rules(): array
+{
+    return [
+        'new_student.name'         =&gt; 'required|string|max:255',
+        'new_student.email'        =&gt; 'required|email|unique:users,email',
+        'new_student.phone'        =&gt; 'nullable|string|max:20',
+
+        'program_id'               =&gt; 'required|exists:programs,id',
+        'class_session_id'         =&gt; 'nullable|exists:class_sessions,id',
+        'enrollment_date'          =&gt; 'required|date',
+        'expiry_date'              =&gt; 'required|date|after:enrollment_date',
+        'payment_method'           =&gt; 'required|string|in:full upfront,installment,ala carte',
+        'schedules'                =&gt; 'required|array|min:1',
+        'schedules.*.classroom_id' =&gt; 'required|exists:classrooms,id',
+        'schedules.*.day'          =&gt; 'required|string',
+        'schedules.*.time_block'   =&gt; 'required|string',
+        'installments'             =&gt; 'required_if:payment_method,installment|array',
+        'installments.*.amount'    =&gt; 'required_with:installments|numeric',
+        'installments.*.due_date'  =&gt; 'required_with:installments|date',
+        'tutor_ids'                =&gt; 'nullable|array',
+        'tutor_ids.*'              =&gt; 'exists:tutors,id',
+    ];
+}
+</system-out>
+        </testcase>
+        <testcase name="admin_can_view_enrollment_detail" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="111" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.078790">
+          <error type="BadMethodCallException">Tests\Feature\Admin\EnrollmentControllerTest::admin_can_view_enrollment_detail&#13;
+BadMethodCallException: Call to undefined method Database\Factories\EnrollmentFactory::withRelations()
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:1143
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:113</error>
+        </testcase>
+        <testcase name="show_returns_404_for_nonexistent_enrollment" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="122" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="1" time="0.098564"/>
+        <testcase name="admin_can_mark_installment_as_paid" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="134" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.170199">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::admin_can_mark_installment_as_paid&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (12, 19, ?, full, pending, waitlist, 3555579, 19, 2023-03-03, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:136</error>
+        </testcase>
+        <testcase name="marking_already_paid_installment_returns_error" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="155" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.120552">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::marking_already_paid_installment_returns_error&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (13, 20, ?, full, full, active, 3592752, 20, 1979-07-14, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:157</error>
+        </testcase>
+        <testcase name="payment_status_becomes_full_when_all_installments_paid" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="172" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.105358">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::payment_status_becomes_full_when_all_installments_paid&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (14, 21, ?, full, partial, active, 2127637, 21, 2022-02-03, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:174</error>
+        </testcase>
+        <testcase name="payment_status_stays_partial_when_some_installments_remain" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="188" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.101259">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::payment_status_stays_partial_when_some_installments_remain&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (15, 22, ?, installment, pending, active, 1734977, 2, 1972-12-07, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:190</error>
+        </testcase>
+        <testcase name="admin_can_expire_active_enrollment" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="208" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.104265">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::admin_can_expire_active_enrollment&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `total_amount`, `updated_at`, `created_at`) values (16, 23, ?, installment, unpaid, active, 4766109, 3, 1975-02-20, 800000, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:211</error>
+        </testcase>
+        <testcase name="expiring_inactive_enrollment_returns_error" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="228" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.096091">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::expiring_inactive_enrollment_returns_error&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (17, 24, ?, full, partial, graduate, 3224956, 13, 2025-08-23, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:230</error>
+        </testcase>
+        <testcase name="expire_creates_journal_to_recognize_remaining_revenue" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="238" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.117991">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::expire_creates_journal_to_recognize_remaining_revenue&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `total_amount`, `updated_at`, `created_at`) values (18, 25, ?, full, unpaid, active, 3358921, 4, 1987-02-15, 800000, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:241</error>
+        </testcase>
+        <testcase name="admin_can_graduate_active_enrollment_with_zero_remaining_meetings" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="259" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.109288">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::admin_can_graduate_active_enrollment_with_zero_remaining_meetings&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (19, 26, ?, full, full, active, 631632, 0, 1979-03-21, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:261</error>
+        </testcase>
+        <testcase name="cannot_graduate_enrollment_with_remaining_meetings" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="275" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.106099">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::cannot_graduate_enrollment_with_remaining_meetings&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (20, 27, ?, full, unpaid, active, 2316794, 2, 2011-01-22, 2026-05-12 08:11:45, 2026-05-12 08:11:45))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:277</error>
+        </testcase>
+        <testcase name="cannot_graduate_inactive_enrollment" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="290" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="0" time="0.100831">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\Admin\EnrollmentControllerTest::cannot_graduate_inactive_enrollment&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (21, 28, ?, installment, partial, expired, 1568441, 16, 1994-08-12, 2026-05-12 08:11:46, 2026-05-12 08:11:46))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php:292</error>
+        </testcase>
+        <testcase name="student_cannot_access_admin_enrollment_routes" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="304" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="1" time="0.111937"/>
+        <testcase name="tutor_cannot_access_admin_enrollment_routes" file="C:\laragon\www\just-speak\tests\Feature\Admin\EnrollmentControllerTest.php" line="314" class="Tests\Feature\Admin\EnrollmentControllerTest" classname="Tests.Feature.Admin.EnrollmentControllerTest" assertions="1" time="0.113794"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Admin\JournalControllerTest" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" tests="8" assertions="6" errors="3" failures="4" skipped="0" time="0.848358">
+        <testcase name="admin_can_view_journal_list" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" line="33" class="Tests\Feature\Admin\JournalControllerTest" classname="Tests.Feature.Admin.JournalControllerTest" assertions="1" time="0.127057">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\JournalControllerTest::admin_can_view_journal_list&#13;
+Expected response status code [200] but received 403.
+Failed asserting that 403 is identical to 200.
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:176
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\Concerns\AssertsStatusCodes.php:16
+C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php:37</failure>
+        </testcase>
+        <testcase name="admin_can_view_journal_create_form" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" line="42" class="Tests\Feature\Admin\JournalControllerTest" classname="Tests.Feature.Admin.JournalControllerTest" assertions="1" time="0.096105">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\JournalControllerTest::admin_can_view_journal_create_form&#13;
+Expected response status code [200] but received 403.
+Failed asserting that 403 is identical to 200.
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:176
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\Concerns\AssertsStatusCodes.php:16
+C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php:46</failure>
+        </testcase>
+        <testcase name="admin_can_create_manual_journal_entry" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" line="54" class="Tests\Feature\Admin\JournalControllerTest" classname="Tests.Feature.Admin.JournalControllerTest" assertions="1" time="0.167406">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\JournalControllerTest::admin_can_create_manual_journal_entry&#13;
+Expected response status code [201, 301, 302, 303, 307, 308] but received 403.
+Failed asserting that false is true.
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:201
+C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php:66</failure>
+        </testcase>
+        <testcase name="store_journal_fails_when_debit_not_equal_credit" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" line="73" class="Tests\Feature\Admin\JournalControllerTest" classname="Tests.Feature.Admin.JournalControllerTest" assertions="1" time="0.118843">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\JournalControllerTest::store_journal_fails_when_debit_not_equal_credit&#13;
+Session is missing expected key [errors].
+Failed asserting that false is true.
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1568
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1679
+C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php:85</failure>
+        </testcase>
+        <testcase name="admin_can_view_journal_detail" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" line="93" class="Tests\Feature\Admin\JournalControllerTest" classname="Tests.Feature.Admin.JournalControllerTest" assertions="0" time="0.091085">
+          <error type="BadMethodCallException">Tests\Feature\Admin\JournalControllerTest::admin_can_view_journal_detail&#13;
+BadMethodCallException: Call to undefined method Database\Factories\JournalFactory::withItems()
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:1143
+C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php:95</error>
+        </testcase>
+        <testcase name="admin_can_reverse_a_journal" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" line="108" class="Tests\Feature\Admin\JournalControllerTest" classname="Tests.Feature.Admin.JournalControllerTest" assertions="0" time="0.095465">
+          <error type="BadMethodCallException">Tests\Feature\Admin\JournalControllerTest::admin_can_reverse_a_journal&#13;
+BadMethodCallException: Call to undefined method Database\Factories\JournalFactory::withItems()
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:1143
+C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php:110</error>
+        </testcase>
+        <testcase name="reversing_same_journal_twice_is_prevented" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" line="122" class="Tests\Feature\Admin\JournalControllerTest" classname="Tests.Feature.Admin.JournalControllerTest" assertions="0" time="0.073490">
+          <error type="BadMethodCallException">Tests\Feature\Admin\JournalControllerTest::reversing_same_journal_twice_is_prevented&#13;
+BadMethodCallException: Call to undefined method Database\Factories\JournalFactory::withItems()
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:1143
+C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php:124</error>
+        </testcase>
+        <testcase name="guest_cannot_access_journals" file="C:\laragon\www\just-speak\tests\Feature\Admin\JournalControllerTest.php" line="136" class="Tests\Feature\Admin\JournalControllerTest" classname="Tests.Feature.Admin.JournalControllerTest" assertions="2" time="0.078906"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Admin\PayrollControllerTest" file="C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php" tests="5" assertions="5" errors="1" failures="3" skipped="0" time="0.567241">
+        <testcase name="admin_can_view_payroll_index" file="C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php" line="29" class="Tests\Feature\Admin\PayrollControllerTest" classname="Tests.Feature.Admin.PayrollControllerTest" assertions="1" time="0.125128">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\PayrollControllerTest::admin_can_view_payroll_index&#13;
+Expected response status code [200] but received 403.
+Failed asserting that 403 is identical to 200.
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:176
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\Concerns\AssertsStatusCodes.php:16
+C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php:33</failure>
+        </testcase>
+        <testcase name="admin_can_run_payroll" file="C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php" line="38" class="Tests\Feature\Admin\PayrollControllerTest" classname="Tests.Feature.Admin.PayrollControllerTest" assertions="0" time="0.144768">
+          <error type="BadMethodCallException">Tests\Feature\Admin\PayrollControllerTest::admin_can_run_payroll&#13;
+BadMethodCallException: Call to undefined method Database\Factories\TutorFactory::withUser()
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Support\Traits\ForwardsCalls.php:67
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:1143
+C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php:40</error>
+        </testcase>
+        <testcase name="admin_can_approve_payroll" file="C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php" line="54" class="Tests\Feature\Admin\PayrollControllerTest" classname="Tests.Feature.Admin.PayrollControllerTest" assertions="1" time="0.112475">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\PayrollControllerTest::admin_can_approve_payroll&#13;
+Expected response status code [201, 301, 302, 303, 307, 308] but received 403.
+Failed asserting that false is true.
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:201
+C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php:60</failure>
+        </testcase>
+        <testcase name="cannot_approve_already_approved_payroll" file="C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php" line="67" class="Tests\Feature\Admin\PayrollControllerTest" classname="Tests.Feature.Admin.PayrollControllerTest" assertions="1" time="0.104471">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Admin\PayrollControllerTest::cannot_approve_already_approved_payroll&#13;
+Session is missing expected key [errors].
+Failed asserting that false is true.
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1568
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:1679
+C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php:73</failure>
+        </testcase>
+        <testcase name="guest_cannot_access_payroll" file="C:\laragon\www\just-speak\tests\Feature\Admin\PayrollControllerTest.php" line="77" class="Tests\Feature\Admin\PayrollControllerTest" classname="Tests.Feature.Admin.PayrollControllerTest" assertions="2" time="0.080399"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\AttendanceControllerTest" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" tests="8" assertions="4" errors="5" failures="0" skipped="0" time="1.010367">
+        <testcase name="admin_can_view_attendance_list" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" line="41" class="Tests\Feature\AttendanceControllerTest" classname="Tests.Feature.AttendanceControllerTest" assertions="2" time="0.153648"/>
+        <testcase name="admin_can_delete_attendance" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" line="50" class="Tests\Feature\AttendanceControllerTest" classname="Tests.Feature.AttendanceControllerTest" assertions="0" time="0.154411">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AttendanceControllerTest::admin_can_delete_attendance&#13;
+Illuminate\Database\QueryException: SQLSTATE[01000]: Warning: 1265 Data truncated for column 'status' at row 1 (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `class_sessions` (`name`, `program_id`, `status`, `updated_at`, `created_at`) values (perspiciatis libero enim, 29, closed, 2026-05-12 08:11:48, 2026-05-12 08:11:48))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:592
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Arr.php:842
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Collection.php:827
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:584
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:538
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:522
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Concerns\GuardsAttributes.php:181
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:521
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:438
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:327
+C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php:52</error>
+        </testcase>
+        <testcase name="tutor_can_view_own_attendance" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" line="67" class="Tests\Feature\AttendanceControllerTest" classname="Tests.Feature.AttendanceControllerTest" assertions="1" time="0.165825"/>
+        <testcase name="tutor_can_create_attendance_and_reduces_remaining_meetings" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" line="75" class="Tests\Feature\AttendanceControllerTest" classname="Tests.Feature.AttendanceControllerTest" assertions="0" time="0.105477">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AttendanceControllerTest::tutor_can_create_attendance_and_reduces_remaining_meetings&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (22, 30, ?, installment, unpaid, active, 1879937, 5, 1998-02-06, 2026-05-12 08:11:48, 2026-05-12 08:11:48))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php:77</error>
+        </testcase>
+        <testcase name="attendance_creates_revenue_recognition_journal" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" line="100" class="Tests\Feature\AttendanceControllerTest" classname="Tests.Feature.AttendanceControllerTest" assertions="0" time="0.103278">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AttendanceControllerTest::attendance_creates_revenue_recognition_journal&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `total_amount`, `updated_at`, `created_at`) values (23, 31, ?, full, full, active, 4163114, 8, 2014-02-12, 800000, 2026-05-12 08:11:48, 2026-05-12 08:11:48))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php:102</error>
+        </testcase>
+        <testcase name="tutor_cannot_record_duplicate_attendance_same_session" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" line="126" class="Tests\Feature\AttendanceControllerTest" classname="Tests.Feature.AttendanceControllerTest" assertions="0" time="0.105634">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AttendanceControllerTest::tutor_cannot_record_duplicate_attendance_same_session&#13;
+Illuminate\Database\QueryException: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'amount_paid' in 'field list' (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `enrollments` (`student_id`, `program_id`, `class_session_id`, `payment_method`, `payment_status`, `status`, `amount_paid`, `remaining_meetings`, `enrolled_at`, `updated_at`, `created_at`) values (24, 32, ?, full, unpaid, active, 2338881, 5, 2005-12-07, 2026-05-12 08:11:48, 2026-05-12 08:11:48))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php:128</error>
+        </testcase>
+        <testcase name="tutor_can_delete_own_attendance" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" line="148" class="Tests\Feature\AttendanceControllerTest" classname="Tests.Feature.AttendanceControllerTest" assertions="0" time="0.114698">
+          <error type="Illuminate\Database\QueryException">Tests\Feature\AttendanceControllerTest::tutor_can_delete_own_attendance&#13;
+Illuminate\Database\QueryException: SQLSTATE[01000]: Warning: 1265 Data truncated for column 'status' at row 1 (Connection: mysql, Host: 127.0.0.1, Port: 3306, Database: just_speak_test, SQL: insert into `class_sessions` (`name`, `program_id`, `status`, `updated_at`, `created_at`) values (sit enim et, 33, closed, 2026-05-12 08:11:48, 2026-05-12 08:11:48))
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:841
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Connection.php:797
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\MySqlConnection.php:42
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Processors\MySqlProcessor.php:35
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Query\Builder.php:4251
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Builder.php:2271
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1660
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1576
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Model.php:1380
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:379
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Traits\EnumeratesValues.php:275
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:374
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:330
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:592
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Arr.php:842
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Collections\Collection.php:827
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:584
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:538
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:522
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Concerns\GuardsAttributes.php:181
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:521
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:438
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:327
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Database\Eloquent\Factories\Factory.php:324
+C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php:150</error>
+        </testcase>
+        <testcase name="student_cannot_access_tutor_attendance_routes" file="C:\laragon\www\just-speak\tests\Feature\AttendanceControllerTest.php" line="161" class="Tests\Feature\AttendanceControllerTest" classname="Tests.Feature.AttendanceControllerTest" assertions="1" time="0.107395"/>
+      </testsuite>
+      <testsuite name="Tests\Feature\Auth\AuthenticationTest" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" tests="13" assertions="23" errors="0" failures="1" skipped="0" time="3.016157">
+        <testcase name="user_can_view_login_form" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="19" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="1" time="0.154028"/>
+        <testcase name="admin_can_login_and_redirected_to_admin_dashboard" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="25" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.156087"/>
+        <testcase name="tutor_can_login_and_redirected_to_tutor_dashboard" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="34" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.094055"/>
+        <testcase name="student_can_login_and_redirected_to_student_dashboard" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="43" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.096174"/>
+        <testcase name="login_fails_with_wrong_password" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="52" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.374663"/>
+        <testcase name="login_fails_with_nonexistent_email" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="61" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.287463"/>
+        <testcase name="login_is_rate_limited_after_too_many_attempts" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="68" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="1.351804"/>
+        <testcase name="authenticated_user_can_logout" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="85" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.077439">
+          <failure type="PHPUnit\Framework\ExpectationFailedException">Tests\Feature\Auth\AuthenticationTest::authenticated_user_can_logout&#13;
+Failed asserting that two strings are equal.
+--- Expected
++++ Actual
+@@ @@
+-'http://localhost'
++'http://localhost/login'
+&#13;
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponseAssert.php:45
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:433
+C:\laragon\www\just-speak\vendor\laravel\framework\src\Illuminate\Testing\TestResponse.php:207
+C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php:91</failure>
+        </testcase>
+        <testcase name="guest_is_redirected_from_admin_dashboard" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="101" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.070591"/>
+        <testcase name="guest_is_redirected_from_tutor_dashboard" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="108" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.080177"/>
+        <testcase name="guest_is_redirected_from_student_dashboard" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="115" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="2" time="0.067028"/>
+        <testcase name="student_cannot_access_admin_dashboard" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="122" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="1" time="0.115087"/>
+        <testcase name="tutor_cannot_access_admin_dashboard" file="C:\laragon\www\just-speak\tests\Feature\Auth\AuthenticationTest.php" line="132" class="Tests\Feature\Auth\AuthenticationTest" classname="Tests.Feature.Auth.AuthenticationTest" assertions="1" time="0.091561"/>
+      </testsuite>
+    </testsuite>
+  </testsuite>
+</testsuites>
