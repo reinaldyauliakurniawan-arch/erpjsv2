@@ -16,8 +16,6 @@
 
 
 -- Dumping database structure for just_speak
-CREATE DATABASE IF NOT EXISTS `just_speak` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-USE `just_speak`;
 
 -- Dumping structure for table just_speak.accounts
 DROP TABLE IF EXISTS `accounts`;
