@@ -73,7 +73,10 @@ public function data(Request $request)
     if ($tab === 'active') {
         $rows = $rows->filter(fn($r) => $r['enroll_status'] === 'active');
     } elseif ($tab === 'inactive') {
-        $rows = $rows->filter(fn($r) => $r['enroll_status'] !== 'active');
+        $rows = $rows->filter(fn($r) =>
+        $r['enroll_status'] !== 'active' ||
+        $r['remaining'] === 0
+        );
     }
 
     $summary = [
@@ -92,29 +95,6 @@ public function data(Request $request)
     ]);
 }
 
-    public function create()
-    {
-        return view('admin.students.create');
-    }
-
-    public function store(StoreStudentRequest $request)
-    {
-        $validated = $request->validated();
-
-        $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role'     => 'student',
-        ]);
-
-        Student::create([
-            'user_id' => $user->id,
-            'notes'   => $validated['notes'] ?? null,
-        ]);
-
-        return redirect()->route('admin.students.index')->with('success', 'Student berhasil ditambahkan.');
-    }
 
     public function show(Student $student)
     {

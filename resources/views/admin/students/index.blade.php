@@ -3,7 +3,6 @@
 
     <div class="p-lg space-y-lg" x-data="studentsPage()">
 
-        {{-- Flash --}}
         @if(session('success'))
             <div role="alert" class="alert alert-success alert-soft">
                 <span class="material-symbols-outlined">check_circle</span>
@@ -18,7 +17,6 @@
                 <p class="text-body-md text-on-surface-variant">Manage and monitor student progress across all academic programs.</p>
             </div>
             <div class="flex items-center gap-sm flex-wrap">
-                {{-- Tab Filter --}}
                 <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-xs flex gap-xs">
                     <template x-for="tab in tabs" :key="tab.value">
                         <button
@@ -31,11 +29,11 @@
                         </button>
                     </template>
                 </div>
-                <button onclick="document.getElementById('modal-add-student').showModal()"
+                <a href="{{ route('admin.enrollments.create') }}"
                     class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
                     <span class="material-symbols-outlined text-[18px]">person_add</span>
                     Tambah Student
-                </button>
+                </a>
             </div>
         </div>
 
@@ -75,51 +73,6 @@
             </div>
             <div x-show="!loading" id="students-table"></div>
         </div>
-
-    </div>
-
-    {{-- Modal Tambah Student --}}
-    <dialog id="modal-add-student" class="modal">
-        <div class="modal-box">
-            <h3 class="text-headline-md font-semibold text-on-surface mb-md">Tambah Student Baru</h3>
-            <form method="POST" action="{{ route('admin.students.store') }}" class="space-y-md">
-                @csrf
-                <div class="fieldset">
-                    <label class="fieldset-legend text-on-surface">Nama Lengkap</label>
-                    <input type="text" name="name" value="{{ old('name') }}"
-                        class="input w-full @error('name') input-error @enderror"
-                        placeholder="John Doe" required />
-                    @error('name')<p class="label text-error">{{ $message }}</p>@enderror
-                </div>
-                <div class="fieldset">
-                    <label class="fieldset-legend text-on-surface">Email</label>
-                    <input type="email" name="email" value="{{ old('email') }}"
-                        class="input w-full @error('email') input-error @enderror"
-                        placeholder="john@example.com" required />
-                    @error('email')<p class="label text-error">{{ $message }}</p>@enderror
-                </div>
-                <div class="fieldset">
-                    <label class="fieldset-legend text-on-surface">Password</label>
-                    <input type="password" name="password"
-                        class="input w-full @error('password') input-error @enderror"
-                        placeholder="Min. 8 karakter" required />
-                    @error('password')<p class="label text-error">{{ $message }}</p>@enderror
-                </div>
-                <div class="fieldset">
-                    <label class="fieldset-legend text-on-surface">Notes <span class="text-on-surface-variant font-normal">(opsional)</span></label>
-                    <textarea name="notes" rows="2"
-                        class="textarea w-full @error('notes') textarea-error @enderror"
-                        placeholder="Catatan tambahan...">{{ old('notes') }}</textarea>
-                    @error('notes')<p class="label text-error">{{ $message }}</p>@enderror
-                </div>
-                <div class="modal-action mt-lg">
-                    <button type="button" onclick="document.getElementById('modal-add-student').close()" class="btn btn-ghost">Batal</button>
-                    <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90">Simpan</button>
-                </div>
-            </form>
-        </div>
-        <form method="dialog" class="modal-backdrop"><button>close</button></form>
-    </dialog>
 
     {{-- Modal Edit Student --}}
     <dialog id="modal-edit-student" class="modal">
@@ -317,7 +270,6 @@
         };
     }
 
-    // Modal helpers — di luar Alpine karena dipanggil dari Tabulator formatter
     function openEditModal(id, name, email, notes) {
         document.getElementById('edit-name').value  = name;
         document.getElementById('edit-email').value = email;
@@ -345,6 +297,3 @@
     </script>
 
 </x-app-layout>
-
-
-

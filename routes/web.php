@@ -44,17 +44,20 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('dashboard');
 
         Route::get('/students/data', [StudentController::class, 'data'])->name('students.data');
-        Route::resource('students', StudentController::class);
+        Route::resource('students', StudentController::class)->except(['create', 'store']);
         Route::resource('programs', ProgramController::class);
         Route::get('/enrollments/data', [EnrollmentController::class, 'data'])->name('enrollments.data');
         Route::resource('enrollments', EnrollmentController::class);
         Route::resource('classrooms', ClassroomController::class);
         Route::resource('tutors', TutorController::class);
+        Route::get('/class-sessions/enrollments/{programId}', [ClassSessionController::class, 'availableEnrollments'])->name('class-sessions.available-enrollments');
         Route::resource('class-sessions', ClassSessionController::class);
         Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
         Route::post('/settings/users', [App\Http\Controllers\Admin\SettingsController::class, 'storeUser'])->name('settings.users.store');
         Route::patch('/settings/users/{user}', [App\Http\Controllers\Admin\SettingsController::class, 'updateUser'])->name('settings.users.update');
         Route::delete('/settings/users/{user}', [App\Http\Controllers\Admin\SettingsController::class, 'destroyUser'])->name('settings.users.destroy');
+        Route::get('/settings/colors', [App\Http\Controllers\Admin\SettingsController::class, 'colors'])->name('settings.colors');
+        Route::post('/settings/colors', [App\Http\Controllers\Admin\SettingsController::class, 'updateColors'])->name('settings.colors.update');
 
         Route::post('/enrollments/{id}/expire', [EnrollmentController::class, 'expire'])->name('enrollments.expire');
         Route::post('/enrollments/{id}/graduate', [EnrollmentController::class, 'graduate'])->name('enrollments.graduate');
@@ -77,6 +80,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/class-sessions/{id}/assign-tutor', [ClassSessionController::class, 'assignTutor'])->name('class-sessions.assign-tutor');
         Route::post('/class-sessions/{id}/remove-tutor', [ClassSessionController::class, 'removeTutor'])->name('class-sessions.remove-tutor');
         Route::patch('/class-sessions/{id}/tutor/{tutorId}/status', [ClassSessionController::class, 'updateTutorStatus'])->name('class-sessions.tutor-status');
+        Route::post('/class-sessions/{id}/schedules', [ClassSessionController::class, 'storeSchedule'])->name('class-sessions.schedules.store');
+        Route::delete('/class-sessions/{id}/schedules/{scheduleId}', [ClassSessionController::class, 'destroySchedule'])->name('class-sessions.schedules.destroy');
+        Route::get('/class-sessions/{id}/info', [ClassSessionController::class, 'info'])->name('class-sessions.info');
 
         // Imports — operasional
         Route::get('/imports', [ImportController::class, 'index'])->name('imports.index');

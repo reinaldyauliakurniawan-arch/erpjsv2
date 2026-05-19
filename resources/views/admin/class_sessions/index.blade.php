@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Class Sessions</x-slot>
 
-    <div class="p-lg space-y-lg">
+    <div class="p-lg space-y-lg" x-data="{ filter: 'all' }">
 
         @if(session('success'))
             <div role="alert" class="alert alert-success alert-soft">
@@ -28,6 +28,20 @@
             </a>
         </div>
 
+        {{-- Toggle Filter --}}
+        <div class="inline-flex rounded-lg overflow-hidden border border-surface-border">
+            @foreach(['all' => 'Semua', 'private' => 'Private', 'semi-private' => 'Semi-Private', 'group' => 'Group'] as $val => $label)
+                <button type="button"
+                    @click="filter = '{{ $val }}'"
+                    :class="filter === '{{ $val }}'
+                        ? 'bg-primary-container text-on-primary'
+                        : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface'"
+                    class="px-md py-sm text-body-md font-semibold transition-all border-r border-surface-border last:border-r-0">
+                    {{ $label }}
+                </button>
+            @endforeach
+        </div>
+
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm">
             @if($classSessions->isEmpty())
                 <div class="flex flex-col items-center justify-center py-2xl gap-sm text-on-surface-variant">
@@ -41,6 +55,7 @@
                             <tr class="text-label-lg text-on-surface-variant border-b border-surface-border">
                                 <th>Nama Kelas</th>
                                 <th>Program</th>
+                                <th>Tipe</th>
                                 <th>Jumlah Siswa</th>
                                 <th>Status</th>
                                 <th></th>
@@ -48,9 +63,11 @@
                         </thead>
                         <tbody>
                             @foreach($classSessions as $cs)
-                            <tr class="border-b border-surface-border last:border-0 hover:bg-surface">
+                            <tr class="border-b border-surface-border last:border-0 hover:bg-surface"
+                                x-show="filter === 'all' || filter === '{{ $cs->class_type }}'">
                                 <td class="font-semibold text-on-surface">{{ $cs->name }}</td>
                                 <td class="text-on-surface-variant">{{ $cs->program->name }}</td>
+                                <td><span class="badge badge-soft">{{ ucfirst($cs->class_type) }}</span></td>
                                 <td class="text-on-surface">{{ $cs->enrollments_count }}</td>
                                 <td>
                                     <span class="badge badge-soft {{ $cs->status === 'active' ? 'badge-success' : 'badge-error' }}">
@@ -74,6 +91,3 @@
 
     </div>
 </x-app-layout>
-
-
-

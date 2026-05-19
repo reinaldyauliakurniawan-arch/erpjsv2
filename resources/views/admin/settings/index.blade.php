@@ -38,6 +38,21 @@
             @endforeach
         </div>
 
+        {{-- Appearance Card --}}
+        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+            <div class="px-lg py-md border-b border-surface-border flex justify-between items-center bg-surface-container-low">
+                <div>
+                    <h4 class="text-title-sm font-semibold text-on-surface">Appearance</h4>
+                    <p class="text-body-sm text-on-surface-variant mt-xs">Kustomisasi warna tampilan aplikasi.</p>
+                </div>
+                <a href="{{ route('admin.settings.colors') }}"
+                    class="btn bg-secondary text-on-secondary border-none hover:opacity-90 btn-sm gap-xs">
+                    <span class="material-symbols-outlined text-[16px]">palette</span>
+                    Atur Warna
+                </a>
+            </div>
+        </div>
+
         {{-- User Table --}}
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
             <div class="px-lg py-md border-b border-surface-border flex justify-between items-center bg-surface-container-low">
@@ -242,6 +257,3 @@
     </script>
 
 </x-app-layout>
-
-
-

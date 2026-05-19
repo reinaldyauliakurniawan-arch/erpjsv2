@@ -1,7 +1,5 @@
 <?php
-
 namespace App\Http\Controllers\Tutor;
-
 use App\Http\Controllers\Controller;
 use App\Models\RoomBooking;
 use App\Models\Schedule;
@@ -16,12 +14,10 @@ class ScheduleController extends Controller
     public function index(Request $request)
     {
         $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
+        $days  = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
 
-        $days = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
-
-        // Week navigation
         $weekOffset = (int) $request->get('week', 0);
-        $weekOffset = max(-1, min(2, $weekOffset)); // clamp: -1 s/d +2
+        $weekOffset = max(-1, min(2, $weekOffset));
         $weekStart  = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeeks($weekOffset);
         $weekEnd    = $weekStart->copy()->endOfWeek();
 
@@ -29,24 +25,21 @@ class ScheduleController extends Controller
             return [$day => $weekStart->copy()->addDays($i)->toDateString()];
         });
 
-        // Jadwal milik tutor ini (weekly summary panel)
-        $mySchedules = Schedule::with(['classroom', 'enrollment.student.user', 'enrollment.program'])
-            ->whereHas('enrollment', function ($q) use ($tutor) {
-                $q->whereHas('tutors', fn($q2) => $q2->where('tutor_id', $tutor->id));
-            })
+        // Jadwal milik tutor ini
+        $mySchedules = Schedule::with(['classroom', 'classSession.enrollments.student.user', 'classSession.program'])
+            ->whereHas('classSession.tutors', fn($q) => $q->where('tutor_id', $tutor->id))
             ->orderBy('day')
             ->orderBy('time_block')
             ->get();
-
         $myByDay = $mySchedules->groupBy('day');
 
         // Semua jadwal untuk matrix
         $allSchedules = Schedule::with([
             'classroom',
-            'enrollment.student.user',
-            'enrollment.tutors.user',
-            'enrollment.program',
+            'classSession.enrollments.student.user',
+            'classSession.tutors.user',
         ])
+        ->whereNotNull('class_session_id')
         ->orderBy('day')
         ->orderBy('time_block')
         ->get();
@@ -55,8 +48,7 @@ class ScheduleController extends Controller
             fn($s) => $s->groupBy('day')
         );
 
-        // Bookings minggu ini
-        $bookings = RoomBooking::with(['enrollment.student.user', 'tutor.user'])
+        $bookings = RoomBooking::with(['tutor.user'])
             ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
             ->get()
             ->groupBy(fn($b) => Carbon::parse($b->date)->format('Y-m-d'));
@@ -69,4 +61,42 @@ class ScheduleController extends Controller
             'weekOffset', 'weekStart', 'tutor'
         ));
     }
+
+    public function store(Request $request)
+{
+    $request->validate([
+        'classroom_id' => 'required|exists:classrooms,id',
+        'date'         => 'required|date',
+        'time_block'   => 'required|string',
+        'type'         => 'nullable|in:regular_skip,temporary',
+        'schedule_id'  => 'nullable|exists:schedules,id',
+        'notes'        => 'nullable|string|max:255',
+    ]);
+
+    $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
+    $type  = $request->type ?? 'temporary';
+
+    $conflict = RoomBooking::where('classroom_id', $request->classroom_id)
+        ->where('date', $request->date)
+        ->where('time_block', $request->time_block)
+        ->where('type', $type)
+        ->exists();
+
+    if ($conflict) {
+        return back()->with('error', 'Slot ini sudah ada booking dengan tipe yang sama.');
+    }
+
+    RoomBooking::create([
+        'classroom_id' => $request->classroom_id,
+        'schedule_id'  => $request->schedule_id,
+        'date'         => $request->date,
+        'time_block'   => $request->time_block,
+        'type'         => $type,
+        'tutor_id'     => $tutor->id,
+        'notes'        => $request->notes,
+    ]);
+
+    $msg = $type === 'regular_skip' ? 'Sesi berhasil di-skip.' : 'Slot berhasil dibooking.';
+    return back()->with('success', $msg);
+}
 }

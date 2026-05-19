@@ -26,18 +26,19 @@
         <div class="flex items-start justify-between gap-md">
             <div>
                 <h3 class="text-headline-lg font-semibold text-on-surface">{{ $classSession->name }}</h3>
-                <p class="text-body-md text-on-surface-variant">{{ $classSession->program->name }}</p>
+                <div class="flex items-center gap-sm mt-xs">
+                    <p class="text-body-md text-on-surface-variant">{{ $classSession->program->name }}</p>
+                    <span class="badge badge-soft">{{ ucfirst($classSession->class_type) }}</span>
+                    <span class="badge badge-soft {{ $classSession->status === 'active' ? 'badge-success' : 'badge-error' }}">
+                        {{ $classSession->status }}
+                    </span>
+                </div>
             </div>
-            <div class="flex items-center gap-sm">
-                <span class="badge badge-soft {{ $classSession->status === 'active' ? 'badge-success' : 'badge-error' }}">
-                    {{ $classSession->status }}
-                </span>
-                <a href="{{ route('admin.class-sessions.edit', $classSession->id) }}"
-                    class="btn btn-ghost btn-sm gap-xs">
-                    <span class="material-symbols-outlined text-[16px]">edit</span>
-                    Edit
-                </a>
-            </div>
+            <a href="{{ route('admin.class-sessions.edit', $classSession->id) }}"
+                class="btn btn-ghost btn-sm gap-xs">
+                <span class="material-symbols-outlined text-[16px]">edit</span>
+                Edit
+            </a>
         </div>
 
         {{-- Tutor Section --}}
@@ -73,26 +74,18 @@
                             <td>
                                 <form method="POST"
                                     action="{{ route('admin.class-sessions.tutor-status', [$classSession->id, $tutor->id]) }}">
-                                    @csrf
-                                    @method('PATCH')
-                                    <select name="status" onchange="this.form.submit()"
-                                        class="select select-sm w-32">
-                                        <option value="pending" {{ $tutor->pivot->status === 'pending' ? 'selected' : '' }}>
-                                            Pending
-                                        </option>
-                                        <option value="confirmed" {{ $tutor->pivot->status === 'confirmed' ? 'selected' : '' }}>
-                                            Confirmed
-                                        </option>
+                                    @csrf @method('PATCH')
+                                    <select name="status" onchange="this.form.submit()" class="select select-sm w-32">
+                                        <option value="pending" {{ $tutor->pivot->status === 'pending' ? 'selected' : '' }}>Pending</option>
+                                        <option value="confirmed" {{ $tutor->pivot->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
                                     </select>
                                 </form>
                             </td>
                             <td class="text-right">
-                                <form method="POST"
-                                    action="{{ route('admin.class-sessions.remove-tutor', $classSession->id) }}">
+                                <form method="POST" action="{{ route('admin.class-sessions.remove-tutor', $classSession->id) }}">
                                     @csrf
                                     <input type="hidden" name="tutor_id" value="{{ $tutor->id }}">
-                                    <button type="submit"
-                                        class="btn btn-ghost btn-sm gap-xs text-error"
+                                    <button type="submit" class="btn btn-ghost btn-sm text-error"
                                         onclick="return confirm('Hapus tutor dari kelas ini?')">
                                         <span class="material-symbols-outlined text-[16px]">person_remove</span>
                                         Hapus
@@ -131,7 +124,7 @@
                     <thead>
                         <tr class="border-b border-surface-border text-on-surface-variant">
                             <th class="text-left font-medium">Nama Siswa</th>
-                            <th class="text-left font-medium">Status Enrollment</th>
+                            <th class="text-left font-medium">Status</th>
                             <th class="text-left font-medium">Sisa Sesi</th>
                             <th></th>
                         </tr>
@@ -156,12 +149,10 @@
                                     <span class="material-symbols-outlined text-[16px]">open_in_new</span>
                                     Detail
                                 </a>
-                                <form method="POST"
-                                    action="{{ route('admin.class-sessions.remove', $classSession->id) }}">
+                                <form method="POST" action="{{ route('admin.class-sessions.remove', $classSession->id) }}">
                                     @csrf
                                     <input type="hidden" name="enrollment_id" value="{{ $enrollment->id }}">
-                                    <button type="submit"
-                                        class="btn btn-ghost btn-sm gap-xs text-error"
+                                    <button type="submit" class="btn btn-ghost btn-sm text-error"
                                         onclick="return confirm('Keluarkan siswa dari kelas ini?')">
                                         <span class="material-symbols-outlined text-[16px]">logout</span>
                                         Keluarkan
@@ -175,15 +166,104 @@
             @endif
         </div>
 
+        {{-- Jadwal Section --}}
+        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md"
+            x-data="{ showCustomTime: false }">
+            <div class="flex items-center justify-between">
+                <h4 class="text-headline-md font-semibold text-on-surface">Jadwal</h4>
+            </div>
+
+            {{-- Form tambah jadwal --}}
+            <form method="POST" action="{{ route('admin.class-sessions.schedules.store', $classSession->id) }}"
+                class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr auto">
+                @csrf
+
+                <div class="fieldset">
+                    <label class="fieldset-legend text-on-surface">Hari</label>
+                    <select name="day" class="select w-full" required>
+                        <option value="" disabled selected>Pilih hari...</option>
+                        @foreach($days as $day)
+                            <option value="{{ $day->value }}">{{ $day->value }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="fieldset" x-data>
+                    <label class="fieldset-legend text-on-surface">Time Block</label>
+                    <select name="time_block" class="select w-full" required
+                        @change="$refs.customWrap.style.display = $event.target.value === 'Custom' ? 'block' : 'none'">
+                        <option value="" disabled selected>Pilih slot...</option>
+                        @foreach($timeBlocks as $block)
+                            <option value="{{ $block->value }}">{{ $block->value }}</option>
+                        @endforeach
+                    </select>
+                    <div x-ref="customWrap" style="display:none" class="mt-xs">
+                        <input type="text" name="custom_time" class="input w-full"
+                            placeholder="Contoh: 07.00-08.30">
+                    </div>
+                </div>
+
+                <div class="fieldset">
+                    <label class="fieldset-legend text-on-surface">Ruangan</label>
+                    <select name="classroom_id" class="select w-full" required>
+                        <option value="" disabled selected>Pilih ruangan...</option>
+                        @foreach($classrooms as $room)
+                            <option value="{{ $room->id }}">{{ $room->name }}</option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="flex items-end pb-xs">
+                    <button type="submit"
+                        class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
+                        <span class="material-symbols-outlined text-[18px]">add</span>
+                    </button>
+                </div>
+            </form>
+
+            {{-- List jadwal --}}
+            @if($classSession->schedules->isEmpty())
+                <p class="text-body-md text-on-surface-variant">Belum ada jadwal.</p>
+            @else
+                <table class="table table-sm w-full">
+                    <thead>
+                        <tr class="border-b border-surface-border text-on-surface-variant">
+                            <th class="text-left font-medium">Hari</th>
+                            <th class="text-left font-medium">Time Block</th>
+                            <th class="text-left font-medium">Ruangan</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($classSession->schedules->sortBy(['day', 'time_block']) as $schedule)
+                        <tr class="border-b border-surface-border last:border-0">
+                            <td class="font-semibold text-on-surface">{{ $schedule->day }}</td>
+                            <td class="font-mono text-primary-container font-bold">{{ $schedule->time_block }}</td>
+                            <td class="text-on-surface-variant">{{ $schedule->classroom->name }}</td>
+                            <td class="text-right">
+                                <form method="POST"
+                                    action="{{ route('admin.class-sessions.schedules.destroy', [$classSession->id, $schedule->id]) }}">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-ghost btn-sm text-error"
+                                        onclick="return confirm('Hapus jadwal ini?')">
+                                        <span class="material-symbols-outlined text-[16px]">delete</span>
+                                    </button>
+                                </form>
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            @endif
+        </div>
+
         {{-- Delete --}}
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Hapus Kelas</h4>
-            <p class="text-body-sm text-on-surface-variant">Kelas hanya bisa dihapus jika tidak ada siswa aktif di dalamnya.</p>
+            <p class="text-body-sm text-on-surface-variant">Kelas hanya bisa dihapus jika tidak ada siswa aktif.</p>
             <form method="POST" action="{{ route('admin.class-sessions.destroy', $classSession->id) }}">
-                @csrf
-                @method('DELETE')
-                <button type="submit"
-                    class="btn btn-ghost gap-sm text-error"
+                @csrf @method('DELETE')
+                <button type="submit" class="btn btn-ghost gap-sm text-error"
                     onclick="return confirm('Hapus class session ini?')">
                     <span class="material-symbols-outlined text-[18px]">delete</span>
                     Hapus Class Session
@@ -210,8 +290,7 @@
                     </select>
                 </div>
                 <div class="modal-action mt-lg">
-                    <button type="button"
-                        onclick="document.getElementById('modal-assign-tutor').close()"
+                    <button type="button" onclick="document.getElementById('modal-assign-tutor').close()"
                         class="btn btn-ghost">Batal</button>
                     <button type="submit"
                         class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
@@ -243,8 +322,7 @@
                     </select>
                 </div>
                 <div class="modal-action mt-lg">
-                    <button type="button"
-                        onclick="document.getElementById('modal-assign-student').close()"
+                    <button type="button" onclick="document.getElementById('modal-assign-student').close()"
                         class="btn btn-ghost">Batal</button>
                     <button type="submit"
                         class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
@@ -257,6 +335,3 @@
     </dialog>
 
 </x-app-layout>
-
-
-

@@ -34,21 +34,24 @@ class EnrollmentService
 
         return DB::transaction(function () use ($data, $program, $classType) {
 
-            // Create user + student baru
-            $user = \App\Models\User::create([
-                'name'     => $data['new_student']['name'],
-                'email'    => $data['new_student']['email'],
-                'phone'    => $data['new_student']['phone'] ?? null,
-                'password' => bcrypt('password123'),
-                'role'     => 'student',
-            ]);
-
-            $student = Student::create(['user_id' => $user->id]);
+            // Existing atau baru
+            if (!empty($data['existing_student_id'])) {
+                $student = Student::findOrFail($data['existing_student_id']);
+                $user    = $student->user;
+            } else {
+                $user = \App\Models\User::create([
+                    'name'     => $data['new_student']['name'],
+                    'email'    => $data['new_student']['email'],
+                    'phone'    => $data['new_student']['phone'] ?? null,
+                    'password' => bcrypt('password123'),
+                    'role'     => 'student',
+                ]);
+                $student = Student::create(['user_id' => $user->id]);
+            }
             $data['student_id'] = $student->id;
 
             if ($classType === ClassType::PRIVATE) {
-                $firstName = explode(' ', trim($user->name))[0];
-
+                $firstName      = explode(' ', trim($user->name))[0];
                 $tutorFirstName = null;
                 if (!empty($data['tutor_ids'])) {
                     $tutor          = Tutor::with('user')->find($data['tutor_ids'][0]);
@@ -62,6 +65,7 @@ class EnrollmentService
                 $classSession = ClassSession::create([
                     'name'       => $sessionName,
                     'program_id' => $program->id,
+                    'class_type' => $classType->value,
                     'status'     => 'active',
                 ]);
                 $enrollmentStatus = 'active';
@@ -101,19 +105,27 @@ class EnrollmentService
                 'enrollment_date'    => $data['enrollment_date'],
                 'expiry_date'        => $data['expiry_date'],
                 'payment_method'     => $data['payment_method'],
-                'total_amount'       => $program->price,
+                'total_amount'       => $data['total_amount'] ?? $program->price,
                 'payment_status'     => PaymentStatus::PENDING->value,
                 'status'             => $enrollmentStatus,
-                'remaining_meetings' => $program->total_meetings,
+                'remaining_meetings' => $data['remaining_meetings'] ?? $program->total_meetings,
             ]);
 
             foreach ($data['schedules'] as $s) {
-                Schedule::create([
-                    'enrollment_id' => $enrollment->id,
-                    'classroom_id'  => $s['classroom_id'],
-                    'day'           => $s['day'],
-                    'time_block'    => $s['time_block'],
-                ]);
+                $exists = Schedule::where('class_session_id', $classSession->id)
+                    ->where('day', $s['day'])
+                    ->where('time_block', $s['time_block'])
+                    ->exists();
+
+                if (!$exists) {
+                    Schedule::create([
+                        'enrollment_id'    => $enrollment->id,
+                        'class_session_id' => $classSession->id,
+                        'classroom_id'     => $s['classroom_id'],
+                        'day'              => $s['day'],
+                        'time_block'       => $s['time_block'],
+                    ]);
+                }
             }
 
             if ($data['payment_method'] === 'installment') {
@@ -164,8 +176,8 @@ class EnrollmentService
             ->where('time_block', $timeBlock)
             ->count();
 
-        if ($count >= $classroom->capacity) {
-            throw new DomainException("Ruangan {$classroom->name} sudah penuh ({$count}/{$classroom->capacity}) pada {$day} {$timeBlock}.");
+        if ($count >= 1) {
+            throw new DomainException("Ruangan {$classroom->name} sudah terisi pada {$day} {$timeBlock}.");
         }
     }
 }

@@ -3,6 +3,7 @@
 
     <div class="p-lg space-y-lg" x-data="{
         paymentMethod: 'full upfront',
+        isExisting: false,
         installments: [{ amount: '', due_date: '' }],
         schedules: [{ classroom_id: '', day: '', time_block: '' }],
         programs: {{ $programs->map(fn($p) => ['id' => $p->id, 'price' => $p->price])->toJson() }},
@@ -33,7 +34,7 @@
                     <span class="material-symbols-outlined text-[18px]">arrow_back</span>
                     Kembali
                 </a>
-                <h1 class="text-headline-lg font-bold text-on-surface">Pendaftaran Murid Baru</h1>
+                <h1 class="text-headline-lg font-bold text-on-surface" x-text="isExisting ? 'Enrollment Murid Lama' : 'Pendaftaran Murid Baru'"></h1>
                 <p class="text-body-md text-on-surface-variant">Lengkapi formulir berikut untuk mendaftarkan siswa ke program akademik.</p>
             </div>
         </div>
@@ -48,36 +49,68 @@
 
                     {{-- Informasi Pribadi --}}
                     <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
-                        <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
-                            <span class="material-symbols-outlined text-secondary">person</span>
-                            <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Informasi Pribadi</h4>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">Nama Lengkap</label>
-                                <input type="text" name="new_student[name]" value="{{ old('new_student.name') }}"
-                                    class="input w-full @error('new_student.name') input-error @enderror"
-                                    placeholder="Budi Santoso" required />
-                                @error('new_student.name')<p class="label text-error">{{ $message }}</p>@enderror
-                            </div>
+    <div class="flex items-center justify-between mb-lg pb-md border-b border-surface-border">
+        <div class="flex items-center gap-sm">
+            <span class="material-symbols-outlined text-secondary">person</span>
+            <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Informasi Siswa</h4>
+        </div>
+        <div class="inline-flex rounded-lg overflow-hidden border border-primary-container">
+            <button type="button"
+                @click="isExisting = false"
+                :class="!isExisting ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
+                class="px-md py-sm text-body-md font-semibold transition-all">
+                Murid Baru
+            </button>
+            <button type="button"
+                @click="isExisting = true"
+                :class="isExisting ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
+                class="px-md py-sm text-body-md font-semibold border-l border-primary-container transition-all">
+                Murid Lama
+            </button>
+        </div>
+    </div>
 
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">Email Aktif</label>
-                                <input type="email" name="new_student[email]" value="{{ old('new_student.email') }}"
-                                    class="input w-full @error('new_student.email') input-error @enderror"
-                                    placeholder="budi@email.com" required />
-                                @error('new_student.email')<p class="label text-error">{{ $message }}</p>@enderror
-                            </div>
+    {{-- Murid Baru --}}
+    <div x-show="!isExisting">
+        <input type="hidden" name="existing_student_id" value="">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
+            <div class="fieldset">
+                <label class="fieldset-legend text-on-surface">Nama Lengkap</label>
+                <input type="text" name="new_student[name]" value="{{ old('new_student.name') }}"
+                    class="input w-full @error('new_student.name') input-error @enderror"
+                    placeholder="Budi Santoso" />
+                @error('new_student.name')<p class="label text-error">{{ $message }}</p>@enderror
+            </div>
+            <div class="fieldset">
+                <label class="fieldset-legend text-on-surface">Email Aktif</label>
+                <input type="email" name="new_student[email]" value="{{ old('new_student.email') }}"
+                    class="input w-full @error('new_student.email') input-error @enderror"
+                    placeholder="budi@email.com" />
+                @error('new_student.email')<p class="label text-error">{{ $message }}</p>@enderror
+            </div>
+            <div class="fieldset">
+                <label class="fieldset-legend text-on-surface">No. HP / WhatsApp <span class="text-on-surface-variant font-normal">(opsional)</span></label>
+                <input type="tel" name="new_student[phone]" value="{{ old('new_student.phone') }}"
+                    class="input w-full"
+                    placeholder="+62 812 XXXX XXXX" />
+            </div>
+        </div>
+    </div>
 
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">No. HP / WhatsApp <span class="text-on-surface-variant font-normal">(opsional)</span></label>
-                                <input type="tel" name="new_student[phone]" value="{{ old('new_student.phone') }}"
-                                    class="input w-full @error('new_student.phone') input-error @enderror"
-                                    placeholder="+62 812 XXXX XXXX" />
-                                @error('new_student.phone')<p class="label text-error">{{ $message }}</p>@enderror
-                            </div>
-                        </div>
-                    </section>
+    {{-- Murid Lama --}}
+    <div x-show="isExisting" x-cloak>
+        <div class="fieldset">
+            <label class="fieldset-legend text-on-surface">Pilih Murid</label>
+            <select name="existing_student_id" class="select w-full">
+                <option value="">— Cari murid... —</option>
+                @foreach($students as $s)
+                    <option value="{{ $s->id }}">{{ $s->user->name }} — {{ $s->user->email }}</option>
+                @endforeach
+            </select>
+        </div>
+        <p class="text-body-sm text-on-surface-variant mt-sm">Data pribadi murid tidak akan diubah. Hanya enrollment baru yang dibuat.</p>
+    </div>
+</section>
 
                     {{-- Program & Jadwal --}}
                     <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
@@ -101,17 +134,66 @@
                                 @error('program_id')<p class="label text-error">{{ $message }}</p>@enderror
                             </div>
 
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">Kelas <span class="text-on-surface-variant font-normal">(opsional)</span></label>
-                                <select name="class_session_id" class="select w-full">
-                                    <option value="">Tanpa kelas</option>
-                                    @foreach($classSessions as $cs)
-                                        <option value="{{ $cs->id }}" {{ old('class_session_id') == $cs->id ? 'selected' : '' }}>
-                                            {{ $cs->name }} — {{ $cs->program->name }} ({{ $cs->filled_count }} siswa)
-                                        </option>
-                                    @endforeach
-                                </select>
-                            </div>
+                            <div class="fieldset sm:col-span-2" x-data="{
+    selectedCs: '{{ old('class_session_id', '') }}',
+    csInfo: null,
+    loading: false,
+    async fetchInfo(id) {
+        if (!id) { this.csInfo = null; return; }
+        this.loading = true;
+        const res = await fetch(`/admin/class-sessions/${id}/info`);
+        this.csInfo = await res.json();
+        this.loading = false;
+        if (this.csInfo.is_mid_join) {
+            $dispatch('set-remaining', this.csInfo.remaining_default);
+            $dispatch('set-amount', this.csInfo.price);
+        }
+    }
+}" x-init="if (selectedCs) fetchInfo(selectedCs)">
+    <label class="fieldset-legend text-on-surface">Kelas <span class="text-on-surface-variant font-normal">(opsional)</span></label>
+    <select name="class_session_id" class="select w-full"
+        x-model="selectedCs"
+        @change="fetchInfo($event.target.value)">
+        <option value="">Tanpa kelas</option>
+        @foreach($classSessions as $cs)
+            <option value="{{ $cs->id }}" {{ old('class_session_id') == $cs->id ? 'selected' : '' }}>
+                {{ $cs->name }} — {{ $cs->program->name }} ({{ $cs->filled_count }} siswa)
+            </option>
+        @endforeach
+    </select>
+
+    {{-- Loading --}}
+    <div x-show="loading" class="mt-xs text-body-sm text-on-surface-variant">Memuat info kelas...</div>
+
+    {{-- Info kelas --}}
+    <div x-show="csInfo && !loading" x-cloak class="mt-sm space-y-sm">
+
+        {{-- Normal info --}}
+        <div class="bg-surface-container-low rounded-lg px-md py-sm flex items-center gap-md flex-wrap">
+            <span class="text-body-sm text-on-surface-variant">
+                Siswa: <strong x-text="csInfo?.enrollment_count"></strong>
+                <span x-show="csInfo?.capacity"> / <strong x-text="csInfo?.capacity"></strong></span>
+            </span>
+            <span class="text-body-sm text-on-surface-variant">
+                Pertemuan selesai: <strong x-text="csInfo?.finished_meetings"></strong> / <strong x-text="csInfo?.total_meetings"></strong>
+            </span>
+        </div>
+
+        {{-- Mid-join warning --}}
+        <div x-show="csInfo?.is_mid_join" x-cloak
+            class="bg-warning/10 border border-warning rounded-lg px-md py-sm space-y-sm">
+            <p class="text-body-sm font-semibold text-warning flex items-center gap-xs">
+                <span class="material-symbols-outlined text-[16px]">warning</span>
+                Murid bergabung di tengah jalan
+            </p>
+            <p class="text-body-sm text-on-surface-variant">
+                Kelas sudah jalan <strong x-text="csInfo?.finished_meetings"></strong> pertemuan.
+                Sesuaikan sisa pertemuan dan biaya jika diperlukan.
+            </p>
+        </div>
+
+    </div>
+</div>
 
                             <div class="fieldset">
                                 <label class="fieldset-legend text-on-surface">Tanggal Mulai</label>
@@ -127,6 +209,34 @@
                                 @error('expiry_date')<p class="label text-error">{{ $message }}</p>@enderror
                             </div>
                         </div>
+
+                        {{-- Override remaining meetings --}}
+<div class="fieldset" x-data="{ val: {{ old('remaining_meetings', 0) }} }"
+    @set-remaining.window="val = $event.detail">
+    <label class="fieldset-legend text-on-surface">
+        Sisa Pertemuan
+        <span class="text-on-surface-variant font-normal">(override opsional)</span>
+    </label>
+    <input type="number" name="remaining_meetings" min="0"
+        class="input w-full"
+        x-model="val"
+        placeholder="Default: total meetings program" />
+    <p class="text-body-sm text-on-surface-variant mt-xs">Kosongkan untuk pakai default program.</p>
+</div>
+
+{{-- Override total amount --}}
+<div class="fieldset" x-data="{ val: '{{ old('total_amount', '') }}' }"
+    @set-amount.window="val = $event.detail">
+    <label class="fieldset-legend text-on-surface">
+        Biaya Aktual (IDR)
+        <span class="text-on-surface-variant font-normal">(override opsional)</span>
+    </label>
+    <input type="number" name="total_amount" min="0"
+        class="input w-full"
+        x-model="val"
+        placeholder="Default: harga program" />
+    <p class="text-body-sm text-on-surface-variant mt-xs">Kosongkan untuk pakai harga default program.</p>
+</div>
                     </section>
 
                     {{-- Pembayaran --}}
@@ -304,6 +414,3 @@
         </form>
     </div>
 </x-app-layout>
-
-
-

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Tutor;
 use App\Models\Student;
+use App\Models\Setting;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 
@@ -82,4 +83,28 @@ class SettingsController extends Controller
         $user->delete();
         return redirect()->route('admin.settings.index')->with('success', 'User berhasil dihapus.');
     }
+
+    public function colors()
+{
+    return view('admin.settings.colors', [
+        'color_primary'   => Setting::get('color_primary', '#065f46'),
+        'color_secondary' => Setting::get('color_secondary', '#059669'),
+        'color_sidebar'   => Setting::get('color_sidebar', '#111827'),
+    ]);
+}
+
+public function updateColors(Request $request)
+{
+    $request->validate([
+        'color_primary'   => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
+        'color_secondary' => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
+        'color_sidebar'   => 'required|regex:/^#[0-9A-Fa-f]{6}$/',
+    ]);
+
+    Setting::set('color_primary',   $request->color_primary);
+    Setting::set('color_secondary', $request->color_secondary);
+    Setting::set('color_sidebar',   $request->color_sidebar);
+
+    return back()->with('success', 'Warna berhasil disimpan.');
+}
 }

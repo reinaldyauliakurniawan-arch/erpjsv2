@@ -82,7 +82,8 @@ class EnrollmentController extends Controller
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
-        return view('admin.enrollments.create', compact('programs', 'classrooms', 'classSessions'));
+        $students = \App\Models\Student::with('user')->orderBy('created_at', 'desc')->get();
+        return view('admin.enrollments.create', compact('programs', 'classrooms', 'classSessions', 'students'));
     }
 
     public function store(StoreEnrollmentRequest $request)

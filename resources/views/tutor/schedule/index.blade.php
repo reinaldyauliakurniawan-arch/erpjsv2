@@ -12,11 +12,11 @@
     selectedDate: '',
     classroomId: '',
     bookingId: null,
+    selectedScheduleId: '',
 }" x-init="
     if (day === 'Minggu' && {{ $weekOffset }} === 0) day = 'Senin';
 ">
 
-    {{-- Flash --}}
     @if(session('success'))
     <div class="alert alert-success alert-soft">
         <span class="material-symbols-outlined">check_circle</span>
@@ -83,7 +83,6 @@
     {{-- VIEW: JADWAL SAYA --}}
     <div x-show="view === 'mine'" x-cloak class="space-y-md">
 
-        {{-- Sesi Hari Ini --}}
         @php
             $todayDay = ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now()->dayOfWeek];
             $todaySchedules = $myByDay->get($todayDay, collect());
@@ -108,16 +107,45 @@
                     <thead>
                         <tr class="border-b border-surface-border text-on-surface-variant text-xs">
                             <th class="text-left font-medium py-sm">Sesi</th>
-                            <th class="text-left font-medium py-sm">Siswa</th>
+                            <th class="text-left font-medium py-sm">Kelas & Siswa</th>
                             <th class="text-left font-medium py-sm">Ruangan</th>
+                            <th class="text-left font-medium py-sm">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
                         @foreach($todaySchedules->sortBy('time_block') as $slot)
                         <tr class="border-b border-surface-border">
                             <td class="py-sm text-sm font-mono text-primary-container">{{ $slot->time_block }}</td>
-                            <td class="py-sm text-sm text-on-surface">{{ $slot->enrollment?->student?->user?->name ?? '—' }}</td>
+                            <td class="py-sm text-sm text-on-surface">
+                                {{ $slot->classSession?->name ?? '—' }}
+                                <span class="text-on-surface-variant text-xs block">
+                                    {{ $slot->classSession?->enrollments->map(fn($e) => $e->student->user->name)->join(', ') ?: '—' }}
+                                </span>
+                            </td>
                             <td class="py-sm text-sm text-on-surface-variant">{{ $slot->classroom?->name ?? '—' }}</td>
+                            <td class="py-sm">
+                                @php
+                                    $todayDate = now()->toDateString();
+                                    $alreadySkipped = $slot->roomBookings()
+                                        ->where('type', 'regular_skip')
+                                        ->whereDate('date', $todayDate)
+                                        ->exists();
+                                @endphp
+                                @if(!$alreadySkipped)
+                                <button type="button"
+                                    @click="modal = true; modalType = 'skip';
+                                            selectedBlock = '{{ $slot->time_block }}';
+                                            selectedDate = '{{ $todayDate }}';
+                                            classroomId = '{{ $slot->classroom_id }}';
+                                            selectedScheduleId = '{{ $slot->id }}';"
+                                    class="btn btn-xs btn-ghost text-yellow-600 hover:bg-yellow-50">
+                                    <span class="material-symbols-outlined text-[14px]">event_busy</span>
+                                    Skip
+                                </button>
+                                @else
+                                <span class="text-xs text-yellow-600 font-semibold">Skipped</span>
+                                @endif
+                            </td>
                         </tr>
                         @endforeach
                     </tbody>
@@ -125,7 +153,6 @@
             @endif
         </div>
 
-        {{-- Jadwal Mingguan --}}
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
             <h4 class="text-sm font-semibold text-on-surface mb-md">Jadwal Mingguan</h4>
             @if($myByDay->isEmpty())
@@ -141,7 +168,7 @@
                             <div class="bg-primary-container/10 border border-primary-container/30 rounded-lg px-md py-sm text-xs flex items-center gap-sm">
                                 <span class="font-mono font-semibold text-primary-container">{{ $slot->time_block }}</span>
                                 <span class="text-on-surface-variant">·</span>
-                                <span class="text-on-surface">{{ $slot->enrollment?->student?->user?->name ?? '—' }}</span>
+                                <span class="text-on-surface">{{ $slot->classSession?->name ?? '—' }}</span>
                                 <span class="text-on-surface-variant">·</span>
                                 <span class="text-on-surface-variant">{{ $slot->classroom?->name ?? '—' }}</span>
                             </div>
@@ -159,7 +186,6 @@
     {{-- VIEW: RUANGAN (Matrix) --}}
     <div x-show="view === 'room'" x-cloak class="space-y-md">
 
-        {{-- Day Tabs --}}
         <div class="border-b border-surface-border">
             <nav class="flex gap-xs -mb-px overflow-x-auto">
                 <template x-for="d in days" :key="d">
@@ -175,13 +201,11 @@
             </nav>
         </div>
 
-        {{-- Matrix --}}
-        @php $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
+        @php $timeBlocks = ['09.00-10.30','10.30-12.00','13.00-14.30','14.30-16.00','16.00-17.30','18.30-20.00']; @endphp
 
         <div class="overflow-x-auto">
         <div class="min-w-[700px] space-y-xs">
 
-            {{-- Header time blocks --}}
             <div class="grid gap-xs" style="grid-template-columns: 140px repeat({{ count($timeBlocks) }}, 1fr)">
                 <div></div>
                 @foreach($timeBlocks as $block)
@@ -203,7 +227,6 @@
                     class="grid gap-xs"
                     style="grid-template-columns: 140px repeat({{ count($timeBlocks) }}, 1fr)">
 
-                    {{-- Room label --}}
                     <div class="bg-primary-container text-on-primary px-sm py-sm rounded-lg text-[11px] font-bold flex items-center justify-between">
                         <span>{{ $classroom->name }}</span>
                         <span class="text-[9px] font-normal opacity-70">{{ \Carbon\Carbon::parse($date)->format('d/m') }}</span>
@@ -216,23 +239,21 @@
                         $isSkipped = $booking && $booking->type === 'regular_skip';
                         $isTemp    = $booking && $booking->type === 'temporary';
                         $isMyTemp  = $isTemp && $booking->tutor_id === $tutor->id;
-                        $isMySlot  = $schedule && $schedule->enrollment?->tutors?->contains('id', $tutor->id);
+                        $isMySlot  = $schedule && $schedule->classSession?->tutors?->contains('id', $tutor->id);
                     @endphp
 
                     @if($schedule && !$isSkipped)
-                        {{-- Reguler aktif --}}
                         <div class="{{ $isMySlot ? 'bg-primary-container/20 border-primary-container' : 'bg-red-50 border-red-200' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs"
-                            title="{{ $isMySlot ? 'Jadwal saya' : 'Reguler — tidak bisa dibooking' }}">
+                            title="{{ $isMySlot ? 'Jadwal saya' : 'Reguler' }}">
                             <span class="material-symbols-outlined {{ $isMySlot ? 'text-primary-container' : 'text-red-400' }} text-sm">
                                 {{ $isMySlot ? 'star' : 'lock' }}
                             </span>
                             <span class="text-[9px] font-bold {{ $isMySlot ? 'text-primary-container' : 'text-red-400' }} text-center leading-tight truncate w-full">
-                                {{ $schedule->enrollment?->student?->user?->name ?? '—' }}
+                                {{ $schedule->classSession?->name ?? '—' }}
                             </span>
                         </div>
 
                     @elseif($isMyTemp)
-                        {{-- Booking milik tutor ini --}}
                         <button type="button"
                             @click="modal = true; modalType = 'cancel';
                                     selectedRoom = '{{ $classroom->name }}';
@@ -246,7 +267,6 @@
                         </button>
 
                     @elseif($isTemp)
-                        {{-- Temporary booking orang lain --}}
                         <div class="bg-blue-50 border border-blue-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs opacity-60">
                             <span class="material-symbols-outlined text-blue-400 text-sm">event_busy</span>
                             <span class="text-[9px] font-bold text-blue-400 text-center leading-tight">Penuh</span>
@@ -281,7 +301,48 @@
         </div>
         </div>
 
-        {{-- Legend --}}
+        {{-- Custom Timeblock Sessions --}}
+        @php $standardBlocks = ['09.00-10.30','10.30-12.00','13.00-14.30','14.30-16.00','16.00-17.30','18.30-20.00']; @endphp
+        @foreach($days as $d)
+        <div x-show="day === '{{ $d }}'" x-cloak>
+            @php
+                $customSchedules = collect();
+                foreach($byRoom as $roomName => $dayGroups) {
+                    $slots = isset($dayGroups[$d]) ? $dayGroups[$d] : collect();
+                    $customSchedules = $customSchedules->merge(
+                        $slots->filter(fn($s) => !in_array($s->time_block, $standardBlocks))
+                    );
+                }
+            @endphp
+            @if($customSchedules->isNotEmpty())
+            <div class="mt-md">
+                <p class="text-xs font-bold uppercase tracking-widest text-on-surface-variant mb-sm">Sesi Non-Standar</p>
+                <div class="flex flex-wrap gap-sm">
+                    @foreach($customSchedules->sortBy('time_block') as $schedule)
+                    <div class="bg-surface-container-lowest border border-surface-border rounded-lg px-md py-sm shadow-sm flex items-center gap-md">
+                        <div class="bg-primary-container/10 rounded-lg px-sm py-xs">
+                            <span class="font-mono text-xs font-bold text-primary-container">{{ $schedule->time_block }}</span>
+                        </div>
+                        <div>
+                            <p class="text-sm font-semibold text-on-surface">{{ $schedule->classSession?->name ?? '—' }}</p>
+                            <p class="text-xs text-on-surface-variant">
+                                {{ $schedule->classroom?->name ?? '—' }} ·
+                                {{ $schedule->classSession?->tutors->map(fn($t) => $t->user->name)->join(', ') ?: '—' }}
+                            </p>
+                        </div>
+                        <div class="flex flex-wrap gap-xs ml-auto">
+                            @foreach($schedule->classSession?->enrollments ?? [] as $enrollment)
+                                <span class="badge badge-soft text-[10px]">{{ $enrollment->student->user->name }}</span>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+            @endif
+        </div>
+        @endforeach
+
         <div class="flex items-center gap-md flex-wrap mt-sm">
             <span class="flex items-center gap-xs text-[11px] text-on-surface-variant">
                 <span class="w-3 h-3 rounded-sm inline-block bg-primary-container/20 border border-primary-container"></span> Jadwal saya
@@ -314,18 +375,17 @@
 
             <div class="flex items-center justify-between">
                 <h4 class="text-base font-semibold text-on-surface"
-                    x-text="modalType === 'book' ? 'Book Slot' : 'Cancel Booking'">
+                    x-text="modalType === 'book' ? 'Book Slot' : modalType === 'skip' ? 'Skip Sesi' : 'Cancel Booking'">
                 </h4>
                 <button @click="modal = false" class="btn btn-ghost btn-sm btn-circle">
                     <span class="material-symbols-outlined text-[18px]">close</span>
                 </button>
             </div>
 
-            {{-- Slot info --}}
             <div class="grid grid-cols-2 gap-sm">
                 <div class="bg-surface-container-low rounded-lg px-md py-sm">
                     <p class="text-[10px] font-bold uppercase text-on-surface-variant">Ruangan</p>
-                    <p class="text-sm font-semibold text-on-surface" x-text="selectedRoom"></p>
+                    <p class="text-sm font-semibold text-on-surface" x-text="selectedRoom || classroomId"></p>
                 </div>
                 <div class="bg-surface-container-low rounded-lg px-md py-sm">
                     <p class="text-[10px] font-bold uppercase text-on-surface-variant">Tanggal</p>
@@ -360,6 +420,32 @@
                 </form>
             </div>
 
+            {{-- Skip form --}}
+            <div x-show="modalType === 'skip'">
+                <p class="text-sm text-on-surface-variant mb-md">Tandai sesi ini sebagai skip. Admin akan diberitahu.</p>
+                <form method="POST" action="{{ route('tutor.room-bookings.store') }}">
+                    @csrf
+                    <input type="hidden" name="type" value="regular_skip">
+                    <input type="hidden" name="classroom_id" :value="classroomId">
+                    <input type="hidden" name="date" :value="selectedDate">
+                    <input type="hidden" name="time_block" :value="selectedBlock">
+                    <input type="hidden" name="schedule_id" :value="selectedScheduleId">
+                    <div class="fieldset mb-md">
+                        <label class="fieldset-legend">Alasan (opsional)</label>
+                        <input type="text" name="notes" class="input w-full input-sm"
+                            placeholder="Misal: sakit, izin...">
+                    </div>
+                    <div class="flex justify-end gap-sm">
+                        <button type="button" @click="modal = false" class="btn btn-ghost btn-sm">Batal</button>
+                        <button type="submit" class="btn btn-sm border-none"
+                            style="--btn-bg: oklch(79.5% .184 86.047); --btn-fg: oklch(42.1% .095 57.708);">
+                            <span class="material-symbols-outlined text-base">event_busy</span>
+                            Skip Sesi
+                        </button>
+                    </div>
+                </form>
+            </div>
+
             {{-- Cancel form --}}
             <div x-show="modalType === 'cancel'">
                 <p class="text-sm text-on-surface-variant mb-md">Batalkan booking slot ini?</p>
@@ -368,7 +454,8 @@
                     @method('DELETE')
                     <div class="flex justify-end gap-sm">
                         <button type="button" @click="modal = false" class="btn btn-ghost btn-sm">Tidak</button>
-                        <button type="submit" class="btn btn-sm btn-error border-none">
+                        <button type="submit" class="btn btn-sm border-none"
+                            style="--btn-bg: oklch(63.7% .237 25.331); --btn-fg: #fff;">
                             <span class="material-symbols-outlined text-base">cancel</span>
                             Cancel Booking
                         </button>
@@ -381,6 +468,3 @@
 
 </div>
 </x-app-layout>
-
-
-

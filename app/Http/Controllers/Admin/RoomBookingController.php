@@ -23,6 +23,7 @@ class RoomBookingController extends Controller
             'enrollment_id'=> 'nullable|exists:enrollments,id',
             'tutor_id'     => 'nullable|exists:tutors,id',
             'notes'        => 'nullable|string|max:255',
+            'schedule_id'   => 'nullable|exists:schedules,id',
         ]);
 
         // Cegah duplikat
@@ -37,7 +38,7 @@ class RoomBookingController extends Controller
         }
 
         RoomBooking::create($request->only(
-            'classroom_id', 'date', 'time_block', 'type', 'enrollment_id', 'tutor_id', 'notes'
+            'classroom_id', 'schedule_id', 'date', 'time_block', 'type', 'enrollment_id', 'tutor_id', 'notes'
         ));
 
         return back()->with('success', 'Booking berhasil disimpan.');

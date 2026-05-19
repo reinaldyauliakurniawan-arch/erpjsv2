@@ -7,9 +7,14 @@ use Illuminate\Database\Eloquent\Model;
 class RoomBooking extends Model
 {
     protected $fillable = [
-        'classroom_id', 'date', 'time_block', 'type',
+        'classroom_id', 'schedule_id', 'date', 'time_block', 'type',
         'enrollment_id', 'tutor_id', 'notes',
     ];
+
+    public function schedule()
+    {
+    return $this->belongsTo(Schedule::class);
+    }
 
     protected $casts = [
         'date' => 'date',

@@ -1,10 +1,12 @@
 public function rules(): array
 {
-    return [
-        'new_student.name'         => 'required|string|max:255',
-        'new_student.email'        => 'required|email|unique:users,email',
-        'new_student.phone'        => 'nullable|string|max:20',
+    $isExisting = $this->filled('existing_student_id');
 
+    return [
+        'existing_student_id'      => 'nullable|exists:students,id',
+        'new_student.name'         => $isExisting ? 'nullable' : 'required|string|max:255',
+        'new_student.email'        => $isExisting ? 'nullable' : 'required|email|unique:users,email',
+        'new_student.phone'        => 'nullable|string|max:20',
         'program_id'               => 'required|exists:programs,id',
         'class_session_id'         => 'nullable|exists:class_sessions,id',
         'enrollment_date'          => 'required|date',
@@ -19,5 +21,7 @@ public function rules(): array
         'installments.*.due_date'  => 'required_with:installments|date',
         'tutor_ids'                => 'nullable|array',
         'tutor_ids.*'              => 'exists:tutors,id',
+        'remaining_meetings'       => 'nullable|integer|min:0',
+        'total_amount'             => 'nullable|numeric|min:0',
     ];
 }
