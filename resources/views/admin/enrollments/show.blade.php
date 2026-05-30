@@ -75,7 +75,7 @@
             <h4 class="text-headline-md font-semibold text-on-surface">Detail Enrollment</h4>
             <div class="grid grid-cols-1 gap-md sm:grid-cols-2">
                 <div>
-                    <p class="text-body-sm text-on-surface-variant">Tanggal Mulai</p>
+                    <p class="text-body-sm text-on-surface-variant">Tanggal Transaksi</p>
                     <p class="text-body-md text-on-surface">{{ \Carbon\Carbon::parse($enrollment->enrollment_date)->format('d M Y') }}</p>
                 </div>
                 <div>
@@ -234,7 +234,7 @@
                                 @if($inst->paid_at)
                                     <span class="badge badge-soft badge-success">Lunas</span>
                                 @else
-                                    <span class="badge badge-soft badge-warning">Belum</span>
+                                    <span class="badge badge-soft badge-warning">Pending</span>
                                 @endif
                             </td>
                             <td class="text-right">
@@ -318,6 +318,3 @@
 </dialog>
 @endif
 </x-app-layout>
-
-
-

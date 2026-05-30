@@ -3,7 +3,6 @@
 
     <div class="p-lg space-y-lg" style="max-width: 64rem">
 
-        {{-- Flash --}}
         @if(session('success'))
             <div role="alert" class="alert alert-success alert-soft">
                 <span class="material-symbols-outlined">check_circle</span>
@@ -21,8 +20,7 @@
         <div class="flex items-center justify-between gap-md">
             <h3 class="text-headline-lg font-semibold text-on-surface">Chart of Accounts</h3>
             <div class="flex gap-sm">
-                <a href="{{ route('finance.exports.coa') }}"
-                    class="btn btn-ghost btn-sm gap-xs">
+                <a href="{{ route('finance.exports.coa') }}" class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">download</span>
                     Export COA
                 </a>
@@ -73,6 +71,7 @@
                                 <tr class="border-b border-surface-border text-on-surface-variant">
                                     <th>Kode</th>
                                     <th>Nama Akun</th>
+                                    <th>Cash Flow</th>
                                     <th></th>
                                 </tr>
                             </thead>
@@ -83,10 +82,24 @@
                                         {{-- View mode --}}
                                         <td x-show="!editing" class="text-on-surface-variant text-body-sm font-mono">{{ $account->code }}</td>
                                         <td x-show="!editing" class="text-on-surface">{{ $account->name }}</td>
+                                        <td x-show="!editing">
+                                            @if($account->cash_flow_category)
+                                                <span class="badge badge-soft text-xs">
+                                                    {{ match($account->cash_flow_category) {
+                                                        'cash'      => 'Kas & Bank',
+                                                        'operating' => 'Operasi',
+                                                        'investing' => 'Investasi',
+                                                        'financing' => 'Pendanaan',
+                                                        default     => $account->cash_flow_category,
+                                                    } }}
+                                                </span>
+                                            @else
+                                                <span class="text-on-surface-variant text-xs">—</span>
+                                            @endif
+                                        </td>
                                         <td x-show="!editing" class="text-right">
                                             <div class="flex justify-end gap-xs">
-                                                <button @click="editing = true"
-                                                    class="btn btn-ghost btn-xs gap-xs">
+                                                <button @click="editing = true" class="btn btn-ghost btn-xs gap-xs">
                                                     <span class="material-symbols-outlined text-[14px]">edit</span>
                                                 </button>
                                                 <form method="POST" action="{{ route('finance.accounts.destroy', $account) }}"
@@ -100,14 +113,14 @@
                                         </td>
 
                                         {{-- Edit mode --}}
-                                        <td x-show="editing" colspan="3">
+                                        <td x-show="editing" colspan="4">
                                             <form method="POST" action="{{ route('finance.accounts.update', $account) }}"
-                                                class="flex gap-sm items-end py-xs">
+                                                class="flex gap-sm items-end py-xs flex-wrap">
                                                 @csrf @method('PATCH')
                                                 <div class="fieldset">
                                                     <label class="fieldset-legend text-on-surface">Kode</label>
                                                     <input type="text" name="code" value="{{ $account->code }}"
-                                                        class="input w-32" required />
+                                                        class="input w-28" required />
                                                 </div>
                                                 <div class="fieldset flex-1">
                                                     <label class="fieldset-legend text-on-surface">Nama</label>
@@ -120,6 +133,16 @@
                                                         @foreach(['Asset','Liability','Equity','Revenue','Expense'] as $t)
                                                             <option value="{{ $t }}" @selected($account->type === $t)>{{ $t }}</option>
                                                         @endforeach
+                                                    </select>
+                                                </div>
+                                                <div class="fieldset">
+                                                    <label class="fieldset-legend text-on-surface">Cash Flow</label>
+                                                    <select name="cash_flow_category" class="select">
+                                                        <option value="">— Tidak ada —</option>
+                                                        <option value="cash"      @selected($account->cash_flow_category === 'cash')>Kas & Bank</option>
+                                                        <option value="operating" @selected($account->cash_flow_category === 'operating')>Operasi</option>
+                                                        <option value="investing" @selected($account->cash_flow_category === 'investing')>Investasi</option>
+                                                        <option value="financing" @selected($account->cash_flow_category === 'financing')>Pendanaan</option>
                                                     </select>
                                                 </div>
                                                 <div class="flex gap-xs mb-xs">
@@ -154,7 +177,7 @@
                 @csrf
                 <div class="fieldset">
                     <label class="fieldset-legend text-on-surface">Kode Akun</label>
-                    <input type="text" name="code" class="input w-full" placeholder="1-1001" required />
+                    <input type="text" name="code" class="input w-full" placeholder="1001" required />
                 </div>
                 <div class="fieldset">
                     <label class="fieldset-legend text-on-surface">Nama Akun</label>
@@ -166,6 +189,16 @@
                         @foreach(['Asset','Liability','Equity','Revenue','Expense'] as $t)
                             <option value="{{ $t }}">{{ $t }}</option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="fieldset">
+                    <label class="fieldset-legend text-on-surface">Kategori Cash Flow</label>
+                    <select name="cash_flow_category" class="select w-full">
+                        <option value="">— Tidak ada —</option>
+                        <option value="cash">Kas & Bank</option>
+                        <option value="operating">Operasi</option>
+                        <option value="investing">Investasi</option>
+                        <option value="financing">Pendanaan</option>
                     </select>
                 </div>
                 <div class="modal-action">
@@ -182,6 +215,3 @@
     </dialog>
 
 </x-app-layout>
-
-
-

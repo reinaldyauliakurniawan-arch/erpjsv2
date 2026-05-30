@@ -40,7 +40,7 @@ class AccountingService
             throw new BalanceMismatchException("Total debit ({$totalDebit}) does not equal total credit ({$totalCredit}).");
         }
 
-        return DB::transaction(function () use ($date, $description, $reference, $items, $totalDebit) {
+        return DB::transaction(function () use ($date, $description, $reference, $items, $totalDebit, $type, $programId) {
             $journal = Journal::create([
                 'date' => $date,
                 'description' => $description,

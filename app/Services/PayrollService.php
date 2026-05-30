@@ -49,6 +49,8 @@ class PayrollService
                     ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
                     ->where('attendance_tutor.tutor_id', $tutor->id)
                     ->whereNull('attendance_tutor.paid_at')
+                    ->whereYear('attendance.date', \Carbon\Carbon::parse($payrollRun->month)->year)
+                    ->whereMonth('attendance.date', \Carbon\Carbon::parse($payrollRun->month)->month)
                     ->select('attendance_tutor.*')
                     ->get();
 
@@ -65,7 +67,7 @@ class PayrollService
                     $reference,
                     [
                         ['account_code' => AccountCode::TUTOR_PAYABLE->value, 'debit' => $totalAmount, 'credit' => 0],
-                        ['account_code' => AccountCode::CASH_BANK->value,     'debit' => 0,            'credit' => $totalAmount],
+                        ['account_code' => AccountCode::BANK->value,     'debit' => 0,            'credit' => $totalAmount],
                     ],
                     'payroll'
                 );

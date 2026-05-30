@@ -27,22 +27,60 @@
     @endif
 
     {{-- Step 1: Pilih Kelas --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    @php
+        $initMode = request('class_session_id') ? ($selectedSession ? 'own' : 'replace') : 'own';
+        $initQuery = $selectedSession ? $selectedSession->name . ' — ' . $selectedSession->program->name : '';
+        $initSelectedId = request('class_session_id', '');
+        $searchUrl = route('tutor.attendance.search-sessions');
+        $createUrl = route('tutor.attendance.create');
+    @endphp
+    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg"
+        x-data="{
+            mode: '{{ $initMode }}',
+            query: @js($initQuery),
+            results: [],
+            selectedId: '{{ $initSelectedId }}',
+            loading: false,
+            search() {
+                if (this.query.length < 2) { this.results = []; return; }
+                this.loading = true;
+                fetch('{{ $searchUrl }}?q=' + encodeURIComponent(this.query) + '&mode=' + this.mode)
+                    .then(r => r.json())
+                    .then(data => { this.results = data; this.loading = false; });
+            },
+            select(item) {
+                this.selectedId = item.id;
+                this.query = item.name;
+                this.results = [];
+                window.location.href = '{{ $createUrl }}?class_session_id=' + item.id;
+            }
+        }">
         <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-md">Pilih Kelas</h2>
-        <form method="GET" action="{{ route('tutor.attendance.create') }}" class="flex items-end gap-md">
-            <div class="fieldset flex-1">
-                <label class="fieldset-legend">Kelas / Program</label>
-                <select name="class_session_id" class="select w-full"
-                    onchange="this.form.submit()">
-                    <option value="">— Pilih Kelas —</option>
-                    @foreach($classSessions as $cs)
-                    <option value="{{ $cs->id }}" {{ request('class_session_id') == $cs->id ? 'selected' : '' }}>
-                        {{ $cs->name }} — {{ $cs->program->name }}
-                    </option>
-                    @endforeach
-                </select>
+
+        <div class="flex gap-md mb-md">
+            <label class="flex items-center gap-xs cursor-pointer">
+                <input type="radio" x-model="mode" value="own" class="radio" @change="query = ''; results = []; selectedId = '';">
+                <span class="text-sm">Kelas saya</span>
+            </label>
+            <label class="flex items-center gap-xs cursor-pointer">
+                <input type="radio" x-model="mode" value="replace" class="radio" @change="query = ''; results = []; selectedId = '';">
+                <span class="text-sm">Replacement</span>
+            </label>
+        </div>
+
+        <div class="fieldset flex-1 relative">
+            <label class="fieldset-legend">Cari Kelas / Program</label>
+            <input type="text" class="input w-full" placeholder="Ketik nama kelas atau program..."
+                x-model="query" @input.debounce.300ms="search()">
+            <div x-show="results.length > 0"
+                class="absolute z-10 bg-surface-container border border-surface-border rounded-lg shadow-md w-full mt-xs">
+                <template x-for="item in results" :key="item.id">
+                    <div class="px-md py-sm text-sm hover:bg-surface-container-high cursor-pointer"
+                        x-text="item.name" @click="select(item)"></div>
+                </template>
             </div>
-        </form>
+            <p x-show="loading" class="text-xs text-on-surface-variant mt-xs">Mencari...</p>
+        </div>
     </div>
 
     {{-- Step 2: Form Absensi --}}
@@ -50,6 +88,9 @@
     <form method="POST" action="{{ route('tutor.attendance.store') }}">
         @csrf
         <input type="hidden" name="class_session_id" value="{{ request('class_session_id') }}">
+        @if($initMode === 'replace')
+        <input type="hidden" name="is_replacement" value="1">
+        @endif
 
         <div class="space-y-md">
             {{-- Info Sesi --}}
@@ -82,6 +123,40 @@
                         </select>
                     </div>
                 </div>
+
+                {{-- Replacement --}}
+                @if($assignedTutors->isNotEmpty())
+                @php $isReplace = $initMode === 'replace'; @endphp
+                <div class="fieldset mt-md">
+                    <label class="fieldset-legend">Replacement</label>
+                    @if(!$isReplace)
+                    <label class="flex items-center gap-sm cursor-pointer mb-sm">
+                        <input type="checkbox" name="is_replacement" value="1" class="checkbox"
+                            {{ old('is_replacement') ? 'checked' : '' }}
+                            id="is_replacement_checkbox">
+                        <span class="text-sm text-on-surface">Saya mereplace tutor lain di sesi ini</span>
+                    </label>
+                    @endif
+                    <div @if(!$isReplace) id="replacement_select" style="display:{{ old('is_replacement') ? 'block' : 'none' }}" @endif>
+                        <select name="replaced_tutor_id" class="select w-full" {{ $isReplace ? 'required' : '' }}>
+                            <option value="">— Pilih tutor yang di-replace —</option>
+                            @foreach($assignedTutors as $t)
+                            <option value="{{ $t->id }}" {{ old('replaced_tutor_id') == $t->id ? 'selected' : '' }}>
+                                {{ $t->user->name }}
+                            </option>
+                            @endforeach
+                        </select>
+                    </div>
+                </div>
+                @if(!$isReplace)
+                <script>
+                    document.getElementById('is_replacement_checkbox').addEventListener('change', function() {
+                        document.getElementById('replacement_select').style.display = this.checked ? 'block' : 'none';
+                        document.querySelector('[name="replaced_tutor_id"]').required = this.checked;
+                    });
+                </script>
+                @endif
+                @endif
 
                 {{-- Catatan Kelas --}}
                 <div class="fieldset mt-md">
@@ -148,6 +223,3 @@
 
 </div>
 </x-app-layout>
-
-
-

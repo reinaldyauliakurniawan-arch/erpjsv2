@@ -36,9 +36,18 @@ class ImportController extends Controller
         $data = array_map('str_getcsv', file($path));
         foreach ($data as $index => $row) {
             if ($index === 0) continue;
+            if (count($row) < 3) continue;
+            $validCategories = ['cash', 'operating', 'investing', 'financing'];
+            $validTypes = ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'];
+            $type = ucfirst(strtolower(trim($row[2])));
+            if (!in_array($type, $validTypes)) continue;
             Account::updateOrCreate(
-                ['code' => $row[0]],
-                ['name' => $row[1], 'type' => $row[2]]
+                ['code' => trim($row[0])],
+                [
+                    'name'               => trim($row[1]),
+                    'type'               => $type,
+                    'cash_flow_category' => isset($row[3]) && in_array(trim($row[3]), $validCategories) ? trim($row[3]) : null,
+                ]
             );
         }
         return back()->with('success', 'COA imported successfully.');
@@ -67,7 +76,7 @@ class ImportController extends Controller
         foreach ($data as $index => $row) {
             if ($index === 0) continue;
             if (count($row) < 4) continue;
-            if (!is_numeric($row[2]) || !is_numeric($row[3])) continue;
+            if (!in_array(trim($row[1]), ['private', 'semi-private', 'group'])) continue;
             Program::updateOrCreate(
                 ['name' => $row[0]],
                 [
@@ -90,7 +99,8 @@ class ImportController extends Controller
         $tutorCache = [];
 
         foreach ($data as $index => $row) {
-            if ($index === 0) continue; // name, email, persona, program_name, rate
+            if ($index === 0) continue;
+            if (count($row) < 3) continue;
             if (empty($row[0]) || empty($row[1])) continue;
 
             $email = trim($row[1]);
@@ -131,6 +141,7 @@ class ImportController extends Controller
         $data = array_map('str_getcsv', file($path));
         foreach ($data as $index => $row) {
             if ($index === 0) continue;
+            if (count($row) < 2) continue;
             $user = User::firstOrCreate(
                 ['email' => $row[1]],
                 ['name' => $row[0], 'password' => Hash::make('password123'), 'role' => 'student']
@@ -168,7 +179,37 @@ class ImportController extends Controller
         foreach ($grouped as $reference => $lines) {
             $date        = $lines[0]['date'];
             $description = $lines[0]['description'];
-            $items       = array_map(fn($l) => [
+
+            // Validasi format date
+            try {
+                \Carbon\Carbon::createFromFormat('Y-m-d', $date)->startOfDay();
+            } catch (\Exception $e) {
+                $errors[] = "{$reference}: format tanggal tidak valid ({$date}), harus Y-m-d.";
+                continue;
+            }
+
+            // Validasi setiap baris: account_code tidak boleh kosong, debit/credit harus numerik
+            $hasInvalidRow = false;
+            foreach ($lines as $line) {
+                if (empty($line['account_code'])) {
+                    $errors[] = "{$reference}: account_code kosong.";
+                    $hasInvalidRow = true;
+                    break;
+                }
+                if (!is_numeric($line['debit']) || !is_numeric($line['credit'])) {
+                    $errors[] = "{$reference}: debit/credit bukan angka.";
+                    $hasInvalidRow = true;
+                    break;
+                }
+                if ($line['debit'] < 0 || $line['credit'] < 0) {
+                    $errors[] = "{$reference}: debit/credit tidak boleh negatif.";
+                    $hasInvalidRow = true;
+                    break;
+                }
+            }
+            if ($hasInvalidRow) continue;
+
+            $items = array_map(fn($l) => [
                 'account_code' => $l['account_code'],
                 'debit'        => $l['debit'],
                 'credit'       => $l['credit'],
@@ -179,6 +220,10 @@ class ImportController extends Controller
                 $imported++;
             } catch (\App\Exceptions\IdempotencyException $e) {
                 $skipped[] = $reference;
+            } catch (\App\Exceptions\BalanceMismatchException $e) {
+                $errors[] = "{$reference}: debit dan kredit tidak balance.";
+            } catch (\App\Exceptions\AccountNotFoundException $e) {
+                $errors[] = "{$reference}: kode akun tidak ditemukan.";
             } catch (\Exception $e) {
                 $errors[] = "{$reference}: " . $e->getMessage();
             }

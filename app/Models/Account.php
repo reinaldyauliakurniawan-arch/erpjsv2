@@ -8,5 +8,5 @@ use Illuminate\Database\Eloquent\Model;
 class Account extends Model
 {
     use HasFactory;
-    protected $fillable = ['code', 'name', 'type'];
+    protected $fillable = ['code', 'name', 'type', 'cash_flow_category'];
 }

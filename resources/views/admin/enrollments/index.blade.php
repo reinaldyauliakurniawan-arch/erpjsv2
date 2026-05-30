@@ -42,9 +42,9 @@
                 </select>
                 <select id="filter-payment" class="select select-sm w-40">
                     <option value="">Semua Pembayaran</option>
+                    <option value="pending">Pending</option>
                     <option value="full">Full</option>
                     <option value="partial">Partial</option>
-                    <option value="unpaid">Unpaid</option>
                 </select>
                 <button onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">
                     Filter
@@ -70,7 +70,7 @@
     const payColors = {
         full:    'badge-success',
         partial: 'badge-warning',
-        unpaid:  'badge-error',
+        pending: 'badge-error',
     };
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -163,10 +163,12 @@
                     title: 'Aksi',
                     field: 'show_url',
                     headerSort: false,
-                    width: 60,
+                    width: 100,
                     hozAlign: 'center',
                     formatter: function(cell) {
-                        return '<a href="' + cell.getValue() + '" class="btn btn-ghost btn-sm"><span class="material-symbols-outlined text-[16px]">open_in_new</span></a>';
+                        var row = cell.getRow().getData();
+        return '<a href="' + cell.getValue() + '" class="btn btn-ghost btn-sm"><span class="material-symbols-outlined text-[16px]">open_in_new</span></a>'
+             + '<button onclick="deleteEnrollment(\'' + row.delete_url + '\')" class="btn btn-ghost btn-sm text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>';
                     },
                 },
             ],
@@ -190,9 +192,19 @@
         document.getElementById('filter-payment').value    = '';
         window.enrollmentTable.setData('{{ route("admin.enrollments.data") }}', {});
     }
+    function deleteEnrollment(url) {
+    if (!confirm('Hapus enrollment ini? Data tidak bisa dikembalikan.')) return;
+    fetch(url, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+            'Accept': 'application/json',
+        }
+    }).then(r => r.json()).then(data => {
+        if (data.success) window.enrollmentTable.replaceData();
+        else alert('Gagal menghapus enrollment.');
+    }).catch(() => alert('Terjadi kesalahan. Coba lagi.'));
+}
     </script>
 
 </x-app-layout>
-
-
-

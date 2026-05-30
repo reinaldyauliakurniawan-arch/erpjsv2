@@ -19,12 +19,16 @@ use App\Http\Controllers\Student\DashboardController as StudentDashboard;
 use App\Http\Controllers\Admin\AccountController;
 use App\Http\Controllers\Admin\JournalController;
 use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\FixedAssetController;
 use App\Http\Controllers\Tutor\ScheduleController as TutorSchedule;
 use App\Http\Controllers\Admin\ScheduleController as AdminSchedule;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendance;
 use App\Http\Controllers\DashboardController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\TrackerController;
+use App\Http\Controllers\Admin\AdjustingJournalController;
+use App\Http\Controllers\Admin\RabController;
+use App\Http\Controllers\Admin\RabRealisasiController;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -46,6 +50,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/students/data', [StudentController::class, 'data'])->name('students.data');
         Route::resource('students', StudentController::class)->except(['create', 'store']);
         Route::resource('programs', ProgramController::class);
+        Route::get('enrollments/students/search', [EnrollmentController::class, 'searchStudents'])->name('enrollments.students.search');
+        Route::get('enrollments/sessions/eligible', [EnrollmentController::class, 'eligibleSessions'])->name('enrollments.sessions.eligible');
+        Route::get('enrollments/tutors/available', [EnrollmentController::class, 'availableTutors'])->name('enrollments.tutors.available');
         Route::get('/enrollments/data', [EnrollmentController::class, 'data'])->name('enrollments.data');
         Route::resource('enrollments', EnrollmentController::class);
         Route::resource('classrooms', ClassroomController::class);
@@ -123,9 +130,24 @@ Route::middleware('auth')->group(function () {
 
 
         Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');
+        Route::get('/reports/adjusted-trial-balance', [ReportController::class, 'adjustedTrialBalance'])->name('reports.adjusted-trial-balance');
+        Route::get('/reports/general-ledger', [ReportController::class, 'generalLedger'])->name('reports.general-ledger');
+        Route::get('/reports/cash-flow', [ReportController::class, 'cashFlow'])->name('reports.cash-flow');
+        Route::get('/assets', [FixedAssetController::class, 'index'])->name('assets.index');
+        Route::post('/assets', [FixedAssetController::class, 'store'])->name('assets.store');
+        Route::patch('/assets/{fixedAsset}', [FixedAssetController::class, 'update'])->name('assets.update');
+        Route::delete('/assets/{fixedAsset}', [FixedAssetController::class, 'destroy'])->name('assets.destroy');
         Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('reports.profit-loss');
         Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
+        Route::post('/reports/opening-balance', [ReportController::class, 'storeOpeningBalance'])->name('opening-balance.store');
         Route::get('/reports/deferred-revenue', [ReportController::class, 'deferredRevenue'])->name('reports.deferred-revenue');
+
+        // Adjusting Journals
+        Route::get('/adjusting-journals', [AdjustingJournalController::class, 'index'])->name('adjusting-journals.index');
+        Route::get('/adjusting-journals/data', [AdjustingJournalController::class, 'data'])->name('adjusting-journals.data');
+        Route::post('/adjusting-journals', [AdjustingJournalController::class, 'store'])->name('adjusting-journals.store');
+        Route::post('/adjusting-journals/generate', [AdjustingJournalController::class, 'generate'])->name('adjusting-journals.generate');
+        Route::delete('/adjusting-journals/{adjustingJournal}', [AdjustingJournalController::class, 'destroy'])->name('adjusting-journals.destroy');
 
         // Exports — finance
         Route::get('/exports/journals', [ExportController::class, 'exportJournals'])->name('exports.journals');
@@ -134,6 +156,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/exports/profit-loss', [ExportController::class, 'exportProfitLoss'])->name('exports.profit-loss');
         Route::get('/exports/balance-sheet', [ExportController::class, 'exportBalanceSheet'])->name('exports.balance-sheet');
         Route::get('/exports/coa', [ExportController::class, 'exportCoA'])->name('exports.coa');
+        Route::get('/exports/deferred-revenue', [ExportController::class, 'exportDeferredRevenue'])->name('exports.deferred-revenue');
         Route::get('/exports/finance-template/{type}', [ExportController::class, 'downloadTemplate'])->name('exports.finance-template');
 
         // Imports — finance
@@ -144,6 +167,15 @@ Route::middleware('auth')->group(function () {
         Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
         Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
         Route::post('/payroll/{id}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
+
+        // RAB
+        Route::get('/rab', [RabController::class, 'index'])->name('rab.index');
+        Route::post('/rab', [RabController::class, 'store'])->name('rab.store');
+        Route::get('/rab/data', [RabController::class, 'data'])->name('rab.data');
+        Route::delete('/rab/{rab}', [RabController::class, 'destroy'])->name('rab.destroy');
+
+        // RAB Realisasi
+        Route::get('/rab-realisasi', [RabRealisasiController::class, 'index'])->name('rab-realisasi.index');
     });
 
     // Tutor routes
@@ -152,6 +184,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance/data', [TutorAttendance::class, 'data'])->name('attendance.data');
         Route::get('/attendance', [TutorAttendance::class, 'index'])->name('attendance.index');
         Route::get('/attendance/create', [TutorAttendance::class, 'create'])->name('attendance.create');
+        Route::get('/attendance/search-sessions', [TutorAttendance::class, 'searchSessions'])->name('attendance.search-sessions');
         Route::get('/schedule', [TutorSchedule::class, 'index'])->name('schedule.index');
         Route::post('/attendance', [TutorAttendance::class, 'store'])->name('attendance.store');
         Route::delete('/attendance/{id}', [TutorAttendance::class, 'destroy'])->name('attendance.destroy');
@@ -161,11 +194,18 @@ Route::middleware('auth')->group(function () {
         Route::patch('/availability/{id}', [TutorAvailability::class, 'update'])->name('availability.update');
         Route::post('/room-bookings', [App\Http\Controllers\Tutor\RoomBookingController::class, 'store'])->name('room-bookings.store');
         Route::delete('/room-bookings/{id}', [App\Http\Controllers\Tutor\RoomBookingController::class, 'destroy'])->name('room-bookings.destroy');
+        Route::get('practice/create', [App\Http\Controllers\Tutor\PracticeController::class, 'create'])->name('practice.create');
+        Route::post('practice', [App\Http\Controllers\Tutor\PracticeController::class, 'store'])->name('practice.store');
+        Route::get('tracker', [App\Http\Controllers\Tutor\TrackerController::class, 'index'])->name('tracker.index');
     });
 
     // Student routes
     Route::prefix('student')->name('student.')->middleware('role:student')->group(function() {
         Route::get('/dashboard', [StudentDashboard::class, 'index'])->name('dashboard');
+        Route::get('/practice', [App\Http\Controllers\Student\PracticeController::class, 'index'])->name('practice.index');
+        Route::post('/practice/{practice}/open', [App\Http\Controllers\Student\PracticeController::class, 'open'])->name('practice.open');
+        Route::post('/practice/{practice}/submit', [App\Http\Controllers\Student\PracticeController::class, 'submit'])->name('practice.submit');
+        Route::get('/tracker', [App\Http\Controllers\Student\TrackerController::class, 'index'])->name('tracker.index');
     });
 });
 

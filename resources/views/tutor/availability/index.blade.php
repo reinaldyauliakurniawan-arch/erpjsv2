@@ -47,8 +47,6 @@
         $grouped  = $availability->groupBy('day');
         $dayOrder = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
         $dayLabel = ['monday'=>'Senin','tuesday'=>'Selasa','wednesday'=>'Rabu','thursday'=>'Kamis','friday'=>'Jumat','saturday'=>'Sabtu','sunday'=>'Minggu'];
-    @endphp
-
     <div class="space-y-md">
         @foreach($dayOrder as $day)
         @if($grouped->has($day))
@@ -109,14 +107,13 @@
                     <label class="fieldset-legend">Hari <span class="text-error">*</span></label>
                     <select name="day" class="select w-full" required>
                         <option value="">— Pilih Hari —</option>
-                        <option value="monday">Senin</option>
-                        <option value="tuesday">Selasa</option>
-                        <option value="wednesday">Rabu</option>
-                        <option value="thursday">Kamis</option>
-                        <option value="friday">Jumat</option>
-                        <option value="saturday">Sabtu</option>
-                        <option value="sunday">Minggu</option>
-                    </select>
+                        <option value="Senin">Senin</option>
+                        <option value="Selasa">Selasa</option>
+                        <option value="Rabu">Rabu</option>
+                        <option value="Kamis">Kamis</option>
+                        <option value="Jumat">Jumat</option>
+                        <option value="Sabtu">Sabtu</option>
+                        <option value="Minggu">Minggu</option>                    </select>
                 </div>
 
                 <div class="fieldset">
@@ -178,7 +175,3 @@ document.addEventListener('DOMContentLoaded', function () {
 </script>
 
 </x-app-layout>
-
-
-
-

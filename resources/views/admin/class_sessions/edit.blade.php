@@ -2,6 +2,19 @@
     <x-slot name="title">Edit Class Session</x-slot>
 
     <div class="p-lg space-y-lg" style="max-width: 40rem">
+    {{-- Flash --}}
+        @if(session('success'))
+            <div role="alert" class="alert alert-success alert-soft">
+                <span class="material-symbols-outlined">check_circle</span>
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+        @if($errors->has('error'))
+            <div role="alert" class="alert alert-error alert-soft">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ $errors->first('error') }}</span>
+            </div>
+        @endif
 
         <a href="{{ route('admin.class-sessions.show', $classSession->id) }}"
             class="inline-flex items-center gap-xs text-body-md text-on-surface-variant hover:text-primary-container transition-colors">
@@ -60,6 +73,3 @@
 
     </div>
 </x-app-layout>
-
-
-

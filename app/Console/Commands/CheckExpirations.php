@@ -44,7 +44,7 @@ class CheckExpirations extends Command
         }
 
         // 2. Auto-recognize revenue for expired enrollments with remaining meetings
-        $expired = Enrollment::with(['student.user', 'program', 'installments'])
+        $expired = Enrollment::with(['student.user', 'program', 'installments', 'schedules', 'tutors'])
             ->where('expiry_date', '<', $today)
             ->where('status', 'active')
             ->where('remaining_meetings', '>', 0)
@@ -55,7 +55,17 @@ class CheckExpirations extends Command
             $paidAmount = $e->installments->whereNotNull('paid_at')->sum('amount');
 
             if ($paidAmount <= 0 || $e->program->total_meetings <= 0) {
+            \App\Models\RoomBooking::where('enrollment_id', $e->id)
+                ->where('date', '>', $today->format('Y-m-d'))
+                ->delete();
                 $e->update(['status' => 'expired']);
+                $tutorIds = $e->tutors()->pluck('tutors.id');
+                foreach ($e->schedules as $schedule) {
+                    \App\Models\TutorAvailability::where('day', $schedule->day)
+                        ->where('time_block', $schedule->time_block)
+                        ->whereIn('tutor_id', $tutorIds)
+                        ->update(['status' => 'available']);
+                }
                 $this->warn("Expired enrollment #{$e->id}: tidak ada pembayaran, status diupdate tanpa jurnal.");
                 continue;
             }
@@ -74,7 +84,17 @@ class CheckExpirations extends Command
                             ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $remainingDeferred],
                         ]
                     );
+                    \App\Models\RoomBooking::where('enrollment_id', $e->id)
+                        ->where('date', '>', $today->format('Y-m-d'))
+                        ->delete();
                     $e->update(['status' => 'expired', 'remaining_meetings' => 0]);
+                    $tutorIds = $e->tutors()->pluck('tutors.id');
+                    foreach ($e->schedules as $schedule) {
+                        \App\Models\TutorAvailability::where('day', $schedule->day)
+                            ->where('time_block', $schedule->time_block)
+                            ->whereIn('tutor_id', $tutorIds)
+                            ->update(['status' => 'available']);
+                    }
                     $this->info("Expired enrollment #{$e->id}: recognized sisa IDR " . number_format($remainingDeferred));
                 } catch (\Exception $ex) {
                     $this->error("Failed to recognize revenue for enrollment #{$e->id}: " . $ex->getMessage());

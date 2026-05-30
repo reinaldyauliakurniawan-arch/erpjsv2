@@ -91,7 +91,7 @@
                 </div>
                 <div class="overflow-x-auto">
                     <div class="min-w-[700px]">
-                        @php $timeBlocks = ['09.00-10.30','10.30-12.00','13.00-14.30','14.30-16.00','16.00-17.30','18.30-20.00']; @endphp
+                        @php $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
 
                         {{-- Time block headers --}}
                         <div class="grid gap-xs mb-xs" style="grid-template-columns: 150px repeat(6, 1fr)">
@@ -195,7 +195,7 @@
                 </div>
 
                 {{-- Custom Timeblock Sessions --}}
-                @php $standardBlocks = ['09.00-10.30','10.30-12.00','13.00-14.30','14.30-16.00','16.00-17.30','18.30-20.00']; @endphp
+                @php $standardBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
                 @foreach($days as $d)
                 <div x-show="day === '{{ $d }}'" x-cloak>
                     @php
@@ -364,7 +364,7 @@
             </div>
 
             {{-- Tabel per ruangan --}}
-            @php $timeBlocks = ['09.00-10.30','10.30-12.00','13.00-14.30','14.30-16.00','16.00-17.30','18.30-20.00']; @endphp
+            @php $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
             @foreach($byRoom as $roomName => $dayGroups)
             <div class="grid grid-cols-12 gap-lg">
 

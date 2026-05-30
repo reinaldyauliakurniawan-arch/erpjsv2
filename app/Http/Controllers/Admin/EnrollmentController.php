@@ -38,10 +38,12 @@ class EnrollmentController extends Controller
     $query = Enrollment::with(['student.user', 'program', 'classSession']);
 
     if ($request->filled('search')) {
-        $search = $request->search;
-        $query->whereHas('student.user', fn($q) => $q->where('name', 'like', "%{$search}%"))
-              ->orWhereHas('program', fn($q) => $q->where('name', 'like', "%{$search}%"));
-    }
+    $search = $request->search;
+    $query->where(function($q) use ($search) {
+        $q->whereHas('student.user', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
+          ->orWhereHas('program', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
+    });
+}
 
     if ($request->filled('status')) {
         $query->where('status', $request->status);
@@ -67,6 +69,7 @@ class EnrollmentController extends Controller
             'status'           => $e->status,
             'remaining'        => $e->remaining_meetings,
             'show_url'         => route('admin.enrollments.show', $e->id),
+            'delete_url'       => route('admin.enrollments.destroy', $e->id),
         ]),
     ]);
 }
@@ -75,10 +78,8 @@ class EnrollmentController extends Controller
     {
         $programs      = Program::all();
         $classrooms    = Classroom::all();
-        $classSessions = ClassSession::with('program')
-            ->withCount(['enrollments as filled_count' => function ($q) {
-                $q->whereIn('status', ['active', 'waitlist']);
-            }])
+        $classSessions = ClassSession::with(['program', 'schedules.classroom'])
+            ->withCount(['enrollments as enrollments_count' => fn($q) => $q->whereIn('status', ['active', 'waitlist'])])
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
@@ -89,12 +90,119 @@ class EnrollmentController extends Controller
     public function store(StoreEnrollmentRequest $request)
     {
         try {
-            $this->enrollmentService->enroll($request->validated());
-            return redirect()->route('admin.enrollments.index')->with('success', 'Student enrolled successfully.');
+            [$enrollment, $roomNotes] = $this->enrollmentService->enroll($request->validated());
+            $successMsg = 'Student enrolled successfully.';
+            if (!empty($roomNotes)) {
+                $successMsg .= ' Catatan ruangan: ' . implode(' | ', $roomNotes);
+            }
+            return redirect()->route('admin.enrollments.index')->with('success', $successMsg);
         } catch (DomainException $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
     }
+
+    public function searchStudents(Request $request)
+{
+    $q = $request->input('q', '');
+    $students = \App\Models\Student::with('user')
+        ->whereHas('user', fn($query) => $query->where('name', 'like', "%{$q}%")
+            ->orWhere('email', 'like', "%{$q}%"))
+        ->limit(10)
+        ->get()
+        ->map(fn($s) => [
+            'id'    => $s->id,
+            'name'  => $s->user->name,
+            'email' => $s->user->email,
+            'phone' => $s->user->phone,
+            'enrollments' => $s->enrollments()->with('program')->latest()->take(3)->get()->map(fn($e) => [
+                'program' => $e->program->name,
+                'status'  => $e->status,
+            ]),
+        ]);
+
+    return response()->json($students);
+}
+
+public function eligibleSessions(Request $request)
+{
+    $request->validate([
+        'program_id' => 'required|exists:programs,id',
+        'day'        => 'nullable|string',
+        'time_block' => 'nullable|string',
+    ]);
+
+    $programId = $request->program_id;
+    $day       = $request->day;
+    $timeBlock = $request->time_block;
+
+    // Kalau hari/timeblock kosong → return empty (student masuk waitlist)
+    if (!$day || !$timeBlock) {
+        return response()->json([]);
+    }
+
+    $sessions = \App\Models\ClassSession::with(['schedules.classroom', 'tutors.user'])
+        ->where('program_id', $programId)
+        ->where('status', 'active')
+        ->whereHas('schedules', fn($q) => $q->where('day', $day)->where('time_block', $timeBlock))
+        ->get()
+        ->filter(function ($session) use ($programId) {
+            // Kuota: enrollment aktif < kapasitas ruangan
+            $program  = \App\Models\Program::find($programId);
+            $schedule = $session->schedules->first();
+            $capacity = $schedule?->classroom?->capacity ?? 999;
+
+            $activeCount = $session->enrollments()->whereIn('status', ['active', 'waitlist'])->count();
+            if ($activeCount >= $capacity) return false;
+
+            // Meeting berjalan ≤ 8 (dari attendance)
+            $finishedMeetings = \App\Models\Attendance::where('enrollment_id', function($q) use ($session) {
+                $q->select('id')->from('enrollments')->where('class_session_id', $session->id)->limit(1);
+            })->count();
+
+            return $finishedMeetings <= 8;
+        })
+        ->map(fn($session) => [
+            'id'               => $session->id,
+            'name'             => $session->name,
+            'day'              => $day,
+            'time_block'       => $timeBlock,
+            'classroom'        => $session->schedules->first()?->classroom?->name,
+            'capacity'         => $session->schedules->first()?->classroom?->capacity,
+            'enrolled_count'   => $session->enrollments()->whereIn('status', ['active', 'waitlist'])->count(),
+            'finished_meetings'=> \App\Models\Attendance::whereIn('enrollment_id',
+                $session->enrollments()->pluck('id')
+            )->distinct('date')->count('date'),
+            'tutors'           => $session->tutors->map(fn($t) => [
+                'id'   => $t->id,
+                'name' => $t->user->name,
+            ]),
+        ])
+        ->values();
+
+    return response()->json($sessions);
+}
+
+public function availableTutors(Request $request)
+{
+    $day       = $request->input('day');
+    $timeBlock = $request->input('time_block');
+
+    $tutors = \App\Models\Tutor::with('user')
+        ->when($day && $timeBlock, function ($q) use ($day, $timeBlock) {
+            // Exclude tutor yang sudah ada di sesi lain pada slot yang sama
+            $q->whereHas('availability', fn($q2) => $q2->where('day', $day)->where('time_block', $timeBlock))
+  ->whereDoesntHave('classSessions', function ($q2) use ($day, $timeBlock) {
+      $q2->whereHas('schedules', fn($q3) => $q3->where('day', $day)->where('time_block', $timeBlock));
+  });
+        })
+        ->get()
+        ->map(fn($t) => [
+            'id'   => $t->id,
+            'name' => $t->user->name,
+        ]);
+
+    return response()->json($tutors);
+}
 
     public function show($id)
 {
@@ -134,7 +242,7 @@ class EnrollmentController extends Controller
                 "Installment Payment - Enrollment #{$enrollmentId}",
                 "INSTALLMENT-{$installmentId}",
                 [
-                    ['account_code' => AccountCode::CASH_BANK->value,        'debit' => $installment->amount, 'credit' => 0],
+                    ['account_code' => $installment->payment_channel === 'bank' ? AccountCode::BANK->value : AccountCode::CASH->value, 'debit' => $installment->amount, 'credit' => 0],
                     ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => 0, 'credit' => $installment->amount],
                 ]
             );
@@ -182,8 +290,11 @@ class EnrollmentController extends Controller
             }
         }
 
-        $enrollment->update(['status' => 'expired', 'remaining_meetings' => 0]);
-
+        $enrollment->update([
+            'status'           => 'expired',
+            'remaining_meetings' => 0,
+            'payment_status'   => PaymentStatus::FULL->value,
+        ]);
         return back()->with('success', 'Enrollment marked as expired, remaining revenue recognized.');
     }
 
@@ -197,6 +308,11 @@ class EnrollmentController extends Controller
 
         if ($enrollment->remaining_meetings > 0) {
             return back()->withErrors(['error' => "Masih ada {$enrollment->remaining_meetings} meeting tersisa. Gunakan expire jika ingin hanguskan."]);
+        }
+
+        $unpaidInstallments = $enrollment->installments()->whereNull('paid_at')->count();
+        if ($unpaidInstallments > 0) {
+            return back()->withErrors(['error' => "Masih ada {$unpaidInstallments} cicilan belum lunas."]);
         }
 
         $enrollment->update(['status' => 'graduate']);
@@ -245,5 +361,12 @@ public function updateTutorStatus(Request $request, $id, $tutorId)
     ]);
 
     return back()->with('success', 'Tutor status updated.');
+}
+
+public function destroy($id)
+{
+    $enrollment = Enrollment::findOrFail($id);
+    $enrollment->delete();
+    return response()->json(['success' => true]);
 }
 }

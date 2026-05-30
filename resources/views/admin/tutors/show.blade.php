@@ -10,6 +10,13 @@
                 <span>{{ session('success') }}</span>
             </div>
         @endif
+        @if($errors->has('error'))
+            <div role="alert" class="alert alert-error alert-soft">
+                <span class="material-symbols-outlined">error</span>
+                <span>{{ $errors->first('error') }}</span>
+            </div>
+        @endif
+
 
         {{-- Back --}}
         <a href="{{ route('admin.tutors.index') }}"
@@ -316,6 +323,3 @@
     </dialog>
 
 </x-app-layout>
-
-
-

@@ -12,6 +12,7 @@ use App\Models\Attendance;
 use App\Enums\TimeBlock;
 use App\Enums\DayOfWeek;
 use App\Enums\ClassType;
+use App\Services\AttendanceService;
 use Illuminate\Http\Request;
 
 class ClassSessionController extends Controller
@@ -100,7 +101,7 @@ class ClassSessionController extends Controller
 
         $availableEnrollments = Enrollment::with('student.user')
             ->where('program_id', $classSession->program_id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'waitlist'])
             ->whereNull('class_session_id')
             ->get();
 
@@ -145,21 +146,25 @@ class ClassSessionController extends Controller
     }
 
     public function destroy($id)
-    {
-        $classSession = ClassSession::findOrFail($id);
+{
+    $classSession = ClassSession::findOrFail($id);
 
-        $hasActiveEnrollments = Enrollment::where('class_session_id', $id)
-            ->where('status', 'active')
-            ->exists();
+    $hasActiveEnrollments = Enrollment::where('class_session_id', $id)
+        ->where('status', 'active')
+        ->exists();
 
-        if ($hasActiveEnrollments) {
-            return redirect()->route('admin.class-sessions.index')
-                ->with('error', 'Class session tidak bisa dihapus karena masih ada siswa aktif.');
-        }
-
-        $classSession->delete();
-        return redirect()->route('admin.class-sessions.index')->with('success', 'Class session deleted.');
+    if ($hasActiveEnrollments) {
+        return redirect()->route('admin.class-sessions.index')
+            ->with('error', 'Class session tidak bisa dihapus karena masih ada siswa aktif.');
     }
+
+    Attendance::where('class_session_id', $id)->each(function ($attendance) {
+        app(AttendanceService::class)->reverseAttendance($attendance);
+    });
+
+    $classSession->delete();
+    return redirect()->route('admin.class-sessions.index')->with('success', 'Class session deleted.');
+}
 
     public function assignEnrollment(Request $request, $id)
     {

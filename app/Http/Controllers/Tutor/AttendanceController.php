@@ -94,21 +94,55 @@ public function data(Request $request)
     return response()->json($rows);
 }
 
-    public function create(Request $request)
-    {
-        $classSessions = ClassSession::with('program')->where('status', 'active')->orderBy('name')->get();
-        $classrooms    = Classroom::orderBy('name')->get();
+    public function searchSessions(Request $request)
+{
+    $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
+    $q = $request->input('q', '');
 
-        $enrollments = collect();
-        if ($request->filled('class_session_id')) {
-            $enrollments = Enrollment::with('student.user')
-                ->where('class_session_id', $request->class_session_id)
-                ->where('status', 'active')
-                ->get();
-        }
+    $query = ClassSession::with('program')
+        ->where('status', 'active')
+        ->where(function ($query) use ($q) {
+            $query->where('name', 'like', "%{$q}%")
+                  ->orWhereHas('program', fn($q2) => $q2->where('name', 'like', "%{$q}%"));
+        });
 
-        return view('tutor.attendance.create', compact('classSessions', 'classrooms', 'enrollments'));
+    if ($request->input('mode') === 'own') {
+        $query->whereHas('tutors', fn($q2) => $q2->where('tutor_id', $tutor->id));
     }
+
+    return response()->json(
+        $query->limit(10)->get()->map(fn($cs) => [
+            'id'   => $cs->id,
+            'name' => $cs->name . ' — ' . $cs->program->name,
+        ])
+    );
+}
+
+public function create(Request $request)
+{
+    $classrooms     = Classroom::orderBy('name')->get();
+    $enrollments    = collect();
+    $assignedTutors = collect();
+    $selectedSession = null;
+
+    if ($request->filled('class_session_id')) {
+        $selectedSession = ClassSession::with('program')->find($request->class_session_id);
+
+        $enrollments = Enrollment::with('student.user')
+            ->where('class_session_id', $request->class_session_id)
+            ->where('status', 'active')
+            ->get();
+
+        $currentTutor = Tutor::where('user_id', Auth::id())->first();
+        $assignedTutors = ClassSession::with('tutors.user')
+            ->find($request->class_session_id)
+            ?->tutors
+            ->filter(fn($t) => $t->id !== $currentTutor?->id)
+            ?? collect();
+    }
+
+    return view('tutor.attendance.create', compact('classrooms', 'enrollments', 'assignedTutors', 'selectedSession'));
+}
 
     public function store(Request $request)
     {
@@ -121,10 +155,12 @@ public function data(Request $request)
             'students.*.enrollment_id' => 'required|exists:enrollments,id',
             'students.*.is_present'    => 'required|boolean',
             'students.*.notes'         => 'nullable|string',
-            'notes' => 'nullable|string|max:1000',
+            'notes'              => 'nullable|string|max:1000',
+            'is_replacement'     => 'nullable|boolean',
+            'replaced_tutor_id'  => 'nullable|exists:tutors,id',
         ]);
 
-        $data              = $request->only(['class_session_id', 'date', 'time_block', 'classroom_id', 'notes', 'students']);
+        $data              = $request->only(['class_session_id', 'date', 'time_block', 'classroom_id', 'notes', 'students', 'is_replacement', 'replaced_tutor_id']);
         $data['marked_by'] = Auth::id();
 
         $this->attendanceService->markAttendance($data);

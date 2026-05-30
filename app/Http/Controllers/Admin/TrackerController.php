@@ -58,10 +58,11 @@ class TrackerController extends Controller
             ->where('tracker_column_id', $request->tracker_column_id)
             ->first();
 
-        if ($entry) {
-            $entry->update(['is_done' => !$entry->is_done]);
-        }
+        if (!$entry) {
+    return response()->json(['message' => 'Entry not found.'], 404);
+}
 
-        return response()->json(['is_done' => $entry->fresh()->is_done]);
+$entry->update(['is_done' => !$entry->is_done]);
+return response()->json(['is_done' => $entry->fresh()->is_done]);
     }
 }

@@ -10,6 +10,8 @@ use App\Models\TutorRate;
 use App\Enums\AccountCode;
 use Illuminate\Support\Facades\DB;
 use App\Exceptions\DomainException;
+use App\Models\RoomBooking;
+use App\Models\TutorAvailability;
 
 class AttendanceService
 {
@@ -56,8 +58,21 @@ class AttendanceService
                     ]);
 
                     $enrollment->decrement('remaining_meetings');
+                    if ($enrollment->fresh()->remaining_meetings <= 0) {
+                        $enrollment->update(['status' => 'graduate']);
+                        RoomBooking::where('enrollment_id', $enrollment->id)
+                            ->where('date', '>', $data['date'])
+                            ->delete();
+                        $tutorIds = $enrollment->tutors()->pluck('tutors.id');
+                        foreach ($enrollment->schedules as $schedule) {
+                            TutorAvailability::where('day', $schedule->day)
+                                ->where('time_block', $schedule->time_block)
+                                ->whereIn('tutor_id', $tutorIds)
+                                ->update(['status' => 'available']);
+                        }
+                    }
 
-                    $revenueAmount = $enrollment->total_amount / $enrollment->program->total_meetings;
+                    $revenueAmount = bcdiv((string) $enrollment->total_amount, (string) $enrollment->program->total_meetings, 2);
 
                     $this->accountingService->createJournal(
                         $data['date'],
@@ -99,15 +114,19 @@ class AttendanceService
                     );
 
                     $attendance->tutors()->attach($tutor->id, [
-                        'payable_amount' => $rate->rate,
-                        'pending_rate'   => false,
-                        'journal_id'     => $journal->id,
+                        'payable_amount'     => $rate->rate,
+                        'pending_rate'       => false,
+                        'journal_id'         => $journal->id,
+                        'is_replacement'     => (bool) ($data['is_replacement'] ?? false),
+                        'replaced_tutor_id'  => $data['replaced_tutor_id'] ?? null,
                     ]);
                 } else {
                     $attendance->tutors()->attach($tutor->id, [
-                        'payable_amount' => 0,
-                        'pending_rate'   => true,
-                        'journal_id'     => null,
+                        'payable_amount'     => 0,
+                        'pending_rate'       => true,
+                        'journal_id'         => null,
+                        'is_replacement'     => (bool) ($data['is_replacement'] ?? false),
+                        'replaced_tutor_id'  => $data['replaced_tutor_id'] ?? null,
                     ]);
                 }
             }
@@ -127,13 +146,15 @@ class AttendanceService
 
             foreach ($attendance->students as $enrollment) {
                 $refRevRec = "REV-REC-{$attendance->id}-{$enrollment->id}";
+                $revenueAmount = bcdiv((string) $enrollment->total_amount, (string) $enrollment->program->total_meetings, 2);
+
                 $this->accountingService->createJournal(
                     now()->toDateString(),
                     "REVERSE Revenue Recognition: {$enrollment->student->user->name}, Session: {$attendance->id}",
                     "REV-{$refRevRec}",
                     [
-                        ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => $enrollment->total_amount / $enrollment->program->total_meetings, 'credit' => 0],
-                        ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => 0, 'credit' => $enrollment->total_amount / $enrollment->program->total_meetings],
+                        ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => $revenueAmount, 'credit' => 0],
+                        ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => 0, 'credit' => $revenueAmount],
                     ],
                     'reversal'
                 );

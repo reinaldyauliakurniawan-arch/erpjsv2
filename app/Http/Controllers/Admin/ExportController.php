@@ -14,26 +14,38 @@ class ExportController extends Controller
 {
     public function exportJournals()
     {
-        $journals = Journal::with('items.account')->get();
-        return $this->streamCsv('journals_export.csv', ['ID', 'Date', 'Reference', 'Description', 'Amount'], function($file) use ($journals) {
+        $journals = Journal::with('items.account')->orderBy('date')->get();
+        return $this->streamCsv('journals_export.csv', ['date', 'description', 'reference', 'account_code', 'debit', 'credit'], function($file) use ($journals) {
             foreach ($journals as $journal) {
-                fputcsv($file, [$journal->id, $journal->date, $journal->reference, $journal->description, $journal->total_amount]);
+                foreach ($journal->items as $item) {
+                    fputcsv($file, [
+                        $journal->date,
+                        $journal->description,
+                        $journal->reference,
+                        $item->account->code ?? '',
+                        $item->debit,
+                        $item->credit,
+                    ]);
+                }
             }
         });
     }
 
     public function exportAttendance()
     {
-        $attendances = Attendance::with(['enrollment.student.user', 'enrollment.program'])->get();
+        $attendances = Attendance::with(['classSession.program', 'students.student.user'])->get();
+
         return $this->streamCsv('attendance_export.csv', ['ID', 'Date', 'Student', 'Program', 'Time Block'], function($file) use ($attendances) {
             foreach ($attendances as $attendance) {
-                fputcsv($file, [
-                    $attendance->id,
-                    $attendance->date,
-                    $attendance->enrollment->student->user->name,
-                    $attendance->enrollment->program->name,
-                    $attendance->time_block
-                ]);
+                foreach ($attendance->students as $enrollment) {
+                    fputcsv($file, [
+                        $attendance->id,
+                        $attendance->date,
+                        $enrollment->student?->user?->name ?? '—',
+                        $attendance->classSession?->program?->name ?? '—',
+                        $attendance->time_block,
+                    ]);
+                }
             }
         });
     }
@@ -53,28 +65,55 @@ class ExportController extends Controller
         });
     }
 
-    public function exportTrialBalance()
+    public function exportTrialBalance(Request $request)
     {
-        $accounts = Account::orderBy('code')->get()->keyBy('id');
+    $from = $request->get('from');
+    $to   = $request->get('to');
 
-        $totals = DB::table('journal_items')
-            ->selectRaw('account_id, SUM(debit) as total_debit, SUM(credit) as total_credit')
-            ->groupBy('account_id')
-            ->get()
-            ->keyBy('account_id');
+    $query = DB::table('journal_items')
+        ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+        ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+        ->selectRaw('accounts.code, accounts.name, accounts.type, SUM(journal_items.debit) as debit, SUM(journal_items.credit) as credit')
+        ->groupBy('accounts.code', 'accounts.name', 'accounts.type')
+        ->orderBy('accounts.code');
 
-        $rows = $accounts->map(function ($account) use ($totals) {
-            $t      = $totals->get($account->id);
-            $debit  = $t ? $t->total_debit  : 0;
-            $credit = $t ? $t->total_credit : 0;
-            return ['code' => $account->code, 'name' => $account->name, 'type' => $account->type, 'debit' => $debit, 'credit' => $credit];
-        })->filter(fn($r) => $r['debit'] > 0 || $r['credit'] > 0);
+    if ($from) $query->whereDate('journals.date', '>=', $from);
+    if ($to)   $query->whereDate('journals.date', '<=', $to);
 
-        return $this->streamCsv('trial_balance.csv', ['Kode', 'Nama Akun', 'Tipe', 'Debit', 'Credit'], function($file) use ($rows) {
+    $rows = $query->get()->filter(fn($r) => $r->debit > 0 || $r->credit > 0)->map(function($r) {
+        $normalDebet = ['Asset', 'Expense'];
+        $debit  = (float) $r->debit;
+        $credit = (float) $r->credit;
+        if (in_array($r->type, $normalDebet)) {
+            $saldo_debet  = $debit >= $credit ? $debit - $credit : 0;
+            $saldo_kredit = $credit > $debit  ? $credit - $debit : 0;
+        } else {
+            $saldo_kredit = $credit >= $debit ? $credit - $debit : 0;
+            $saldo_debet  = $debit > $credit  ? $debit - $credit : 0;
+        }
+        return [
+            'code'         => $r->code,
+            'name'         => $r->name,
+            'type'         => $r->type,
+            'debit'        => $debit,
+            'credit'       => $credit,
+            'saldo_debet'  => $saldo_debet,
+            'saldo_kredit' => $saldo_kredit,
+        ];
+    });
+
+    return $this->streamCsv('trial_balance.csv',
+        ['Kode', 'Nama Akun', 'Tipe', 'Debit', 'Kredit', 'Saldo Debet', 'Saldo Kredit'],
+        function($file) use ($rows) {
             foreach ($rows as $row) {
-                fputcsv($file, [$row['code'], $row['name'], $row['type'], $row['debit'], $row['credit']]);
+                fputcsv($file, [
+                    $row['code'], $row['name'], $row['type'],
+                    $row['debit'], $row['credit'],
+                    $row['saldo_debet'], $row['saldo_kredit'],
+                ]);
             }
-        });
+        }
+    );
     }
 
     public function exportProfitLoss(Request $request)
@@ -140,9 +179,9 @@ class ExportController extends Controller
     {
         $accounts = Account::orderBy('code')->get();
 
-        return $this->streamCsv('chart_of_accounts.csv', ['Kode', 'Nama Akun', 'Tipe'], function($file) use ($accounts) {
+        return $this->streamCsv('chart_of_accounts.csv', ['code', 'name', 'type', 'cash_flow_category'], function($file) use ($accounts) {
             foreach ($accounts as $account) {
-                fputcsv($file, [$account->code, $account->name, $account->type]);
+                fputcsv($file, [$account->code, $account->name, $account->type, $account->cash_flow_category ?? '']);
             }
         });
     }
@@ -152,8 +191,8 @@ class ExportController extends Controller
         $templates = [
             'coa' => [
                 'filename' => 'template_coa.csv',
-                'headers'  => ['code', 'name', 'type'],
-                'example'  => [['1001', 'Kas di Tangan', 'Asset']],
+                'headers'  => ['code', 'name', 'type', 'cash_flow_category'],
+                'example'  => [['1001', 'Kas di Tangan', 'Asset', 'cash']],
             ],
             'classrooms' => [
                 'filename' => 'template_classrooms.csv',
@@ -201,6 +240,59 @@ class ExportController extends Controller
             }
         });
     }
+    public function exportDeferredRevenue(Request $request)
+{
+    $filterMonth   = $request->get('month');
+    $filterProgram = $request->get('program');
+
+    $query = DB::table('enrollments')
+        ->join('students', 'enrollments.student_id', '=', 'students.id')
+        ->join('users', 'students.user_id', '=', 'users.id')
+        ->join('programs', 'enrollments.program_id', '=', 'programs.id')
+        ->leftJoin(
+            DB::raw('(SELECT enrollment_id, SUM(amount) as paid_amount FROM installments WHERE paid_at IS NOT NULL GROUP BY enrollment_id) as paid'),
+            'paid.enrollment_id', '=', 'enrollments.id'
+        )
+        ->where('enrollments.status', 'active')
+        ->select(
+            'users.name as student_name',
+            'programs.name as program_name',
+            'enrollments.remaining_meetings',
+            'enrollments.created_at',
+            'programs.total_meetings',
+            DB::raw('COALESCE(paid.paid_amount, 0) as paid_amount')
+        );
+
+    if ($filterProgram) $query->where('programs.id', $filterProgram);
+    if ($filterMonth)   $query->whereRaw("DATE_FORMAT(enrollments.created_at, '%Y-%m') = ?", [$filterMonth]);
+
+    $rows = $query->get()->map(function ($e) {
+        if ($e->total_meetings <= 0 || $e->paid_amount <= 0) return null;
+        $rate       = $e->paid_amount / $e->total_meetings;
+        $used       = $e->total_meetings - $e->remaining_meetings;
+        $recognized = $rate * $used;
+        $deferred   = $e->paid_amount - $recognized;
+        return [
+            $e->student_name,
+            $e->program_name,
+            substr($e->created_at, 0, 7),
+            $e->total_meetings,
+            $used,
+            $e->remaining_meetings,
+            $e->paid_amount,
+            round($recognized),
+            round($deferred),
+        ];
+    })->filter();
+
+    return $this->streamCsv(
+        'deferred_revenue.csv',
+        ['Siswa', 'Program', 'Bulan', 'Total Sesi', 'Terpakai', 'Sisa', 'Harga Dibayar', 'Sudah Diakui', 'Sisa Deferred'],
+        function ($file) use ($rows) {
+            foreach ($rows as $row) fputcsv($file, $row);
+        }
+    );
+}
 
     protected function streamCsv($filename, $headers, $callback)
     {

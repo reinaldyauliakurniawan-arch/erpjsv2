@@ -20,7 +20,6 @@
             --sidebar-text-active: #ffffff;
             --sidebar-accent: #3B82F6;
         }
-
         .sidebar-link {
             color: var(--sidebar-text);
             border-left: 3px solid transparent;
@@ -69,14 +68,27 @@
 
         @elseif(Auth::user()->role === 'cfo')
             <x-sidebar-link href="{{ route('finance.index') }}" :active="request()->routeIs('finance.index')" icon="account_balance">Dashboard</x-sidebar-link>
-            <x-sidebar-link href="{{ route('finance.accounts.index') }}" :active="request()->routeIs('finance.accounts.*')" icon="account_tree">Accounts</x-sidebar-link>
-            <x-sidebar-link href="{{ route('finance.journals.index') }}" :active="request()->routeIs('finance.journals.*')" icon="receipt_long">Journals</x-sidebar-link>
-            <x-sidebar-link href="{{ route('finance.payroll.index') }}" :active="request()->routeIs('finance.payroll.*')" icon="payments">Payroll</x-sidebar-link>
             <div class="pt-sm">
-                <p class="text-label-lg px-md pb-xs tracking-widest uppercase" style="color:#6B7280">Reports</p>
+                <p class="text-label-lg px-md pb-xs tracking-widest uppercase" style="color:#6B7280">Laporan</p>
+                <x-sidebar-link href="{{ route('finance.journals.index') }}" :active="request()->routeIs('finance.journals.*')" icon="receipt_long">Journals</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.reports.general-ledger') }}" :active="request()->routeIs('finance.reports.general-ledger')" icon="menu_book">General Ledger</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.reports.trial-balance') }}" :active="request()->routeIs('finance.reports.trial-balance')" icon="balance">Trial Balance</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.reports.adjusted-trial-balance') }}" :active="request()->routeIs('finance.reports.adjusted-trial-balance')" icon="rule">Adjusted Trial Balance</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.adjusting-journals.index') }}" :active="request()->routeIs('finance.adjusting-journals.*')" icon="auto_fix_high">Jurnal Penyesuaian</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.reports.profit-loss') }}" :active="request()->routeIs('finance.reports.profit-loss')" icon="trending_up">Profit & Loss</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.reports.balance-sheet') }}" :active="request()->routeIs('finance.reports.balance-sheet')" icon="summarize">Balance Sheet</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.reports.cash-flow') }}" :active="request()->routeIs('finance.reports.cash-flow')" icon="water">Cash Flow</x-sidebar-link>
+            </div>
+            <div class="pt-sm">
+                <p class="text-label-lg px-md pb-xs tracking-widest uppercase" style="color:#6B7280">Perencanaan</p>
+                <x-sidebar-link href="{{ route('finance.rab.index') }}" :active="request()->routeIs('finance.rab.*')" icon="event_note">RAB</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.rab-realisasi.index') }}" :active="request()->routeIs('finance.rab-realisasi.*')" icon="monitoring">Realisasi RAB</x-sidebar-link>
+            </div>
+            <div class="pt-sm">
+                <p class="text-label-lg px-md pb-xs tracking-widest uppercase" style="color:#6B7280">Master & Operasional</p>
+                <x-sidebar-link href="{{ route('finance.accounts.index') }}" :active="request()->routeIs('finance.accounts.*')" icon="account_tree">Accounts</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.assets.index') }}" :active="request()->routeIs('finance.assets.*')" icon="inventory_2">Aset Tetap</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.payroll.index') }}" :active="request()->routeIs('finance.payroll.*')" icon="payments">Payroll</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.reports.deferred-revenue') }}" :active="request()->routeIs('finance.reports.deferred-revenue')" icon="savings">Deferred Revenue</x-sidebar-link>
             </div>
 
@@ -84,10 +96,14 @@
             <x-sidebar-link href="{{ route('tutor.dashboard') }}" :active="request()->routeIs('tutor.dashboard')" icon="dashboard">Dashboard</x-sidebar-link>
             <x-sidebar-link href="{{ route('tutor.schedule.index') }}" :active="request()->routeIs('tutor.schedule.*')" icon="calendar_month">Jadwal</x-sidebar-link>
             <x-sidebar-link href="{{ route('tutor.attendance.index') }}" :active="request()->routeIs('tutor.attendance.*')" icon="assignment_turned_in">Absensi</x-sidebar-link>
-            <x-sidebar-link href="{{ route('tutor.availability.index') }}" :active="request()->routeIs('tutor.availability.*')" icon="event_available">Availabilitas</x-sidebar-link>
+            <x-sidebar-link href="{{ route('tutor.availability.index') }}" :active="request()->routeIs('tutor.availability.*')" icon="event_available">Availability</x-sidebar-link>
+            <x-sidebar-link href="{{ route('tutor.practice.create') }}" :active="request()->routeIs('tutor.practice.*')" icon="edit_note">Buat Tugas</x-sidebar-link>
+            <x-sidebar-link href="{{ route('tutor.tracker.index') }}" :active="request()->routeIs('tutor.tracker.*')" icon="query_stats">Self-Study Tracker</x-sidebar-link>
 
         @elseif(Auth::user()->role === 'student')
             <x-sidebar-link href="{{ route('student.dashboard') }}" :active="request()->routeIs('student.dashboard')" icon="dashboard">Dashboard</x-sidebar-link>
+<x-sidebar-link href="{{ route('student.practice.index') }}" :active="request()->routeIs('student.practice.*')" icon="edit_note">Practice</x-sidebar-link>
+<x-sidebar-link href="{{ route('student.tracker.index') }}" :active="request()->routeIs('student.tracker.*')" icon="query_stats">Self-Study Tracker</x-sidebar-link>
         @endif
     </nav>
 
@@ -172,20 +188,40 @@
                     <x-sidebar-link href="{{ route('admin.imports.index') }}" :active="request()->routeIs('admin.imports.*')" icon="upload_file">Import/Export</x-sidebar-link>
                 @elseif(Auth::user()->role === 'cfo')
                     <x-sidebar-link href="{{ route('finance.index') }}" :active="request()->routeIs('finance.index')" icon="account_balance">Dashboard</x-sidebar-link>
-                    <x-sidebar-link href="{{ route('finance.accounts.index') }}" :active="request()->routeIs('finance.accounts.*')" icon="account_tree">Accounts</x-sidebar-link>
-                    <x-sidebar-link href="{{ route('finance.journals.index') }}" :active="request()->routeIs('finance.journals.*')" icon="receipt_long">Journals</x-sidebar-link>
-                    <x-sidebar-link href="{{ route('finance.payroll.index') }}" :active="request()->routeIs('finance.payroll.*')" icon="payments">Payroll</x-sidebar-link>
-                    <x-sidebar-link href="{{ route('finance.reports.trial-balance') }}" :active="request()->routeIs('finance.reports.trial-balance')" icon="balance">Trial Balance</x-sidebar-link>
-                    <x-sidebar-link href="{{ route('finance.reports.profit-loss') }}" :active="request()->routeIs('finance.reports.profit-loss')" icon="trending_up">Profit & Loss</x-sidebar-link>
-                    <x-sidebar-link href="{{ route('finance.reports.balance-sheet') }}" :active="request()->routeIs('finance.reports.balance-sheet')" icon="summarize">Balance Sheet</x-sidebar-link>
-                    <x-sidebar-link href="{{ route('finance.reports.deferred-revenue') }}" :active="request()->routeIs('finance.reports.deferred-revenue')" icon="savings">Deferred Revenue</x-sidebar-link>
+                    <div class="pt-sm">
+                        <p class="text-label-lg px-md pb-xs tracking-widest uppercase" style="color:#6B7280">Laporan</p>
+                        <x-sidebar-link href="{{ route('finance.journals.index') }}" :active="request()->routeIs('finance.journals.*')" icon="receipt_long">Journals</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.reports.general-ledger') }}" :active="request()->routeIs('finance.reports.general-ledger')" icon="menu_book">General Ledger</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.reports.trial-balance') }}" :active="request()->routeIs('finance.reports.trial-balance')" icon="balance">Trial Balance</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.reports.adjusted-trial-balance') }}" :active="request()->routeIs('finance.reports.adjusted-trial-balance')" icon="rule">Adjusted Trial Balance</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.adjusting-journals.index') }}" :active="request()->routeIs('finance.adjusting-journals.*')" icon="auto_fix_high">Jurnal Penyesuaian</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.reports.profit-loss') }}" :active="request()->routeIs('finance.reports.profit-loss')" icon="trending_up">Profit & Loss</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.reports.balance-sheet') }}" :active="request()->routeIs('finance.reports.balance-sheet')" icon="summarize">Balance Sheet</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.reports.cash-flow') }}" :active="request()->routeIs('finance.reports.cash-flow')" icon="water">Cash Flow</x-sidebar-link>
+                    </div>
+                    <div class="pt-sm">
+                        <p class="text-label-lg px-md pb-xs tracking-widest uppercase" style="color:#6B7280">Perencanaan</p>
+                        <x-sidebar-link href="{{ route('finance.rab.index') }}" :active="request()->routeIs('finance.rab.*')" icon="event_note">RAB</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.rab-realisasi.index') }}" :active="request()->routeIs('finance.rab-realisasi.*')" icon="monitoring">Realisasi RAB</x-sidebar-link>
+                    </div>
+                    <div class="pt-sm">
+                        <p class="text-label-lg px-md pb-xs tracking-widest uppercase" style="color:#6B7280">Master & Operasional</p>
+                        <x-sidebar-link href="{{ route('finance.accounts.index') }}" :active="request()->routeIs('finance.accounts.*')" icon="account_tree">Accounts</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.assets.index') }}" :active="request()->routeIs('finance.assets.*')" icon="inventory_2">Aset Tetap</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.payroll.index') }}" :active="request()->routeIs('finance.payroll.*')" icon="payments">Payroll</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.reports.deferred-revenue') }}" :active="request()->routeIs('finance.reports.deferred-revenue')" icon="savings">Deferred Revenue</x-sidebar-link>
+                    </div>
                 @elseif(Auth::user()->role === 'tutor')
                     <x-sidebar-link href="{{ route('tutor.dashboard') }}" :active="request()->routeIs('tutor.dashboard')" icon="dashboard">Dashboard</x-sidebar-link>
                     <x-sidebar-link href="{{ route('tutor.schedule.index') }}" :active="request()->routeIs('tutor.schedule.*')" icon="calendar_month">Jadwal</x-sidebar-link>
                     <x-sidebar-link href="{{ route('tutor.attendance.index') }}" :active="request()->routeIs('tutor.attendance.*')" icon="assignment_turned_in">Absensi</x-sidebar-link>
-                    <x-sidebar-link href="{{ route('tutor.availability.index') }}" :active="request()->routeIs('tutor.availability.*')" icon="event_available">Availabilitas</x-sidebar-link>
+                    <x-sidebar-link href="{{ route('tutor.availability.index') }}" :active="request()->routeIs('tutor.availability.*')" icon="event_available">Availability</x-sidebar-link>
+                    <x-sidebar-link href="{{ route('tutor.practice.create') }}" :active="request()->routeIs('tutor.practice.*')" icon="edit_note">Buat Tugas</x-sidebar-link>
+                    <x-sidebar-link href="{{ route('tutor.tracker.index') }}" :active="request()->routeIs('tutor.tracker.*')" icon="query_stats">Self-Study Tracker</x-sidebar-link>
                 @elseif(Auth::user()->role === 'student')
                     <x-sidebar-link href="{{ route('student.dashboard') }}" :active="request()->routeIs('student.dashboard')" icon="dashboard">Dashboard</x-sidebar-link>
+<x-sidebar-link href="{{ route('student.practice.index') }}" :active="request()->routeIs('student.practice.*')" icon="edit_note">Practice</x-sidebar-link>
+<x-sidebar-link href="{{ route('student.tracker.index') }}" :active="request()->routeIs('student.tracker.*')" icon="query_stats">Self-Study Tracker</x-sidebar-link>
                 @endif
             </nav>
             <div class="pt-md" style="border-top:1px solid rgba(255,255,255,.08)">

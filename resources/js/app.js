@@ -9,6 +9,8 @@ import {
     PageModule,
     AjaxModule,
     FilterModule,
+    EditModule,
+    SelectRowModule,
 } from "tabulator-tables";
 
 window.Alpine = Alpine;
@@ -21,6 +23,8 @@ Tabulator.registerModule([
     PageModule,
     AjaxModule,
     FilterModule,
+    EditModule,
+    SelectRowModule,
 ]);
 window.Tabulator = Tabulator;
 

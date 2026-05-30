@@ -40,4 +40,16 @@ public function student()
             'password' => 'hashed',
         ];
     }
+
+    public function practices()
+{
+    return $this->hasMany(Practice::class, 'tutor_id');
+}
+
+public function assignedPractices()
+{
+    return $this->belongsToMany(Practice::class, 'practice_student', 'student_id', 'practice_id')
+                ->withPivot('completion_status', 'completed_at')
+                ->withTimestamps();
+}
 }

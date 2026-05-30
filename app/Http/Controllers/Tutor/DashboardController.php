@@ -49,8 +49,24 @@ class DashboardController extends Controller
             ->limit(5)
             ->get();
 
+        $replacedHistory = DB::table('attendance_tutor')
+            ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+            ->join('class_sessions', 'attendance.class_session_id', '=', 'class_sessions.id')
+            ->join('tutors as replacing_tutor', 'attendance_tutor.tutor_id', '=', 'replacing_tutor.id')
+            ->join('users as replacing_user', 'replacing_tutor.user_id', '=', 'replacing_user.id')
+            ->where('attendance_tutor.replaced_tutor_id', $tutor->id)
+            ->select(
+                'attendance.date',
+                'attendance.time_block',
+                'class_sessions.name as class_name',
+                'replacing_user.name as replaced_by'
+            )
+            ->orderByDesc('attendance.date')
+            ->limit(10)
+            ->get();
+
         return view('tutor.dashboard', compact(
-            'classes', 'unpaidTotal', 'paidThisMonth', 'pendingRateCount', 'recentAttendances'
+            'classes', 'unpaidTotal', 'paidThisMonth', 'pendingRateCount', 'recentAttendances', 'replacedHistory'
         ));
     }
 }

@@ -22,7 +22,7 @@ class Student extends Model
 
     public function activeEnrollment()
     {
-        return $this->hasOne(Enrollment::class)->latestOfMany();
+        return $this->hasOne(Enrollment::class)->where('status', 'active')->latestOfMany();
     }
 
     public function trackerEntries()

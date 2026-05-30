@@ -98,7 +98,7 @@ class TutorController extends Controller
         foreach ($request->availability as $slot) {
             TutorAvailability::create([
                 'tutor_id'   => $tutorId,
-                'day'        => $slot['day'],
+                'day'        => strtolower($slot['day']),
                 'time_block' => $slot['time_block'],
                 'status'     => $slot['status'] ?? 'available',
             ]);
@@ -115,7 +115,7 @@ class TutorController extends Controller
         ]);
 
         TutorAvailability::updateOrCreate(
-            ['tutor_id' => $tutorId, 'day' => $request->day, 'time_block' => $request->time_block],
+            ['tutor_id' => $tutorId, 'day' => strtolower($request->day), 'time_block' => $request->time_block],
             ['status' => $request->status]
         );
 

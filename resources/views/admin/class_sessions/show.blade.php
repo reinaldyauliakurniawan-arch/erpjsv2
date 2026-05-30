@@ -76,6 +76,7 @@
                                     action="{{ route('admin.class-sessions.tutor-status', [$classSession->id, $tutor->id]) }}">
                                     @csrf @method('PATCH')
                                     <select name="status" onchange="this.form.submit()" class="select select-sm w-32">
+                                        {{-- tutor assignment status (pivot-specific, bukan tutor_availability.status) --}}
                                         <option value="pending" {{ $tutor->pivot->status === 'pending' ? 'selected' : '' }}>Pending</option>
                                         <option value="confirmed" {{ $tutor->pivot->status === 'confirmed' ? 'selected' : '' }}>Confirmed</option>
                                     </select>

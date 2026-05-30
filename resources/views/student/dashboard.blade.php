@@ -20,14 +20,14 @@
 
         $statusColor = match($enrollment->status) {
             'active'    => 'badge-success',
-            'completed' => 'badge-info',
+            'graduate' => 'badge-info',
             'cancelled' => 'badge-error',
             default     => 'badge-neutral',
         };
         $payColor = match($enrollment->payment_status) {
-            'paid'    => 'badge-success',
+            'full'    => 'badge-success',
             'partial' => 'badge-warning',
-            'unpaid'  => 'badge-error',
+            'pending'  => 'badge-error',
             default   => 'badge-neutral',
         };
     @endphp
@@ -105,15 +105,13 @@
             <div class="flex items-center gap-xs flex-wrap">
                 @foreach($enrollment->installments as $i => $inst)
                 @php
-                    $ic = match($inst->status) {
-                        'paid'    => 'bg-success/20 border-success text-success',
-                        'partial' => 'bg-warning/20 border-warning text-warning',
-                        default   => 'bg-surface border-surface-border text-on-surface-variant',
-                    };
+                    $ic = $inst->paid_at
+                        ? 'bg-success/20 border-success text-success'
+                        : 'bg-surface border-surface-border text-on-surface-variant';
                 @endphp
                 <div class="flex flex-col items-center border rounded-lg px-md py-sm {{ $ic }} text-center min-w-[80px]">
                     <span class="material-symbols-outlined text-base">
-                        {{ $inst->status === 'paid' ? 'check_circle' : ($inst->status === 'partial' ? 'pending' : 'radio_button_unchecked') }}
+                        {{ $inst->paid_at ? 'check_circle' : 'radio_button_unchecked' }}
                     </span>
                     <p class="text-xs font-semibold mt-xs">Cicilan {{ $i + 1 }}</p>
                     <p class="text-[10px]">Rp {{ number_format($inst->amount, 0, ',', '.') }}</p>
@@ -218,6 +216,3 @@
 
 </div>
 </x-app-layout>
-
-
-

@@ -2,6 +2,19 @@
 <x-slot name="title">Buat Jurnal</x-slot>
 
 <div class="p-lg space-y-md">
+    {{-- Flash --}}
+    @if(session('success'))
+        <div role="alert" class="alert alert-success alert-soft">
+            <span class="material-symbols-outlined">check_circle</span>
+            <span>{{ session('success') }}</span>
+        </div>
+    @endif
+    @if($errors->has('error'))
+        <div role="alert" class="alert alert-error alert-soft">
+            <span class="material-symbols-outlined">error</span>
+            <span>{{ $errors->first('error') }}</span>
+        </div>
+    @endif
 
     {{-- Header --}}
     <div class="flex items-center gap-sm">
@@ -39,8 +52,8 @@
     <form method="POST" action="{{ route('finance.journals.store') }}"
         x-data="{
             rows: [
-                { account_id: '', debit: '', credit: '' },
-                { account_id: '', debit: '', credit: '' },
+                { account_id: '', debit: '0', credit: '0' },
+                { account_id: '', debit: '0', credit: '0' },
             ],
             get totalDebit() {
                 return this.rows.reduce((s, r) => s + (parseFloat(r.debit) || 0), 0);
@@ -51,7 +64,7 @@
             get balanced() {
                 return Math.abs(this.totalDebit - this.totalCredit) < 0.001 && this.totalDebit > 0;
             },
-            addRow() { this.rows.push({ account_id: '', debit: '', credit: '' }); },
+            addRow() { this.rows.push({ account_id: '', debit: '0', credit: '0' }); },
             removeRow(i) { if (this.rows.length > 2) this.rows.splice(i, 1); },
             fmt(n) {
                 return n > 0 ? new Intl.NumberFormat('id-ID').format(n) : '-';
@@ -190,6 +203,3 @@
 
 </div>
 </x-app-layout>
-
-
-

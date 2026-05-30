@@ -42,7 +42,7 @@
                     <span class="badge badge-soft text-xs">Reguler</span>
                 </div>
                 <div>
-                    <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Waiting List Reguler</p>
+                    <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Waiting List Group</p>
                     <p class="text-headline-lg font-bold text-on-surface mt-xs">{{ $waitingReguler->count() }}</p>
                 </div>
             </button>
@@ -57,7 +57,7 @@
                     <span class="badge badge-error badge-soft text-xs">Priority</span>
                 </div>
                 <div>
-                    <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Waiting List Private</p>
+                    <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Waiting List Private & Semi-Private</p>
                     <p class="text-headline-lg font-bold text-error mt-xs">{{ $waitingPrivate->count() + $waitingSemi->count() }}</p>
                 </div>
             </button>
@@ -253,7 +253,7 @@
                 <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
                     <div class="px-lg py-4 border-b border-surface-border flex items-center gap-sm">
                         <span class="material-symbols-outlined text-error">credit_card_off</span>
-                        <h3 class="text-headline-md font-semibold text-on-surface flex-1">Unpaid Installments</h3>
+                        <h3 class="text-headline-md font-semibold text-on-surface flex-1">Installments Belum Lunas</h3>
                         <span class="badge badge-soft">{{ $unpaidInstallments->count() }} total</span>
                     </div>
                     @if($unpaidInstallments->isEmpty())
@@ -278,7 +278,7 @@
                                         <td>{{ $inst->enrollment->program->name }}</td>
                                         <td>IDR {{ number_format($inst->amount) }}</td>
                                         <td>{{ \Carbon\Carbon::parse($inst->due_date)->format('d M Y') }}</td>
-                                        <td><span class="badge {{ $isOverdue ? 'badge-error' : 'badge-warning' }} badge-soft">{{ $isOverdue ? 'OVERDUE' : 'Upcoming' }}</span></td>
+                                        <td><span class="badge {{ $isOverdue ? 'badge-error' : 'badge-warning' }} badge-soft">{{ $isOverdue ? 'Overdue' : 'Upcoming' }}</span></td>
                                     </tr>
                                     @endforeach
                                 </tbody>
@@ -382,6 +382,3 @@
         </div>
     </div>
 </x-app-layout>
-
-
-

@@ -103,7 +103,7 @@ class JournalController extends Controller
             return back()->withInput()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('admin.journals.index')->with('success', 'Jurnal berhasil disimpan.');
+        return redirect()->route('finance.journals.index')->with('success', 'Jurnal berhasil disimpan.');
     }
 
     public function show(Journal $journal)
@@ -139,6 +139,6 @@ class JournalController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        return redirect()->route('admin.journals.index')->with('success', 'Jurnal berhasil di-reverse.');
+        return redirect()->route('finance.journals.index')->with('success', 'Jurnal berhasil di-reverse.');
     }
 }

@@ -32,7 +32,7 @@
                 <a href="{{ route('admin.enrollments.create') }}"
                     class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
                     <span class="material-symbols-outlined text-[18px]">person_add</span>
-                    Tambah Student
+                    Enroll Siswa Baru
                 </a>
             </div>
         </div>

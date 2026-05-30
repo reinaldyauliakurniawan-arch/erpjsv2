@@ -118,9 +118,11 @@
                 <label class="text-label-caps text-on-surface-variant text-[11px] tracking-widest uppercase">Status</label>
                 <select x-model="status" class="select select-sm select-bordered bg-surface text-on-surface">
                     <option value="">Semua</option>
-                    <option value="completed">Completed</option>
-                    <option value="cancelled">Cancelled</option>
-                    <option value="pending">Pending</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="ongoing">Ongoing</option>
+                    <option value="finished">Finished</option>
+                    <option value="skipped">Skipped</option>
+                    <option value="postponed">Postponed</option>
                 </select>
             </div>
 
@@ -163,9 +165,11 @@
                 <div class="flex flex-col gap-sm mb-lg">
                     <label class="text-label-caps text-on-surface-variant text-[11px] tracking-widest uppercase">Status</label>
                     <select name="status" id="edit-status" class="select select-bordered bg-surface text-on-surface w-full">
-                        <option value="pending">Pending</option>
-                        <option value="completed">Completed</option>
-                        <option value="cancelled">Cancelled</option>
+                       <option value="scheduled">Scheduled</option>
+                       <option value="ongoing">Ongoing</option>
+                       <option value="finished">Finished</option>
+                       <option value="skipped">Skipped</option>
+                       <option value="postponed">Postponed</option>
                     </select>
                 </div>
                 <div class="modal-action">
@@ -211,18 +215,18 @@
 
             tabs: [
                 { value: 'all',          label: 'Semua' },
-                { value: 'Group Class',  label: 'Group Class' },
-                { value: 'Semi Private', label: 'Semi Private' },
-                { value: 'Private',      label: 'Private' },
+                { value: 'group',        label: 'Group Class' },
+                { value: 'semi-private', label: 'Semi Private' },
+                { value: 'private',      label: 'Private' },
             ],
 
             // Computed-style getters
             get tableTitle() {
                 const map = {
                     'all':          'Rekap Semua Sesi',
-                    'Group Class':  'Rekap Absensi — Group Class',
-                    'Semi Private': 'Rekap Absensi — Semi Private',
-                    'Private':      'Rekap Absensi — Private',
+                    'group':        'Rekap Absensi — Group Class',
+                    'semi-private': 'Rekap Absensi — Semi Private',
+                    'private':      'Rekap Absensi — Private',
                 };
                 return map[this.activeTab] ?? 'Rekap Absensi';
             },
@@ -362,6 +366,19 @@
                             },
                         },
                         {
+                            title: 'Replacement', field: 'replacements', headerSort: false,
+                            formatter(cell) {
+                                const replacements = cell.getValue();
+                                if (!replacements?.length) return `<span class="text-on-surface-variant text-[12px]">—</span>`;
+                                return replacements.map(r => `
+                                    <div class="text-[12px] leading-tight">
+                                        <span class="font-semibold text-warning">${r.replaced_by}</span>
+                                        <span class="text-on-surface-variant"> replace </span>
+                                        <span class="font-semibold text-on-surface">${r.replaced_tutor ?? '?'}</span>
+                                    </div>`).join('');
+                            },
+                        },
+                        {
                             title: 'Kehadiran', field: 'pct', width: 160, sorter: 'number',
                             formatter(cell) {
                                 const d = cell.getData();
@@ -383,9 +400,12 @@
                             title: 'Status', field: 'status', width: 130,
                             formatter(cell) {
                                 const s = cell.getValue();
-                                if (s === 'completed') return `<span class="badge badge-soft badge-success">Completed</span>`;
-                                if (s === 'cancelled') return `<span class="badge badge-soft badge-error">Cancelled</span>`;
-                                return `<span class="badge badge-soft badge-warning">${s ? s.charAt(0).toUpperCase() + s.slice(1) : 'Pending'}</span>`;
+                                if (s === 'finished')  return `<span class="badge badge-soft badge-success">Finished</span>`;
+                                if (s === 'ongoing')   return `<span class="badge badge-soft badge-info">Ongoing</span>`;
+                                if (s === 'scheduled') return `<span class="badge badge-soft badge-warning">Scheduled</span>`;
+                                if (s === 'skipped')   return `<span class="badge badge-soft badge-error">Skipped</span>`;
+                                if (s === 'postponed') return `<span class="badge badge-soft badge-neutral">Postponed</span>`;
+                                return `<span class="badge badge-soft badge-ghost">${s ?? '—'}</span>`;
                             },
                         },
                         {
@@ -445,6 +465,3 @@
     </script>
 
 </x-app-layout>
-
-
-

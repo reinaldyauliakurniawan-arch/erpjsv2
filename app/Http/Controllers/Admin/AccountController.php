@@ -1,6 +1,5 @@
 <?php
 namespace App\Http\Controllers\Admin;
-
 use App\Http\Controllers\Controller;
 use App\Models\Account;
 use Illuminate\Http\Request;
@@ -17,26 +16,24 @@ class AccountController extends Controller
     public function store(Request $request)
     {
         $request->validate([
-            'code' => 'required|string|unique:accounts,code',
-            'name' => 'required|string',
-            'type' => 'required|in:Asset,Liability,Equity,Revenue,Expense',
+            'code'               => 'required|string|unique:accounts,code',
+            'name'               => 'required|string',
+            'type'               => 'required|in:Asset,Liability,Equity,Revenue,Expense',
+            'cash_flow_category' => 'nullable|in:cash,operating,investing,financing',
         ]);
-
-        Account::create($request->only('code', 'name', 'type'));
-
+        Account::create($request->only('code', 'name', 'type', 'cash_flow_category'));
         return back()->with('success', 'Akun berhasil ditambahkan.');
     }
 
     public function update(Request $request, Account $account)
     {
         $request->validate([
-            'code' => 'required|string|unique:accounts,code,' . $account->id,
-            'name' => 'required|string',
-            'type' => 'required|in:Asset,Liability,Equity,Revenue,Expense',
+            'code'               => 'required|string|unique:accounts,code,' . $account->id,
+            'name'               => 'required|string',
+            'type'               => 'required|in:Asset,Liability,Equity,Revenue,Expense',
+            'cash_flow_category' => 'nullable|in:cash,operating,investing,financing',
         ]);
-
-        $account->update($request->only('code', 'name', 'type'));
-
+        $account->update($request->only('code', 'name', 'type', 'cash_flow_category'));
         return back()->with('success', 'Akun berhasil diupdate.');
     }
 
@@ -45,13 +42,10 @@ class AccountController extends Controller
         $hasTransactions = DB::table('journal_items')
             ->where('account_id', $account->id)
             ->exists();
-
         if ($hasTransactions) {
             return back()->with('error', 'Akun tidak bisa dihapus karena sudah memiliki transaksi.');
         }
-
         $account->delete();
-
         return back()->with('success', 'Akun berhasil dihapus.');
     }
 }

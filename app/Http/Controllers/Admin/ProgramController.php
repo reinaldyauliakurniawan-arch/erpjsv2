@@ -22,4 +22,21 @@ class ProgramController extends Controller
         Program::create($request->only(['name', 'type', 'price', 'total_meetings', 'min_quota']));
         return redirect()->route('admin.programs.index')->with('success', 'Program created successfully.');
     }
+
+    public function destroy($id)
+    {
+        $program = Program::findOrFail($id);
+
+        $hasActiveEnrollments = $program->enrollments()
+            ->whereIn('status', ['active', 'waitlist'])
+            ->exists();
+
+        if ($hasActiveEnrollments) {
+            return redirect()->route('admin.programs.index')
+                ->withErrors(['error' => 'Program tidak bisa dihapus karena masih ada siswa aktif atau waitlist.']);
+        }
+
+        $program->delete();
+        return redirect()->route('admin.programs.index')->with('success', 'Program deleted.');
+    }
 }

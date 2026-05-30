@@ -139,8 +139,9 @@ public function data(Request $request)
 
     public function destroy(Student $student)
     {
-        $student->user->delete();
+        $user = $student->user;
         $student->delete();
+        $user->delete();
 
         return redirect()->route('admin.students.index')->with('success', 'Student berhasil dihapus.');
     }
