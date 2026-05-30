@@ -97,6 +97,14 @@ Route::middleware('auth')->group(function () {
         Route::post('/imports/programs', [ImportController::class, 'importPrograms'])->name('imports.programs');
         Route::post('/imports/tutors', [ImportController::class, 'importTutors'])->name('imports.tutors');
         Route::post('/imports/students', [ImportController::class, 'importStudents'])->name('imports.students');
+        Route::post('/imports/enrollments', [ImportController::class, 'importEnrollments'])->name('imports.enrollments');
+        Route::post('/imports/installments', [ImportController::class, 'importInstallments'])->name('imports.installments');
+        Route::post('/imports/schedules', [ImportController::class, 'importSchedules'])->name('imports.schedules');
+        Route::post('/imports/tutor-availability', [ImportController::class, 'importTutorAvailability'])->name('imports.tutor-availability');
+        Route::post('/imports/class-sessions', [ImportController::class, 'importClassSessions'])->name('imports.class-sessions');
+        Route::post('/imports/rabs', [ImportController::class, 'importRabs'])->name('imports.rabs');
+        Route::post('/imports/fixed-assets', [ImportController::class, 'importFixedAssets'])->name('imports.fixed-assets');
+        Route::post('/imports/tracker-columns', [ImportController::class, 'importTrackerColumns'])->name('imports.tracker-columns');
 
         // Exports — operasional
         Route::get('/exports/attendance', [ExportController::class, 'exportAttendance'])->name('exports.attendance');

@@ -218,6 +218,46 @@ class ExportController extends Controller
                 'headers'  => ['name', 'email', 'notes'],
                 'example'  => [['Budi Santoso', 'budi@example.com', 'beginner']],
             ],
+            'enrollments' => [
+                'filename' => 'template_enrollments.csv',
+                'headers'  => ['student_email', 'program_name', 'class_session_name', 'enrollment_date', 'expiry_date', 'payment_method', 'payment_channel', 'total_amount', 'payment_status', 'status', 'remaining_meetings'],
+                'example'  => [['budi@example.com', 'ESP Flash', 'ESP Flash Batch 1', '2024-01-01', '2024-06-01', 'full upfront', 'cash', '1500000', 'full', 'active', '12']],
+            ],
+            'installments' => [
+                'filename' => 'template_installments.csv',
+                'headers'  => ['student_email', 'program_name', 'amount', 'due_date', 'paid_at', 'payment_channel'],
+                'example'  => [['budi@example.com', 'ESP Flash', '750000', '2024-01-01', '2024-01-01', 'cash']],
+            ],
+            'schedules' => [
+                'filename' => 'template_schedules.csv',
+                'headers'  => ['student_email', 'program_name', 'classroom_name', 'day', 'time_block', 'class_session_name'],
+                'example'  => [['budi@example.com', 'ESP Flash', 'Room A', 'Monday', '09.00-10.30', '']],
+            ],
+            'tutor_availability' => [
+                'filename' => 'template_tutor_availability.csv',
+                'headers'  => ['tutor_email', 'day', 'time_block', 'status'],
+                'example'  => [['john@example.com', 'Monday', '09.00-10.30', 'available']],
+            ],
+            'class_sessions' => [
+                'filename' => 'template_class_sessions.csv',
+                'headers'  => ['name', 'program_name', 'class_type', 'status'],
+                'example'  => [['ESP Flash Batch 1', 'ESP Flash', 'group', 'active']],
+            ],
+            'rabs' => [
+                'filename' => 'template_rabs.csv',
+                'headers'  => ['year', 'division', 'account_name', 'account_code', 'activity', 'q1', 'q2', 'q3', 'q4'],
+                'example'  => [['2024', 'Akademik', 'Biaya Operasional', '6001', 'Pelatihan', '1000000', '1000000', '1000000', '1000000']],
+            ],
+            'fixed_assets' => [
+                'filename' => 'template_fixed_assets.csv',
+                'headers'  => ['name', 'category', 'acquired_at', 'cost', 'salvage_value', 'useful_life', 'depreciation_method', 'notes', 'expense_account_code', 'accumulated_account_code', 'is_active'],
+                'example'  => [['Laptop Dell', 'Electronics', '2024-01-01', '15000000', '1000000', '4', 'straight_line', '', '6001', '1601', '1']],
+            ],
+            'tracker_columns' => [
+                'filename' => 'template_tracker_columns.csv',
+                'headers'  => ['name', 'order'],
+                'example'  => [['Speaking', '1']],
+            ],
             'journals' => [
                 'filename' => 'template_journals.csv',
                 'headers'  => ['date', 'description', 'reference', 'account_code', 'debit', 'credit'],

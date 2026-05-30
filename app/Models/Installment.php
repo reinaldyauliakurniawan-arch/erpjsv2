@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Installment extends Model
 {
     use HasFactory;
-    protected $fillable = ['enrollment_id', 'amount', 'due_date', 'paid_at'];
+    protected $fillable = ['enrollment_id', 'amount', 'due_date', 'paid_at', 'payment_channel'];
 
     protected $casts = [
     'amount' => 'decimal:2',
