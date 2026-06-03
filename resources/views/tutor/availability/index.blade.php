@@ -45,8 +45,9 @@
     @else
     @php
         $grouped  = $availability->groupBy('day');
-        $dayOrder = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
-        $dayLabel = ['monday'=>'Senin','tuesday'=>'Selasa','wednesday'=>'Rabu','thursday'=>'Kamis','friday'=>'Jumat','saturday'=>'Sabtu','sunday'=>'Minggu'];
+        $dayOrder = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+        $dayLabel = ['Senin'=>'Senin','Selasa'=>'Selasa','Rabu'=>'Rabu','Kamis'=>'Kamis','Jumat'=>'Jumat','Sabtu'=>'Sabtu','Minggu'=>'Minggu'];
+    @endphp
     <div class="space-y-md">
         @foreach($dayOrder as $day)
         @if($grouped->has($day))

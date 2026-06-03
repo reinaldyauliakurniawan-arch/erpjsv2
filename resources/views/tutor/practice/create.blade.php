@@ -30,62 +30,7 @@
 
                 {{-- LEFT COLUMN --}}
                 <div class="lg:col-span-8 space-y-lg">
-
-                    {{-- 1. PRACTICE DETAILS --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
-                        <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
-                            <span class="material-symbols-outlined text-secondary">edit_note</span>
-                            <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Detail Materi</h4>
-                        </div>
-                        <div class="space-y-md">
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">Judul</label>
-                                <input type="text" name="title" value="{{ old('title') }}"
-                                    placeholder="e.g. Advanced Business English Conversation"
-                                    class="input w-full @error('title') input-error @enderror" />
-                                @error('title')<p class="label text-error">{{ $message }}</p>@enderror
-                            </div>
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">Deskripsi</label>
-                                <textarea name="description" rows="4"
-                                    placeholder="Berikan konteks atau instruksi untuk siswa..."
-                                    class="textarea w-full resize-none @error('description') textarea-error @enderror">{{ old('description') }}</textarea>
-                            </div>
-                        </div>
-                    </section>
-
-                    {{-- 2. RESOURCES & WAKTU --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
-                        <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
-                            <span class="material-symbols-outlined text-secondary">link</span>
-                            <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Resources & Waktu</h4>
-                        </div>
-                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
-                            <div class="fieldset sm:col-span-2">
-                                <label class="fieldset-legend text-on-surface">Link Eksternal</label>
-                                <div class="relative">
-                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">link</span>
-                                    <input type="url" name="external_link" value="{{ old('external_link') }}"
-                                        placeholder="https://youtube.com/..."
-                                        class="input w-full pl-10 @error('external_link') input-error @enderror" />
-                                </div>
-                                @error('external_link')<p class="label text-error">{{ $message }}</p>@enderror
-                            </div>
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">Estimasi Durasi (menit)</label>
-                                <input type="number" name="estimated_duration" value="{{ old('estimated_duration') }}"
-                                    placeholder="30" min="1"
-                                    class="input w-full @error('estimated_duration') input-error @enderror" />
-                            </div>
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">Deadline</label>
-                                <input type="date" name="deadline" value="{{ old('deadline') }}"
-                                    class="input w-full @error('deadline') input-error @enderror" />
-                            </div>
-                        </div>
-                    </section>
-
-                    {{-- 3. DISTRIBUSI --}}
+                    {{--  DISTRIBUSI --}}
                     <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg relative"
                         x-data="{
                             open: false,
@@ -166,6 +111,61 @@
                             Pilih kelas dulu untuk melihat daftar siswa.
                         </div>
                     </section>
+                    {{--  PRACTICE DETAILS --}}
+                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                        <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
+                            <span class="material-symbols-outlined text-secondary">edit_note</span>
+                            <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Detail Materi</h4>
+                        </div>
+                        <div class="space-y-md">
+                            <div class="fieldset">
+                                <label class="fieldset-legend text-on-surface">Judul</label>
+                                <input type="text" name="title" value="{{ old('title') }}"
+                                    placeholder="e.g. Advanced Business English Conversation"
+                                    class="input w-full @error('title') input-error @enderror" />
+                                @error('title')<p class="label text-error">{{ $message }}</p>@enderror
+                            </div>
+                            <div class="fieldset">
+                                <label class="fieldset-legend text-on-surface">Deskripsi</label>
+                                <textarea name="description" rows="4"
+                                    placeholder="Berikan konteks atau instruksi untuk siswa..."
+                                    class="textarea w-full resize-none @error('description') textarea-error @enderror">{{ old('description') }}</textarea>
+                            </div>
+                        </div>
+                    </section>
+
+                    {{--  RESOURCES & WAKTU --}}
+                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                        <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
+                            <span class="material-symbols-outlined text-secondary">link</span>
+                            <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Resources & Waktu</h4>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
+                            <div class="fieldset sm:col-span-2">
+                                <label class="fieldset-legend text-on-surface">Link Eksternal</label>
+                                <div class="relative">
+                                    <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-[20px]">link</span>
+                                    <input type="url" name="external_link" value="{{ old('external_link') }}"
+                                        placeholder="https://youtube.com/..."
+                                        class="input w-full pl-10 @error('external_link') input-error @enderror" />
+                                </div>
+                                @error('external_link')<p class="label text-error">{{ $message }}</p>@enderror
+                            </div>
+                            <div class="fieldset">
+                                <label class="fieldset-legend text-on-surface">Estimasi Durasi (menit)</label>
+                                <input type="number" name="estimated_duration" value="{{ old('estimated_duration') }}"
+                                    placeholder="30" min="1"
+                                    class="input w-full @error('estimated_duration') input-error @enderror" />
+                            </div>
+                            <div class="fieldset">
+                                <label class="fieldset-legend text-on-surface">Deadline</label>
+                                <input type="date" name="deadline" value="{{ old('deadline') }}"
+                                    class="input w-full @error('deadline') input-error @enderror" />
+                            </div>
+                        </div>
+                    </section>
+
+
 
                 </div>
 

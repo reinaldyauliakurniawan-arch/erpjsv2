@@ -20,18 +20,27 @@
                         Semua Waktu
                     </a>
                 </div>
-                <div class="bg-surface-container-low p-xs rounded-lg flex items-center gap-xs border border-surface-border flex-wrap">
+                <div class="bg-surface-container-low p-xs rounded-lg flex items-center gap-xs border border-surface-border" x-data="{ open: false }">
                     <span class="text-label-sm font-bold text-on-surface-variant px-xs">Kelas:</span>
-                    <a href="{{ request()->fullUrlWithQuery(['class' => null]) }}"
-                        class="px-sm py-xs rounded-lg text-label-sm font-semibold transition-all {{ !$classFilter ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface' }}">
-                        Semua
-                    </a>
-                    @foreach($sessions as $session)
-                    <a href="{{ request()->fullUrlWithQuery(['class' => $session->id]) }}"
-                        class="px-sm py-xs rounded-lg text-label-sm font-semibold transition-all {{ $classFilter == $session->id ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface' }}">
-                        {{ $session->name }}
-                    </a>
-                    @endforeach
+                    <div class="relative">
+                        <button @click="open = !open" class="px-sm py-xs rounded-lg text-label-sm font-semibold transition-all bg-surface-container-lowest shadow-sm flex items-center gap-xs text-on-surface">
+                            {{ $classFilter ? $sessions->firstWhere('id', $classFilter)?->name ?? 'Semua' : 'Semua' }}
+                            <span class="material-symbols-outlined text-[16px]">expand_more</span>
+                        </button>
+                        <div x-show="open" @click.outside="open = false" x-transition
+                            class="absolute right-0 mt-xs bg-surface-container-lowest border border-surface-border rounded-lg shadow-md z-10 min-w-[140px] py-xs">
+                            <a href="{{ request()->fullUrlWithQuery(['class' => null]) }}"
+                                class="block px-md py-xs text-label-sm font-semibold transition-all {{ !$classFilter ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low' }}">
+                                Semua
+                            </a>
+                            @foreach($sessions as $session)
+                            <a href="{{ request()->fullUrlWithQuery(['class' => $session->id]) }}"
+                                class="block px-md py-xs text-label-sm font-semibold transition-all {{ $classFilter == $session->id ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low' }}">
+                                {{ $session->name }}
+                            </a>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>

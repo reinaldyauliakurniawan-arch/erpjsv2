@@ -94,7 +94,7 @@
                     Sesi Hari Ini
                     <span class="text-on-surface-variant font-normal">({{ now()->isoFormat('dddd, D MMM') }})</span>
                 </h4>
-                <a href="{{ route('tutor.attendance.create') }}"
+                <a href="{{ route('tutor.attendance.index') }}"
                     class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">
                     <span class="material-symbols-outlined text-[16px]">add</span>
                     Input Absensi

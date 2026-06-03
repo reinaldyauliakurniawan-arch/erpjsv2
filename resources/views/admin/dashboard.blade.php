@@ -90,94 +90,6 @@
     </div>
 
     {{-- ═══════════════════════════════════════════
-         MAGAZINE GRID — Chart + Alerts
-         Kolom kiri 8/12 (chart), kanan 4/12 (alerts)
-    ════════════════════════════════════════════ --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
-
-        {{-- Chart: Distribusi Waiting List --}}
-        <div class="lg:col-span-8 bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
-            <div class="px-lg py-md border-b border-surface-border flex items-center justify-between">
-                <div>
-                    <h3 class="text-headline-md font-semibold text-on-surface">Distribusi Waiting List</h3>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Reguler · Private · Semi-Private</p>
-                </div>
-                <span class="material-symbols-outlined text-on-surface-variant">bar_chart</span>
-            </div>
-            <div class="p-lg">
-                <canvas id="waitingChart" height="120"></canvas>
-            </div>
-        </div>
-
-        {{-- Alerts Panel --}}
-        <div class="lg:col-span-4 bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
-            <div class="flex items-center gap-sm mb-md">
-                <span class="material-symbols-outlined text-on-surface-variant">shield_with_heart</span>
-                <h3 class="text-headline-md font-semibold text-on-surface">Peringatan Penting</h3>
-            </div>
-
-            @php $overdueCount = $unpaidInstallments->filter(fn($i) => \Carbon\Carbon::today()->isAfter($i->due_date))->count(); @endphp
-
-            @if($stats['pending_tutors_enrollments'] > 0)
-            <div class="flex gap-md p-md bg-error-container rounded-lg border-l-4 border-error">
-                <span class="material-symbols-outlined text-error shrink-0">warning</span>
-                <div>
-                    <p class="text-body-md font-bold text-on-surface">{{ $stats['pending_tutors_enrollments'] }} Pending Assignment</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Enrollment menunggu tutor ditetapkan.</p>
-                </div>
-            </div>
-            @endif
-
-            @if($overdueCount > 0)
-            <div class="flex gap-md p-md bg-error-container rounded-lg border-l-4 border-error">
-                <span class="material-symbols-outlined text-error shrink-0">credit_card_off</span>
-                <div>
-                    <p class="text-body-md font-bold text-on-surface">{{ $overdueCount }} Installment Overdue</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Cicilan melewati batas jatuh tempo.</p>
-                </div>
-            </div>
-            @endif
-
-            @if($expiringEnrollments->count() > 0)
-            <div class="flex gap-md p-md bg-tertiary-fixed rounded-lg border-l-4 border-warning">
-                <span class="material-symbols-outlined text-warning shrink-0">schedule</span>
-                <div>
-                    <p class="text-body-md font-bold text-on-surface">{{ $expiringEnrollments->count() }} Enrollment Expiring</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Berakhir dalam 7 hari ke depan.</p>
-                </div>
-            </div>
-            @endif
-
-            @if($stats['pending_tutors_enrollments'] == 0 && $overdueCount == 0 && $expiringEnrollments->count() == 0)
-            <div class="flex gap-md p-md bg-secondary-container rounded-lg border-l-4 border-secondary">
-                <span class="material-symbols-outlined text-secondary shrink-0">check_circle</span>
-                <div>
-                    <p class="text-body-md font-bold text-on-surface">Semua Aman</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Tidak ada peringatan aktif.</p>
-                </div>
-            </div>
-            @endif
-
-            {{-- Divider + stat ringkas --}}
-            <div class="border-t border-surface-border pt-md space-y-sm">
-                <div class="flex items-center justify-between text-body-md">
-                    <span class="text-on-surface-variant">Enrollment expiring</span>
-                    <span class="font-bold text-on-surface">{{ $expiringEnrollments->count() }}</span>
-                </div>
-                <div class="flex items-center justify-between text-body-md">
-                    <span class="text-on-surface-variant">Cicilan belum lunas</span>
-                    <span class="font-bold text-on-surface">{{ $unpaidInstallments->count() }}</span>
-                </div>
-                <div class="flex items-center justify-between text-body-md">
-                    <span class="text-on-surface-variant">Pending tutor assignment</span>
-                    <span class="font-bold {{ $stats['pending_tutors_enrollments'] > 0 ? 'text-error' : 'text-on-surface' }}">{{ $stats['pending_tutors_enrollments'] }}</span>
-                </div>
-            </div>
-        </div>
-
-    </div>
-
-    {{-- ═══════════════════════════════════════════
          WAITING LIST TABLE
     ════════════════════════════════════════════ --}}
     <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
@@ -324,6 +236,94 @@
                 @endif
             </div>
         </div>
+    </div>
+
+    {{-- ═══════════════════════════════════════════
+         MAGAZINE GRID — Chart + Alerts
+         Kolom kiri 8/12 (chart), kanan 4/12 (alerts)
+    ════════════════════════════════════════════ --}}
+    <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
+
+        {{-- Chart: Distribusi Waiting List --}}
+        <div class="lg:col-span-8 bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+            <div class="px-lg py-md border-b border-surface-border flex items-center justify-between">
+                <div>
+                    <h3 class="text-headline-md font-semibold text-on-surface">Distribusi Waiting List</h3>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Reguler · Private · Semi-Private</p>
+                </div>
+                <span class="material-symbols-outlined text-on-surface-variant">bar_chart</span>
+            </div>
+            <div class="p-lg">
+                <canvas id="waitingChart" height="120"></canvas>
+            </div>
+        </div>
+
+        {{-- Alerts Panel --}}
+        <div class="lg:col-span-4 bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="flex items-center gap-sm mb-md">
+                <span class="material-symbols-outlined text-on-surface-variant">shield_with_heart</span>
+                <h3 class="text-headline-md font-semibold text-on-surface">Peringatan Penting</h3>
+            </div>
+
+            @php $overdueCount = $unpaidInstallments->filter(fn($i) => \Carbon\Carbon::today()->isAfter($i->due_date))->count(); @endphp
+
+            @if($stats['pending_tutors_enrollments'] > 0)
+            <div class="flex gap-md p-md bg-error-container rounded-lg border-l-4 border-error">
+                <span class="material-symbols-outlined text-error shrink-0">warning</span>
+                <div>
+                    <p class="text-body-md font-bold text-on-surface">{{ $stats['pending_tutors_enrollments'] }} Pending Assignment</p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Enrollment menunggu tutor ditetapkan.</p>
+                </div>
+            </div>
+            @endif
+
+            @if($overdueCount > 0)
+            <div class="flex gap-md p-md bg-error-container rounded-lg border-l-4 border-error">
+                <span class="material-symbols-outlined text-error shrink-0">credit_card_off</span>
+                <div>
+                    <p class="text-body-md font-bold text-on-surface">{{ $overdueCount }} Installment Overdue</p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Cicilan melewati batas jatuh tempo.</p>
+                </div>
+            </div>
+            @endif
+
+            @if($expiringEnrollments->count() > 0)
+            <div class="flex gap-md p-md bg-tertiary-fixed rounded-lg border-l-4 border-warning">
+                <span class="material-symbols-outlined text-warning shrink-0">schedule</span>
+                <div>
+                    <p class="text-body-md font-bold text-on-surface">{{ $expiringEnrollments->count() }} Enrollment Expiring</p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Berakhir dalam 7 hari ke depan.</p>
+                </div>
+            </div>
+            @endif
+
+            @if($stats['pending_tutors_enrollments'] == 0 && $overdueCount == 0 && $expiringEnrollments->count() == 0)
+            <div class="flex gap-md p-md bg-secondary-container rounded-lg border-l-4 border-secondary">
+                <span class="material-symbols-outlined text-secondary shrink-0">check_circle</span>
+                <div>
+                    <p class="text-body-md font-bold text-on-surface">Semua Aman</p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Tidak ada peringatan aktif.</p>
+                </div>
+            </div>
+            @endif
+
+            {{-- Divider + stat ringkas --}}
+            <div class="border-t border-surface-border pt-md space-y-sm">
+                <div class="flex items-center justify-between text-body-md">
+                    <span class="text-on-surface-variant">Enrollment expiring</span>
+                    <span class="font-bold text-on-surface">{{ $expiringEnrollments->count() }}</span>
+                </div>
+                <div class="flex items-center justify-between text-body-md">
+                    <span class="text-on-surface-variant">Cicilan belum lunas</span>
+                    <span class="font-bold text-on-surface">{{ $unpaidInstallments->count() }}</span>
+                </div>
+                <div class="flex items-center justify-between text-body-md">
+                    <span class="text-on-surface-variant">Pending tutor assignment</span>
+                    <span class="font-bold {{ $stats['pending_tutors_enrollments'] > 0 ? 'text-error' : 'text-on-surface' }}">{{ $stats['pending_tutors_enrollments'] }}</span>
+                </div>
+            </div>
+        </div>
+
     </div>
 
     {{-- ═══════════════════════════════════════════

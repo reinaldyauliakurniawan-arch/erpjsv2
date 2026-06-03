@@ -191,8 +191,8 @@ Route::middleware('auth')->group(function () {
         Route::get('/dashboard', [TutorDashboard::class, 'index'])->name('dashboard');
         Route::get('/attendance/data', [TutorAttendance::class, 'data'])->name('attendance.data');
         Route::get('/attendance', [TutorAttendance::class, 'index'])->name('attendance.index');
-        Route::get('/attendance/create', [TutorAttendance::class, 'create'])->name('attendance.create');
         Route::get('/attendance/search-sessions', [TutorAttendance::class, 'searchSessions'])->name('attendance.search-sessions');
+        Route::get('/attendance/history', [TutorAttendance::class, 'history'])->name('attendance.history');
         Route::get('/schedule', [TutorSchedule::class, 'index'])->name('schedule.index');
         Route::post('/attendance', [TutorAttendance::class, 'store'])->name('attendance.store');
         Route::delete('/attendance/{id}', [TutorAttendance::class, 'destroy'])->name('attendance.destroy');

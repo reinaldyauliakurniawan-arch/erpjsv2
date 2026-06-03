@@ -66,17 +66,23 @@ class ReportController extends Controller
     $netFinancing = $financing->sum('net');
     $netChange    = $netOperating + $netInvesting + $netFinancing;
 
-    // Kas awal: saldo akun cash sebelum $from
+    // Kas awal: saldo akun Cash & Bank sebelum $from
     $cashOpening = DB::table('journal_items')
         ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
         ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-        ->where('accounts.cash_flow_category', 'cash')
+        ->whereIn('accounts.code', ['1001', '1002'])
         ->whereDate('journals.date', '<', $from)
         ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as balance')
         ->value('balance') ?? 0;
 
-    // Kas akhir
-    $cashEnding = (float)$cashOpening + $netChange;
+    // Kas akhir: saldo akun Cash & Bank sampai $to (harus sama dengan neraca)
+    $cashEnding = DB::table('journal_items')
+        ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+        ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+        ->whereIn('accounts.code', ['1001', '1002'])
+        ->whereDate('journals.date', '<=', $to)
+        ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as balance')
+        ->value('balance') ?? 0;
 
     return view('admin.reports.cash_flow', compact(
         'operating', 'investing', 'financing',
@@ -162,8 +168,8 @@ class ReportController extends Controller
                 'reference'     => $item->reference,
                 'debit'         => $debit,
                 'credit'        => $credit,
-                'saldo_debet'   => $normalDebet && $runningBalance >= 0 ? $runningBalance : ($normalDebet && $runningBalance < 0 ? 0 : 0),
-                'saldo_kredit'  => !$normalDebet && $runningBalance >= 0 ? $runningBalance : 0,
+                'saldo_debet'   => $runningBalance >= 0 ? $runningBalance : 0,
+                'saldo_kredit'  => $runningBalance < 0  ? abs($runningBalance) : 0,
                 'running'       => $runningBalance,
             ];
         });
@@ -351,11 +357,13 @@ class ReportController extends Controller
             ->orderBy('accounts.code')
             ->get();
 
-        $totalRevenue = $rows->where('type', 'Revenue')->sum('amount');
+        $contraRevenueCodes = ['4111'];
+        $totalRevenue = $rows->where('type', 'Revenue')->whereNotIn('code', $contraRevenueCodes)->sum('amount');
+        $totalContra  = $rows->where('type', 'Revenue')->whereIn('code', $contraRevenueCodes)->sum('amount');
         $totalExpense = $rows->where('type', 'Expense')->sum('amount');
-        $netProfit    = $totalRevenue - $totalExpense;
+        $netProfit    = $totalRevenue - $totalContra - $totalExpense;
 
-        return view('admin.reports.profit_loss', compact('rows', 'totalRevenue', 'totalExpense', 'netProfit', 'from', 'to', 'period'));
+        return view('admin.reports.profit_loss', compact('rows', 'totalRevenue', 'totalContra', 'totalExpense', 'netProfit', 'from', 'to', 'period'));
     }
 
     public function balanceSheet(Request $request)
@@ -387,8 +395,21 @@ class ReportController extends Controller
         $totalLiability = $rows->where('type', 'Liability')->sum('balance');
         $totalEquity    = $rows->where('type', 'Equity')->sum('balance');
 
+        // Tambah net profit periode berjalan (belum closing)
+        $currentYearStart = now()->startOfYear()->toDateString();
+        $netProfitCurrent = DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+            ->whereIn('accounts.type', ['Revenue', 'Expense'])
+            ->whereDate('journals.date', '>=', $currentYearStart)
+            ->whereDate('journals.date', '<=', $asOf)
+            ->selectRaw("SUM(CASE WHEN accounts.type = 'Revenue' THEN journal_items.credit - journal_items.debit ELSE journal_items.debit - journal_items.credit END) as net")
+            ->value('net') ?? 0;
+
+        $totalEquity += (float) $netProfitCurrent;
+
         $accounts = \App\Models\Account::orderBy('code')->get();
-        return view('admin.reports.balance_sheet', compact('rows', 'totalAsset', 'totalLiability', 'totalEquity', 'asOf', 'accounts'));
+        return view('admin.reports.balance_sheet', compact('rows', 'totalAsset', 'totalLiability', 'totalEquity', 'netProfitCurrent', 'asOf', 'accounts'));
     }
 
     public function deferredRevenue(Request $request)
@@ -410,6 +431,7 @@ class ReportController extends Controller
                 'enrollments.id',
                 'enrollments.remaining_meetings',
                 'enrollments.total_amount',
+                'enrollments.payment_method',
                 'enrollments.created_at',
                 'programs.total_meetings',
                 'programs.id as program_id',
@@ -423,12 +445,17 @@ class ReportController extends Controller
         if ($filterTo)      $query->whereDate('enrollments.created_at', '<=', $filterTo);
 
         $enrollments = $query->get()->map(function ($e) {
-                if ($e->total_meetings <= 0 || $e->paid_amount <= 0) return null;
+                // Full upfront: paid_amount = total_amount
+                $paidAmount = $e->payment_method === 'full upfront'
+                    ? (float) $e->total_amount
+                    : (float) $e->paid_amount;
 
-                $ratePerMeeting   = $e->paid_amount / $e->total_meetings;
+                if ($e->total_meetings <= 0 || $paidAmount <= 0) return null;
+
+                $ratePerMeeting   = $paidAmount / $e->total_meetings;
                 $meetingsUsed     = $e->total_meetings - $e->remaining_meetings;
                 $recognizedAmount = $ratePerMeeting * $meetingsUsed;
-                $deferredAmount   = $e->paid_amount - $recognizedAmount;
+                $deferredAmount   = $paidAmount - $recognizedAmount;
 
                 return [
                     'student_name'      => $e->student_name,
@@ -437,7 +464,7 @@ class ReportController extends Controller
                     'total_meetings'    => $e->total_meetings,
                     'meetings_used'     => $meetingsUsed,
                     'remaining'         => $e->remaining_meetings,
-                    'paid_amount'       => (float) $e->paid_amount,
+                    'paid_amount'       => $paidAmount,
                     'recognized_amount' => (float) $recognizedAmount,
                     'rate_per_meeting'  => (float) $ratePerMeeting,
                     'deferred_amount'   => (float) $deferredAmount,

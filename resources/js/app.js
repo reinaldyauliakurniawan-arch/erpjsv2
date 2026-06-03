@@ -11,6 +11,7 @@ import {
     FilterModule,
     EditModule,
     SelectRowModule,
+    ResponsiveLayoutModule,
 } from "tabulator-tables";
 
 window.Alpine = Alpine;
@@ -25,6 +26,7 @@ Tabulator.registerModule([
     FilterModule,
     EditModule,
     SelectRowModule,
+    ResponsiveLayoutModule,
 ]);
 window.Tabulator = Tabulator;
 

@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Absensi</x-slot>
 
-    <div class="p-lg space-y-lg" x-data="attendancePage()">
+    <div class="p-lg space-y-lg" x-data="attendancePage()" x-init="init()">
 
         {{-- Flash --}}
         @if(session('success'))
@@ -140,10 +140,12 @@
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
             <div class="px-lg py-md border-b border-surface-border flex justify-between items-center bg-surface-container-low">
                 <h4 class="text-title-sm font-semibold text-primary" x-text="tableTitle"></h4>
-                <span x-show="summary.duplicate_count > 0" class="badge badge-soft badge-error gap-xs">
-                    <span class="material-symbols-outlined text-[14px]">warning</span>
-                    <span x-text="summary.duplicate_count"></span> duplikat
-                </span>
+                <template x-if="summary">
+                    <span x-show="summary.duplicate_count > 0" class="badge badge-soft badge-error gap-xs">
+                        <span class="material-symbols-outlined text-[14px]">warning</span>
+                        <span x-text="summary.duplicate_count"></span> duplikat
+                    </span>
+                </template>
             </div>
             <div x-show="loading" class="flex items-center justify-center py-xl gap-sm text-on-surface-variant">
                 <span class="loading loading-spinner loading-sm"></span>
@@ -280,21 +282,27 @@
             // Fetch
             async fetchData() {
                 this.loading = true;
-                const { from, to } = this.resolveDates();
-                const params = new URLSearchParams();
-                if (from)           params.set('date_from',    from);
-                if (to)             params.set('date_to',      to);
-                if (this.tutor)     params.set('tutor',        this.tutor);
-                if (this.status)    params.set('status',       this.status);
-                if (this.activeTab !== 'all') params.set('program_type', this.activeTab);
+                try {
+                    const { from, to } = this.resolveDates();
+                    const params = new URLSearchParams();
+                    if (from)           params.set('date_from',    from);
+                    if (to)             params.set('date_to',      to);
+                    if (this.tutor)     params.set('tutor',        this.tutor);
+                    if (this.status)    params.set('status',       this.status);
+                    if (this.activeTab !== 'all') params.set('program_type', this.activeTab);
 
-                const res  = await fetch(`{{ route('admin.attendance.data') }}?${params}`, {
-                    headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
-                });
-                const json = await res.json();
-                this.summary = json.summary;
-                this.buildTable(json.rows);
-                this.loading = false;
+                    const res  = await fetch(`{{ route('admin.attendance.data') }}?${params}`, {
+                        headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
+                    });
+                    const json = await res.json();
+                    this.summary = json.summary ?? { total_sessions: 0, active_today: 0, avg_attendance: 0, duplicate_count: 0 };
+                    this.buildTable(json.rows ?? []);
+                } catch (e) {
+                    console.error('Fetch error:', e);
+                    this.summary = { total_sessions: 0, active_today: 0, avg_attendance: 0, duplicate_count: 0 };
+                } finally {
+                    this.loading = false;
+                }
             },
 
             // Tabulator
