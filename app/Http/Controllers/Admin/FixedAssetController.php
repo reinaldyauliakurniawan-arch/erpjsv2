@@ -98,11 +98,37 @@ class FixedAssetController extends Controller
             'expense_account_id', 'accumulated_account_id', 'is_active'
         ));
 
-        return back()->with('success', 'Aset berhasil diupdate.');
+        $hasPostedJournal = \App\Models\AdjustingJournal::where('source_id', $fixedAsset->id)
+            ->where('source_type', \App\Models\FixedAsset::class)
+            ->where('status', 'posted')
+            ->exists();
+
+        $msg = 'Aset berhasil diupdate.';
+        if ($hasPostedJournal) {
+            $msg .= ' Perhatian: aset ini sudah memiliki jurnal depresiasi — perubahan nilai hanya berlaku untuk perhitungan bulan berikutnya.';
+        }
+
+        return back()->with('success', $msg);
+    }
+
+    public function generateDepreciation(\Illuminate\Http\Request $request)
+    {
+        $period = $request->input('period', now()->format('Y-m-d'));
+        \Artisan::call('finance:generate-ajp', ['--period' => $period]);
+        return back()->with('success', 'Jurnal penyusutan berhasil di-generate dan diposting ke Jurnal Penyesuaian.');
     }
 
     public function destroy(FixedAsset $fixedAsset)
     {
+        $hasJournal = \App\Models\AdjustingJournal::where('source_id', $fixedAsset->id)
+            ->where('source_type', \App\Models\FixedAsset::class)
+            ->where('status', 'posted')
+            ->exists();
+
+        if ($hasJournal) {
+            return back()->with('error', 'Aset tidak bisa dihapus karena sudah memiliki jurnal depresiasi. Nonaktifkan aset dengan mengubah status is_active menjadi false.');
+        }
+
         $fixedAsset->delete();
         return back()->with('success', 'Aset berhasil dihapus.');
     }

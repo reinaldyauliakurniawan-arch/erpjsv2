@@ -140,10 +140,10 @@ class AttendanceController extends Controller
 
         $enrollments = Enrollment::with('student.user')
             ->where('class_session_id', $request->class_session_id)
-            ->where('status', 'active')
+            ->whereIn('status', ['active', 'waitlist'])
             ->get();
 
-        $attendances = Attendance::with(['students', 'tutors.user', 'classroom'])
+        $attendances = Attendance::with(['students', 'tutors.user'])
             ->where('class_session_id', $request->class_session_id)
             ->whereNull('deleted_at')
             ->orderByDesc('date')
@@ -185,11 +185,9 @@ class AttendanceController extends Controller
             ->get()
             ->map(fn($t) => ['id' => $t->id, 'name' => $t->user->name]);
 
-        // Assigned tutors untuk mode replacement
-        $assignedTutors = ClassSession::find($request->class_session_id)
-            ?->tutors()
-            ->with('user')
-            ->where('tutor_id', '!=', $tutor->id)
+        // Semua tutor aktif untuk mode replacement
+        $assignedTutors = \App\Models\Tutor::with('user')
+            ->where('id', '!=', $tutor->id)
             ->get()
             ->map(fn($t) => ['id' => $t->id, 'name' => $t->user->name]);
 

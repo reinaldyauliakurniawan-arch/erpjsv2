@@ -1,4 +1,20 @@
 <x-app-layout>
+<script>
+function isSlotPast(dateStr, timeBlock) {
+    const endTime = timeBlock.split('-')[1].trim();
+    const [hour, minute] = endTime.split(':').map(Number);
+    const slotEnd = new Date(dateStr);
+    slotEnd.setHours(hour, minute, 0, 0);
+    return slotEnd < new Date();
+}
+function guardSlot(dateStr, timeBlock, callback) {
+    if (isSlotPast(dateStr, timeBlock)) {
+        alert('Slot ini sudah lewat dan tidak bisa diubah.');
+        return;
+    }
+    callback();
+}
+</script>
 <x-slot name="title">Jadwal</x-slot>
 
 <div class="p-lg space-y-lg" x-data="{
@@ -12,6 +28,7 @@
     selectedDate: '',
     classroomId: '',
     bookingId: null,
+    bookingNotes: '',
     selectedScheduleId: '',
 }" x-init="
     if (day === 'Minggu' && {{ $weekOffset }} === 0) day = 'Senin';
@@ -133,17 +150,21 @@
                                 @endphp
                                 @if(!$alreadySkipped)
                                 <button type="button"
-                                    @click="modal = true; modalType = 'skip';
-                                            selectedBlock = '{{ $slot->time_block }}';
-                                            selectedDate = '{{ $todayDate }}';
-                                            classroomId = '{{ $slot->classroom_id }}';
-                                            selectedScheduleId = '{{ $slot->id }}';"
+                                    @click="guardSlot('{{ $todayDate }}', '{{ $slot->time_block }}', () => { modal = true; modalType = 'skip'; selectedBlock = '{{ $slot->time_block }}'; selectedDate = '{{ $todayDate }}'; classroomId = '{{ $slot->classroom_id }}'; selectedScheduleId = '{{ $slot->id }}'; })"
                                     class="btn btn-xs btn-ghost text-yellow-600 hover:bg-yellow-50">
                                     <span class="material-symbols-outlined text-[14px]">event_busy</span>
                                     Skip
                                 </button>
                                 @else
-                                <span class="text-xs text-yellow-600 font-semibold">Skipped</span>
+                                @php
+                                    $skipBooking = $slot->roomBookings()->where('type','regular_skip')->whereDate('date',$todayDate)->first();
+                                @endphp
+                                <div class="text-xs text-yellow-600 font-semibold">
+                                    Skipped
+                                    @if($skipBooking?->notes)
+                                        <span class="block text-on-surface-variant font-normal italic">{{ $skipBooking->notes }}</span>
+                                    @endif
+                                </div>
                                 @endif
                             </td>
                         </tr>
@@ -235,14 +256,15 @@
                     @foreach($timeBlocks as $block)
                     @php
                         $schedule  = $daySchedules->where('time_block', $block)->first();
-                        $booking   = $dayBookings->where('classroom_id', $classroom->id)->where('time_block', $block)->first();
-                        $isSkipped = $booking && $booking->type === 'regular_skip';
+                        $slotBookings = $dayBookings->where('classroom_id', $classroom->id)->where('time_block', $block);
+                        $booking   = $slotBookings->where('type', 'temporary')->first() ?? $slotBookings->where('type', 'regular_skip')->first();
+                        $isSkipped = $slotBookings->where('type', 'regular_skip')->isNotEmpty() && !$slotBookings->where('type', 'temporary')->count();
                         $isTemp    = $booking && $booking->type === 'temporary';
                         $isMyTemp  = $isTemp && $booking->tutor_id === $tutor->id;
                         $isMySlot  = $schedule && $schedule->classSession?->tutors?->contains('id', $tutor->id);
                     @endphp
 
-                    @if($schedule && !$isSkipped)
+                    @if($schedule && !$isSkipped && !$isTemp)
                         <div class="{{ $isMySlot ? 'bg-primary-container/20 border-primary-container' : 'bg-red-50 border-red-200' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs"
                             title="{{ $isMySlot ? 'Jadwal saya' : 'Reguler' }}">
                             <span class="material-symbols-outlined {{ $isMySlot ? 'text-primary-container' : 'text-red-400' }} text-sm">
@@ -255,11 +277,7 @@
 
                     @elseif($isMyTemp)
                         <button type="button"
-                            @click="modal = true; modalType = 'cancel';
-                                    selectedRoom = '{{ $classroom->name }}';
-                                    selectedBlock = '{{ $block }}';
-                                    selectedDate = '{{ $date }}';
-                                    bookingId = {{ $booking->id }};"
+                            @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'cancel'; selectedRoom = '{{ $classroom->name }}'; selectedBlock = '{{ $block }}'; selectedDate = '{{ $date }}'; bookingId = {{ $booking->id }}; bookingNotes = {{ json_encode($booking->notes ?? '') }}; })"
                             class="bg-blue-50 border border-blue-300 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-blue-100 transition-colors"
                             title="Booking saya — klik untuk cancel">
                             <span class="material-symbols-outlined text-blue-500 text-sm">event_available</span>
@@ -279,11 +297,7 @@
                         </div>
                         @else
                         <button type="button"
-                            @click="modal = true; modalType = 'book';
-                                    selectedRoom = '{{ $classroom->name }}';
-                                    selectedBlock = '{{ $block }}';
-                                    selectedDate = '{{ $date }}';
-                                    classroomId = '{{ $classroom->id }}';"
+                            @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'book'; selectedRoom = '{{ $classroom->name }}'; selectedBlock = '{{ $block }}'; selectedDate = '{{ $date }}'; classroomId = '{{ $classroom->id }}'; })"
                             class="{{ $isSkipped ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
                             <span class="material-symbols-outlined {{ $isSkipped ? 'text-yellow-500' : 'text-emerald-600' }} text-sm">add_circle</span>
                             <span class="text-[9px] font-bold {{ $isSkipped ? 'text-yellow-500' : 'text-emerald-600' }} text-center">
@@ -332,7 +346,7 @@
                         </div>
                         <div class="flex flex-wrap gap-xs ml-auto">
                             @foreach($schedule->classSession?->enrollments ?? [] as $enrollment)
-                                <span class="badge badge-soft text-[10px]">{{ $enrollment->student->user->name }}</span>
+                                <span class="badge badge-soft text-[10px] whitespace-nowrap">{{ $enrollment->student->user->name }}</span>
                             @endforeach
                         </div>
                     </div>
@@ -401,9 +415,9 @@
             <div x-show="modalType === 'book'">
                 <form method="POST" action="{{ route('tutor.room-bookings.store') }}">
                     @csrf
-                    <input type="hidden" name="classroom_id" :value="classroomId">
-                    <input type="hidden" name="date" :value="selectedDate">
-                    <input type="hidden" name="time_block" :value="selectedBlock">
+                    <input type="hidden" name="classroom_id" x-bind:value="classroomId">
+                    <input type="hidden" name="date" x-bind:value="selectedDate">
+                    <input type="hidden" name="time_block" x-bind:value="selectedBlock">
                     <div class="fieldset mb-md">
                         <label class="fieldset-legend">Catatan (opsional)</label>
                         <input type="text" name="notes" class="input w-full input-sm"
@@ -426,10 +440,10 @@
                 <form method="POST" action="{{ route('tutor.room-bookings.store') }}">
                     @csrf
                     <input type="hidden" name="type" value="regular_skip">
-                    <input type="hidden" name="classroom_id" :value="classroomId">
-                    <input type="hidden" name="date" :value="selectedDate">
-                    <input type="hidden" name="time_block" :value="selectedBlock">
-                    <input type="hidden" name="schedule_id" :value="selectedScheduleId">
+                    <input type="hidden" name="classroom_id" x-bind:value="classroomId">
+                    <input type="hidden" name="date" x-bind:value="selectedDate">
+                    <input type="hidden" name="time_block" x-bind:value="selectedBlock">
+                    <input type="hidden" name="schedule_id" x-bind:value="selectedScheduleId">
                     <div class="fieldset mb-md">
                         <label class="fieldset-legend">Alasan (opsional)</label>
                         <input type="text" name="notes" class="input w-full input-sm"
@@ -449,6 +463,10 @@
             {{-- Cancel form --}}
             <div x-show="modalType === 'cancel'">
                 <p class="text-sm text-on-surface-variant mb-md">Batalkan booking slot ini?</p>
+                <div x-show="bookingNotes" class="p-sm bg-surface-container-low border border-surface-border rounded-lg mb-md">
+                    <p class="text-[10px] font-bold uppercase text-on-surface-variant mb-xs">Catatan</p>
+                    <p class="text-body-sm text-on-surface" x-text="bookingNotes"></p>
+                </div>
                 <form method="POST" :action="`{{ url('tutor/room-bookings') }}/${bookingId}`">
                     @csrf
                     @method('DELETE')

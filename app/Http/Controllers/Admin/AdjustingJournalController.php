@@ -109,15 +109,19 @@ class AdjustingJournalController extends Controller
             }
 
             // Langsung post ke journals
+            if (Journal::where('reference', $aj->reference)->exists()) {
+                throw new \App\Exceptions\IdempotencyException("Journal dengan reference {$aj->reference} sudah ada.");
+            }
+
             $journal = Journal::create([
                 'date'         => $aj->period,
                 'description'  => "[AJP] {$aj->description}",
                 'reference'    => $aj->reference,
                 'total_amount' => $aj->total_amount,
-                'approved_by'  => null,
+                'type'         => 'adjusting',
             ]);
 
-            foreach ($aj->items as $item) {
+            foreach ($aj->fresh()->items as $item) {
                 $journal->items()->create([
                     'account_id' => $item->account_id,
                     'debit'      => $item->debit,

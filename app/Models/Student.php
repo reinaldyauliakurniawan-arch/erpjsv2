@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 class Student extends Model
 {
     use HasFactory;
-    protected $fillable = ['user_id', 'notes'];
+    protected $fillable = ['user_id', 'notes', 'education_level'];
 
     public function user()
     {
@@ -22,7 +22,11 @@ class Student extends Model
 
     public function activeEnrollment()
     {
-        return $this->hasOne(Enrollment::class)->where('status', 'active')->latestOfMany();
+        return $this->hasOne(Enrollment::class)->ofMany([
+            'id' => 'max',
+        ], function ($query) {
+            $query->where('status', 'active');
+        });
     }
 
     public function trackerEntries()

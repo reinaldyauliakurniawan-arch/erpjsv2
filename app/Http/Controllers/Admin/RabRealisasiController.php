@@ -130,10 +130,16 @@ class RabRealisasiController extends Controller
         $totalKritis  = $rows->where('status', 'Kritis')->count();
         $totalAman    = $rows->where('status', 'Aman')->count();
 
+        $currentQuarter = now()->quarter;
+        $budgetQCurrent = $rows->sum("budget_q{$currentQuarter}");
+        $realQCurrent   = $rows->sum("real_q{$currentQuarter}");
+        $pctQCurrent    = $budgetQCurrent > 0 ? round(($realQCurrent / $budgetQCurrent) * 100, 1) : 0;
+
         return view('admin.rab-realisasi.index', compact(
             'rows', 'year', 'years',
             'totalBudget', 'totalReal', 'pctOverall',
-            'totalKritis', 'totalAman'
+            'totalKritis', 'totalAman',
+            'budgetQCurrent', 'realQCurrent', 'pctQCurrent', 'currentQuarter'
         ));
     }
 }

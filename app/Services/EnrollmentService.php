@@ -66,7 +66,10 @@ foreach ($data['schedules'] ?? [] as $schedule) {
                     'password' => bcrypt('password123'),
                     'role'     => 'student',
                 ]);
-                $student = Student::create(['user_id' => $user->id]);
+                $student = Student::create([
+                    'user_id'         => $user->id,
+                    'education_level' => $data['new_student']['education_level'] ?? null,
+                ]);
             }
             $data['student_id'] = $student->id;
 
@@ -106,6 +109,19 @@ foreach ($data['schedules'] ?? [] as $schedule) {
         $quotaMet = $newCount >= $program->min_quota;
 $hasTutor = $classSession->tutors()->wherePivot('status', 'confirmed')->exists();
 $enrollmentStatus = ($quotaMet && $hasTutor) ? 'active' : 'waitlist';
+
+        // Re-check kapasitas ruangan di dalam transaction setelah lock
+        foreach ($data['schedules'] ?? [] as $s) {
+            $roomCount = \App\Models\Schedule::where('classroom_id', $s['classroom_id'])
+                ->where('day', $s['day'])
+                ->where('time_block', $s['time_block'])
+                ->lockForUpdate()
+                ->count();
+            $classroom = \App\Models\Classroom::find($s['classroom_id']);
+            if ($classroom && $roomCount >= $classroom->capacity) {
+                throw new DomainException("Ruangan {$classroom->name} penuh pada {$s['day']} {$s['time_block']}. Enrollment dibatalkan.");
+            }
+        }
 
 if ($quotaMet && $hasTutor) {
     Enrollment::where('class_session_id', $classSession->id)
@@ -166,9 +182,7 @@ if ($quotaMet && $hasTutor) {
             }
 
            if (isset($data['tutor_ids'])) {
-    if ($classType === ClassType::PRIVATE) {
-        $enrollment->tutors()->attach($data['tutor_ids'], ['status' => 'pending']);
-    }
+    $enrollment->tutors()->attach($data['tutor_ids'], ['status' => 'pending']);
     if ($classSession) {
         $classSession->tutors()->syncWithoutDetaching(
             collect($data['tutor_ids'])->mapWithKeys(fn($id) => [$id => ['status' => 'pending']])->all()

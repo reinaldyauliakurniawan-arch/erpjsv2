@@ -271,8 +271,13 @@ public function availableTutors(Request $request)
             return back()->withErrors(['error' => 'Enrollment tidak aktif.']);
         }
 
-        $perMeetingPrice   = bcdiv($enrollment->total_amount, $enrollment->program->total_meetings, 2);
-        $remainingDeferred = bcmul($enrollment->remaining_meetings, $perMeetingPrice, 2);
+        $paidAmount        = $enrollment->payment_method === 'full upfront'
+            ? (float) $enrollment->total_amount
+            : (float) $enrollment->installments()->whereNotNull('paid_at')->sum('amount');
+        $perMeetingPrice   = $enrollment->program->total_meetings > 0
+            ? bcdiv((string) $paidAmount, (string) $enrollment->program->total_meetings, 2)
+            : '0';
+        $remainingDeferred = bcmul((string) $enrollment->remaining_meetings, $perMeetingPrice, 2);
 
         if ($remainingDeferred > 0) {
             try {
@@ -283,7 +288,9 @@ public function availableTutors(Request $request)
                     [
                         ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $remainingDeferred, 'credit' => 0],
                         ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $remainingDeferred],
-                    ]
+                    ],
+                    'revenue_recognition',
+                    $enrollment->program_id
                 );
             } catch (DomainException $e) {
                 return back()->withErrors(['error' => $e->getMessage()]);
@@ -295,6 +302,11 @@ public function availableTutors(Request $request)
             'remaining_meetings' => 0,
             'payment_status'   => PaymentStatus::FULL->value,
         ]);
+
+        \App\Models\RoomBooking::where('enrollment_id', $enrollment->id)
+            ->where('date', '>', now()->toDateString())
+            ->delete();
+
         return back()->with('success', 'Enrollment marked as expired, remaining revenue recognized.');
     }
 
@@ -366,6 +378,15 @@ public function updateTutorStatus(Request $request, $id, $tutorId)
 public function destroy($id)
 {
     $enrollment = Enrollment::findOrFail($id);
+
+    $hasJournal = \App\Models\Journal::where('reference', 'PAYMENT-ENROLL-' . $enrollment->id)->exists();
+    if ($hasJournal) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Enrollment ini sudah memiliki jurnal pembayaran dan tidak bisa dihapus. Gunakan Expire jika ingin menonaktifkan.',
+        ], 422);
+    }
+
     $enrollment->delete();
     return response()->json(['success' => true]);
 }

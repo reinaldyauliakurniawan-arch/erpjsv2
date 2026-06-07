@@ -8,5 +8,6 @@ use Illuminate\Database\Eloquent\Model;
 class Classroom extends Model
 {
     use HasFactory;
-    protected $fillable = ['name', 'capacity'];
+    protected $fillable = ['name', 'capacity', 'is_at_just_speak'];
+    protected $casts = ['is_at_just_speak' => 'boolean'];
 }

@@ -31,40 +31,62 @@
             </form>
         </div>
 
-        {{-- Stat Cards --}}
+        {{-- Row 1: Posisi Kas --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
+            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                <p class="text-body-sm text-on-surface-variant">Cash Balance</p>
+                <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($cashBalance, 0, ',', '.') }}</p>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Saldo kas & bank saat ini</p>
+            </div>
             <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
                 <p class="text-body-sm text-on-surface-variant">Total Revenue</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($revenue, 0, ',', '.') }}</p>
-                <span class="material-symbols-outlined text-success mt-xs">trending_up</span>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan dari sesi yang sudah selesai</p>
             </div>
             <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
                 <p class="text-body-sm text-on-surface-variant">Total Expense</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($expense, 0, ',', '.') }}</p>
-                <span class="material-symbols-outlined text-error mt-xs">trending_down</span>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Biaya yang sudah dikeluarkan bulan ini</p>
             </div>
             <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
                 <p class="text-body-sm text-on-surface-variant">Net Profit</p>
                 <p class="text-headline-lg font-bold mt-xs {{ $netProfit >= 0 ? 'text-success' : 'text-error' }}">
                     Rp {{ number_format($netProfit, 0, ',', '.') }}
                 </p>
-                <span class="material-symbols-outlined mt-xs {{ $netProfit >= 0 ? 'text-success' : 'text-error' }}">
-                    {{ $netProfit >= 0 ? 'account_balance' : 'warning' }}
-                </span>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Revenue dikurangi expense bulan ini</p>
             </div>
         </div>
 
-        {{-- Deferred Revenue + Tutor Payable --}}
-        <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))">
+        {{-- Row 2: Kewajiban & Risiko --}}
+        <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
             <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
-                <p class="text-body-sm text-on-surface-variant">Deferred Revenue (Outstanding)</p>
+                <p class="text-body-sm text-on-surface-variant">Deferred Revenue</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Pembayaran siswa yang belum jadi revenue</p>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan diterima di muka</p>
             </div>
             <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
-                <p class="text-body-sm text-on-surface-variant">Tutor Payable (Outstanding)</p>
+                <p class="text-body-sm text-on-surface-variant">Tutor Payable</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($tutorPayable, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Fee tutor yang sudah di-accrue, belum dibayar</p>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Belum dibayar ke tutor</p>
+            </div>
+            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                <p class="text-body-sm text-on-surface-variant">Collection Rate</p>
+                <p class="text-headline-lg font-bold mt-xs {{ $collectionRate >= 80 ? 'text-success' : ($collectionRate >= 50 ? 'text-warning' : 'text-error') }}">
+                    {{ $collectionRate }}%
+                </p>
+                <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-xs">
+                    <div class="h-full rounded-full {{ $collectionRate >= 80 ? 'bg-success' : ($collectionRate >= 50 ? 'bg-warning' : 'bg-error') }}"
+                         style="width: {{ min($collectionRate, 100) }}%"></div>
+                </div>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Persentase cicilan siswa yang sudah masuk bulan ini</p>
+            </div>
+            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                <p class="text-body-sm text-on-surface-variant">Burn Rate</p>
+                <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($burnRate, 0, ',', '.') }}</p>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Rata-rata pengeluaran per bulan (6 bulan terakhir)</p>
+                @if($runwayMonths !== null)
+                    <p class="text-body-sm mt-xs">Tanpa pemasukan baru, bertahan: <span class="{{ $runwayMonths <= 3 ? 'text-error' : ($runwayMonths <= 6 ? 'text-warning' : 'text-success') }} font-medium">{{ $runwayMonths }} bulan lagi</span></p>
+                @endif
             </div>
         </div>
 
@@ -76,38 +98,57 @@
             </div>
             <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
                 <h4 class="text-headline-md font-semibold text-on-surface">Enrollment per Program</h4>
-                <div style="position: relative; height: 260px;">
-                    <canvas id="enrollmentChart"></canvas>
+                <div class="flex items-center gap-md">
+                    <div style="position: relative; height: 260px; width: 260px; flex-shrink: 0;">
+                        <canvas id="enrollmentChart"></canvas>
+                    </div>
+                    <div id="enrollmentLegend" class="flex flex-col gap-xs text-sm text-on-surface overflow-y-auto" style="max-height: 260px;"></div>
                 </div>
             </div>
         </div>
 
         {{-- Charts Row 2 --}}
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
-            <h4 class="text-headline-md font-semibold text-on-surface">Revenue per Program (Bulan Ini)</h4>
+            <div class="flex items-center justify-between flex-wrap gap-sm">
+                <h4 class="text-headline-md font-semibold text-on-surface">Revenue per Program</h4>
+                <div class="flex gap-xs items-center flex-wrap">
+                    <select id="revenueProgramPeriod" class="select select-sm" onchange="handleRevenueProgramFilter()">
+                        <option value="year">Tahun Berjalan</option>
+                        <option value="quarter">Kuartal Ini</option>
+                        <option value="month">Bulan Ini</option>
+                        <option value="custom">Custom</option>
+                    </select>
+                    <div id="revenueProgramCustomRange" class="hidden flex gap-xs items-center">
+                        <input type="date" id="revenueProgramFrom" class="input input-sm" />
+                        <span class="text-on-surface-variant text-xs">s/d</span>
+                        <input type="date" id="revenueProgramTo" class="input input-sm" />
+                        <button onclick="loadRevenueByProgram()" class="btn btn-sm bg-primary-container text-on-primary border-none">Tampilkan</button>
+                    </div>
+                </div>
+            </div>
             <canvas id="revenueProgramChart" height="80"></canvas>
         </div>
 
         {{-- Overdue + Pending Rates --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))">
 
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
-                <div class="flex items-center justify-between">
+            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md flex flex-col" style="max-height: 400px;">
+                <div class="flex items-center justify-between flex-shrink-0">
                     <h4 class="text-headline-md font-semibold text-on-surface">Overdue Installments</h4>
                     @if($overdueInstallments->count())
-                        <span class="badge badge-soft badge-error">Rp {{ number_format($overdueTotalAmount, 0, ',', '.') }}</span>
+                        <span class="badge badge-soft badge-error whitespace-nowrap">Rp {{ number_format($overdueTotalAmount, 0, ',', '.') }}</span>
                     @endif
                 </div>
                 @if($overdueInstallments->isEmpty())
                     <p class="text-body-sm text-on-surface-variant">Tidak ada tagihan jatuh tempo.</p>
                 @else
-                    <div class="overflow-x-auto">
+                    <div class="overflow-y-auto flex-1">
                         <table class="table table-sm">
                             <thead>
                                 <tr class="border-b border-surface-border text-on-surface-variant">
                                     <th>Student</th>
                                     <th>Program</th>
-                                    <th>Due</th>
+                                    <th class="w-28">Due</th>
                                     <th class="text-right">Amount</th>
                                 </tr>
                             </thead>
@@ -117,7 +158,7 @@
                                         <td class="text-on-surface">{{ $inst->student_name }}</td>
                                         <td class="text-on-surface-variant text-body-sm">{{ $inst->program_name }}</td>
                                         <td>
-                                            <span class="badge badge-soft badge-error text-body-sm">
+                                            <span class="badge badge-soft badge-error text-body-sm whitespace-nowrap">
                                                 {{ \Carbon\Carbon::parse($inst->due_date)->format('d M Y') }}
                                             </span>
                                         </td>
@@ -182,8 +223,8 @@
         </div>
 
         {{-- Recent Journals --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
-            <div class="flex items-center justify-between">
+        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md flex flex-col" style="max-height: 400px;">
+            <div class="flex items-center justify-between flex-shrink-0">
                 <h4 class="text-headline-md font-semibold text-on-surface">Recent Journals</h4>
                 <a href="{{ route('finance.journals.index') }}" class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">open_in_new</span>
@@ -193,13 +234,13 @@
             @if($journals->isEmpty())
                 <p class="text-body-sm text-on-surface-variant">Belum ada jurnal bulan ini.</p>
             @else
-                <div class="overflow-x-auto">
+                <div class="overflow-y-auto flex-1">
                     <table class="table table-sm">
                         <thead>
                             <tr class="border-b border-surface-border text-on-surface-variant">
                                 <th>Date</th>
                                 <th>Type</th>
-                                <th>Reference</th>
+                                <th class="w-40">Reference</th>
                                 <th>Description</th>
                                 <th class="text-right">Amount</th>
                             </tr>
@@ -214,7 +255,7 @@
                                         <span class="badge badge-soft text-body-sm">{{ $journal->type ?? 'general' }}</span>
                                     </td>
                                     <td>
-                                        <span class="badge badge-soft">{{ $journal->reference }}</span>
+                                        <span class="badge badge-soft whitespace-nowrap">{{ $journal->reference }}</span>
                                     </td>
                                     <td class="text-on-surface">{{ $journal->description }}</td>
                                     <td class="text-right text-on-surface">Rp {{ number_format($journal->total_amount, 0, ',', '.') }}</td>
@@ -293,48 +334,84 @@ document.addEventListener('DOMContentLoaded', function () {
             responsive: true,
             maintainAspectRatio: false,
             plugins: {
-                legend: { position: 'bottom' }
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        label: ctx => ctx.label + ': ' + ctx.raw
+                    }
+                }
             }
-        }
+        },
+        plugins: [{
+            id: 'customLegend',
+            afterUpdate(chart) {
+                const container = document.getElementById('enrollmentLegend');
+                if (!container) return;
+                container.innerHTML = '';
+                chart.data.labels.forEach((label, i) => {
+                    const color = chart.data.datasets[0].backgroundColor[i];
+                    const value = chart.data.datasets[0].data[i];
+                    const meta = chart.getDatasetMeta(0);
+                    const hidden = meta.data[i] && meta.data[i].hidden;
+                    const div = document.createElement('div');
+                    div.className = 'flex items-center gap-xs cursor-pointer';
+                    div.style.opacity = hidden ? '0.4' : '1';
+                    div.innerHTML = `
+                        <span style="width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0;display:inline-block;"></span>
+                        <span class="text-on-surface-variant" style="${hidden ? 'text-decoration:line-through' : ''}">${label}</span>
+                        <span class="font-medium ml-auto pl-sm">${value}</span>`;
+                    div.addEventListener('click', () => {
+                        const m = chart.getDatasetMeta(0);
+                        m.data[i].hidden = !m.data[i].hidden;
+                        chart.update();
+                    });
+                    container.appendChild(div);
+                });
+            }
+        }]
     });
 
     const revenueProgramCtx = document.getElementById('revenueProgramChart').getContext('2d');
-    new Chart(revenueProgramCtx, {
+    let revenueProgramChart = new Chart(revenueProgramCtx, {
         type: 'bar',
-        data: {
-            labels: @json($chartProgramRevenueLabels),
-            datasets: [{
-                label: 'Revenue',
-                data: @json($chartProgramRevenueData),
-                backgroundColor: 'rgba(99, 102, 241, 0.7)',
-                borderRadius: 4,
-            }]
-        },
+        data: { labels: [], datasets: [{ label: 'Revenue', data: [], backgroundColor: 'rgba(99, 102, 241, 0.7)', borderRadius: 4 }] },
         options: {
             indexAxis: 'y',
             responsive: true,
             plugins: {
                 legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => 'Rp ' + ctx.raw.toLocaleString('id-ID')
-                    }
-                }
+                tooltip: { callbacks: { label: ctx => 'Rp ' + ctx.raw.toLocaleString('id-ID') } }
             },
-            scales: {
-                x: {
-                    ticks: {
-                        callback: val => 'Rp ' + val.toLocaleString('id-ID')
-                    }
-                }
-            }
+            scales: { x: { ticks: { callback: val => 'Rp ' + val.toLocaleString('id-ID') } } }
         }
     });
+
+    window.handleRevenueProgramFilter = function() {
+        const period = document.getElementById('revenueProgramPeriod').value;
+        document.getElementById('revenueProgramCustomRange').classList.toggle('hidden', period !== 'custom');
+        if (period !== 'custom') loadRevenueByProgram();
+    }
+
+    window.loadRevenueByProgram = function() {
+        const period = document.getElementById('revenueProgramPeriod').value;
+        const from   = document.getElementById('revenueProgramFrom')?.value;
+        const to     = document.getElementById('revenueProgramTo')?.value;
+
+        let url = `{{ route('finance.chart.revenue-by-program') }}?period=${period}`;
+        if (period === 'custom' && from && to) url += `&from=${from}&to=${to}`;
+
+        fetch(url)
+            .then(r => r.json())
+            .then(d => {
+                revenueProgramChart.data.labels = d.labels;
+                revenueProgramChart.data.datasets[0].data = d.data;
+                revenueProgramChart.update();
+            });
+    }
+
+    loadRevenueByProgram();
 
 });
 </script>
 
 </x-app-layout>
-
-
-

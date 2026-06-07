@@ -53,6 +53,11 @@ class GenerateMonthlyAdjustingJournals extends Command
             $amount = $asset->monthly_depreciation;
             if ($amount <= 0) continue;
 
+            if (!$asset->expense_account_id || !$asset->accumulated_account_id) {
+                $this->warn("  ⚠ Aset '{$asset->name}' belum punya akun depresiasi, skip.");
+                continue;
+            }
+
             $aj = AdjustingJournal::create([
                 'period'       => $periodStr,
                 'reference'    => AdjustingJournal::generateReference($periodStr),
@@ -90,22 +95,25 @@ class GenerateMonthlyAdjustingJournals extends Command
 
     private function postToJournal(AdjustingJournal $aj): void
     {
+        if (Journal::where('reference', $aj->reference)->exists()) {
+            $this->warn("  ⚠ Journal {$aj->reference} sudah ada, skip.");
+            return;
+        }
+
         $journal = Journal::create([
             'date'         => $aj->period,
             'description'  => "[AJP] {$aj->description}",
             'reference'    => $aj->reference,
             'total_amount' => $aj->total_amount,
-            'approved_by'  => null,
+            'type'         => 'adjusting',
         ]);
-
-        foreach ($aj->items as $item) {
+        foreach ($aj->fresh()->items as $item) {
             $journal->items()->create([
                 'account_id' => $item->account_id,
                 'debit'      => $item->debit,
                 'credit'     => $item->credit,
             ]);
         }
-
         $aj->update(['status' => 'posted', 'posted_journal_id' => $journal->id]);
     }
 }

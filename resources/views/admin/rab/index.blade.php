@@ -32,18 +32,14 @@
     </div>
 
     {{-- Summary Cards --}}
-    <div class="grid gap-md" style="grid-template-columns: repeat(3, 1fr)">
+    <div class="grid gap-md" style="grid-template-columns: repeat(2, 1fr)">
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
-            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Anggaran {{ $year }}</p>
+            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Anggaran Tahun Berjalan ({{ $year }})</p>
             <p class="text-xl font-bold text-on-surface mt-xs" id="card-total">Rp {{ number_format($totalBudget, 0, ',', '.') }}</p>
         </div>
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
-            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Divisi Aktif</p>
-            <p class="text-xl font-bold text-on-surface mt-xs" id="card-divisions">{{ $divisionCount }}</p>
-        </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
-            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Baris</p>
-            <p class="text-xl font-bold text-on-surface mt-xs" id="card-rows">{{ $rows->count() }}</p>
+            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Anggaran Kuartal Berjalan (Q{{ ceil(now()->month / 3) }})</p>
+            <p class="text-xl font-bold text-on-surface mt-xs" id="card-quarter">Rp {{ number_format($budgetQuarter, 0, ',', '.') }}</p>
         </div>
     </div>
 
@@ -72,13 +68,15 @@ function recalcTotal(row) {
     row.update({ total });
 }
 
+const CURRENT_QUARTER = {{ ceil(now()->month / 3) }};
+
 function updateCards() {
     const rows = window.rabTable.getData();
     const grand = rows.reduce((s, r) => s + (parseInt(r.total)||0), 0);
+    const qKey = 'q' + CURRENT_QUARTER;
+    const grandQ = rows.reduce((s, r) => s + (parseInt(r[qKey])||0), 0);
     document.getElementById('card-total').textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(grand);
-    document.getElementById('card-rows').textContent = rows.length;
-    const divs = new Set(rows.map(r => r.division).filter(Boolean));
-    document.getElementById('card-divisions').textContent = divs.size;
+    document.getElementById('card-quarter').textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(grandQ);
 }
 
 function showAlert(msg, type) {

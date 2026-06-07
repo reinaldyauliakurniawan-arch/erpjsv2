@@ -256,7 +256,7 @@
                         <label class="fieldset-legend">Sesi <span class="text-error">*</span></label>
                         <select x-model="modal.time_block" class="select w-full" required>
                             <option value="">— Pilih —</option>
-                            @foreach(['07:00-08:30','08:30-10:00','10:00-11:30','13:00-14:30','14:30-16:00','16:00-17:30','18:00-19:30','19:30-21:00'] as $block)
+                            @foreach(['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'] as $block)
                             <option value="{{ $block }}">{{ $block }}</option>
                             @endforeach
                         </select>
@@ -440,6 +440,7 @@ function attendancePage() {
             this.modal.open = true;
             this.modal.mode = 'own';
             this.resetModalSession();
+            this.searchSessions();
         },
 
         closeModal() {
@@ -468,7 +469,7 @@ function attendancePage() {
         },
 
         searchSessions() {
-            if (this.modal.query.length < 2) { this.modal.results = []; return; }
+            if (this.modal.query.length === 0 && this.modal.mode !== 'own') { this.modal.results = []; return; }
             this.modal.searching = true;
             fetch(`{{ route('tutor.attendance.search-sessions') }}?q=${encodeURIComponent(this.modal.query)}&mode=${this.modal.mode}`)
                 .then(r => r.json())
@@ -493,9 +494,6 @@ function attendancePage() {
             fetch(`{{ route('tutor.attendance.history') }}?class_session_id=${classSessionId}`)
                 .then(r => r.json())
                 .then(data => {
-                    this.history.sessions        = data.sessions;
-                    this.history.matrix          = data.matrix;
-                    this.history.show            = true;
                     this.modal.assignedTutors    = data.assigned_tutors;
                     this.modal.coTutorCandidates = data.co_tutor_candidates;
                     this.modal.students          = data.enrollments.map(e => ({
@@ -656,74 +654,7 @@ function attendancePage() {
             }, 300);
         },
 
-        groupByClass(sessions) {
-            const map = {};
-            sessions.forEach(s => {
-                if (!map[s.class_session_id]) {
-                    map[s.class_session_id] = {
-                        class_session_id: s.class_session_id,
-                        program: s.program,
-                        totalSessions: 0,
-                        hadirSum: 0,
-                        totalStudents: 0,
-                        sessions: [],
-                    };
-                }
-                map[s.class_session_id].totalSessions++;
-                const hadirParts = String(s.hadir || '0/0').split('/');
-                const present = parseInt(hadirParts[0]) || 0;
-                const total = parseInt(hadirParts[1]) || 0;
-                map[s.class_session_id].hadirSum += present;
-                map[s.class_session_id].totalStudents += total;
-                map[s.class_session_id].sessions.push(s);
-            });
-            return Object.values(map).map(c => ({
-                ...c,
-                avgAttendance: c.totalStudents > 0 ? Math.round((c.hadirSum / c.totalStudents) * 100) : 0,
-                loadingMore: false,
-            }));
-        },
 
-        toggleClassExpand(id) {
-            const idx = this.expandedClasses.indexOf(id);
-            if (idx === -1) this.expandedClasses.push(id);
-            else this.expandedClasses.splice(idx, 1);
-        },
-
-        openSessionModal(session) {
-            this.sessionModal = {
-                open: true,
-                program: session.program,
-                sessionNumber: '', // dihitung nanti
-                date: session.date_fmt,
-                mode: session.mode,
-                modeLabel: session.mode === 'replacement' ? 'Replacement' : session.mode === 'team_teaching' ? 'Team Teaching' : 'Kelas Sendiri',
-                tutor: session.tutor || 'Anda',
-                notes: session.notes || '',
-                totalStudents: 10, // placeholder, ganti dari backend nanti
-                presentStudents: [], // placeholder
-                absentStudents: [], // placeholder
-            };
-            // Hitung nomor sesi
-            const cls = this.groupedClasses.find(c => c.class_session_id === session.class_session_id);
-            if (cls) {
-                const idx = cls.sessions.findIndex(s => s.id === session.id);
-                this.sessionModal.sessionNumber = cls.sessions.length - idx;
-            }
-        },
-
-        closeSessionModal() {
-            this.sessionModal.open = false;
-        },
-
-        loadMoreSessions(classSessionId) {
-            const cls = this.groupedClasses.find(c => c.class_session_id === classSessionId);
-            if (cls) cls.loadingMore = true;
-            // Simulasi load, nanti bisa fetch dari backend
-            setTimeout(() => {
-                if (cls) cls.loadingMore = false;
-            }, 300);
-        },
 
         updateSummary(data) {
             const now = new Date();

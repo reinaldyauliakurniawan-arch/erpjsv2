@@ -14,13 +14,13 @@ class JournalController extends Controller
 
     public function index()
     {
-        $journals = Journal::with('items.account')->latest()->paginate(20);
+        $journals = Journal::with('items.account')->orderBy('date', 'desc')->orderBy('id', 'desc')->paginate(20);
         return view('admin.journals.index', compact('journals'));
     }
 
     public function data(Request $request)
 {
-    $query = Journal::with('items')->latest();
+    $query = Journal::with('items')->orderBy('date', 'desc')->orderBy('id', 'desc');
 
     if ($request->filled('search')) {
         $search = $request->search;

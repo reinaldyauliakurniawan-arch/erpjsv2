@@ -22,11 +22,22 @@
             <h1 class="text-headline-lg font-semibold text-on-surface">Daftar Aset Tetap</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Kelola aset dan hitung penyusutan otomatis (metode garis lurus)</p>
         </div>
-        <button onclick="document.getElementById('modal-add').showModal()"
-            class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
-            <span class="material-symbols-outlined text-[18px]">add</span>
-            Tambah Aset
-        </button>
+        <div class="flex gap-sm">
+            <form method="POST" action="{{ route('finance.assets.generate-depreciation') }}">
+                @csrf
+                <input type="hidden" name="period" value="{{ now()->format('Y-m-d') }}">
+                <button type="submit" class="btn btn-ghost border border-surface-border gap-sm"
+                    onclick="return confirm('Generate jurnal penyusutan bulan {{ now()->format('M Y') }}?')">
+                    <span class="material-symbols-outlined text-[18px]">autorenew</span>
+                    Generate Penyusutan Bulan Ini
+                </button>
+            </form>
+            <button onclick="document.getElementById('modal-add').showModal()"
+                class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                Tambah Aset
+            </button>
+        </div>
     </div>
 
     {{-- Summary Cards --}}

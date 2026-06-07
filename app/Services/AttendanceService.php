@@ -48,8 +48,9 @@ class AttendanceService
                 ]);
 
                 // Eager load enrollments sekaligus untuk hindari N+1
-                $enrollments = Enrollment::with(['program', 'student.user'])
+                $enrollments = Enrollment::with(['program', 'student.user', 'schedules'])
                     ->whereIn('id', collect($data['students'])->pluck('enrollment_id'))
+                    ->lockForUpdate()
                     ->get()
                     ->keyBy('id');
 
@@ -78,16 +79,29 @@ class AttendanceService
 
                     $fresh = $enrollment->fresh();
                     if ($fresh->remaining_meetings <= 0) {
-                        $enrollment->update(['status' => 'graduate']);
+                        $unpaidInstallments = $enrollment->installments()->whereNull('paid_at')->count();
+                        $newStatus = $unpaidInstallments > 0 ? 'expired' : 'graduate';
+                        $enrollment->update(['status' => $newStatus]);
                         RoomBooking::where('enrollment_id', $enrollment->id)
                             ->where('date', '>', $data['date'])
                             ->delete();
                         $tutorIds = $enrollment->tutors()->pluck('tutors.id');
                         foreach ($enrollment->schedules as $schedule) {
-                            TutorAvailability::where('day', $schedule->day)
-                                ->where('time_block', $schedule->time_block)
-                                ->whereIn('tutor_id', $tutorIds)
-                                ->update(['status' => 'available']);
+                            foreach ($tutorIds as $tutorId) {
+                                $stillOccupied = \App\Models\Schedule::where('day', $schedule->day)
+                                    ->where('time_block', $schedule->time_block)
+                                    ->where('enrollment_id', '!=', $enrollment->id)
+                                    ->whereHas('enrollment', fn($q) => $q->whereIn('status', ['active', 'waitlist']))
+                                    ->whereHas('enrollment.tutors', fn($q) => $q->where('tutor_id', $tutorId))
+                                    ->exists();
+
+                                if (!$stillOccupied) {
+                                    TutorAvailability::where('day', $schedule->day)
+                                        ->where('time_block', $schedule->time_block)
+                                        ->where('tutor_id', $tutorId)
+                                        ->update(['status' => 'available']);
+                                }
+                            }
                         }
                     }
 
@@ -97,40 +111,46 @@ class AttendanceService
                         2
                     );
 
-                    $this->accountingService->createJournal(
-                        $data['date'],
-                        "Revenue Recognition: {$enrollment->student->user->name}, Session: {$attendance->id}",
-                        "REV-REC-{$attendance->id}-{$enrollment->id}",
-                        [
-                            ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $revenueAmount, 'credit' => 0],
-                            ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $revenueAmount],
-                        ],
-                        'revenue_recognition',
-                        $classSession->program_id
-                    );
+                    try {
+                        $this->accountingService->createJournal(
+                            $data['date'],
+                            "Revenue Recognition: {$enrollment->student->user->name}, Session: {$attendance->id}",
+                            "REV-REC-{$attendance->id}-{$enrollment->id}",
+                            [
+                                ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $revenueAmount, 'credit' => 0],
+                                ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $revenueAmount],
+                            ],
+                            'revenue_recognition',
+                            $classSession->program_id
+                        );
+                    } catch (\App\Exceptions\IdempotencyException $e) {
+                        // Journal sudah ada, skip
+                    }
                 }
             }
 
-            // Attach primary tutor
-            $tutor = Tutor::with('user')->where('user_id', $data['marked_by'])->firstOrFail();
-            $this->attachTutor($attendance, $tutor, $classSession, $data['date'], [
-                'is_replacement'    => (bool) ($data['is_replacement'] ?? false),
-                'is_team_teaching'  => (bool) ($data['is_team_teaching'] ?? false),
-                'replaced_tutor_id' => $data['replaced_tutor_id'] ?? null,
-            ]);
+            if ($isNew) {
+                // Attach primary tutor
+                $tutor = Tutor::with('user')->where('user_id', $data['marked_by'])->firstOrFail();
+                $this->attachTutor($attendance, $tutor, $classSession, $data['date'], [
+                    'is_replacement'    => (bool) ($data['is_replacement'] ?? false),
+                    'is_team_teaching'  => (bool) ($data['is_team_teaching'] ?? false),
+                    'replaced_tutor_id' => $data['replaced_tutor_id'] ?? null,
+                ]);
 
-            // Attach co-tutors jika team teaching
-            if (!empty($data['co_tutor_ids']) && is_array($data['co_tutor_ids'])) {
-                $coTutors = Tutor::with('user')
-                    ->whereIn('id', $data['co_tutor_ids'])
-                    ->get();
+                // Attach co-tutors jika team teaching
+                if (!empty($data['co_tutor_ids']) && is_array($data['co_tutor_ids'])) {
+                    $coTutors = Tutor::with('user')
+                        ->whereIn('id', $data['co_tutor_ids'])
+                        ->get();
 
-                foreach ($coTutors as $coTutor) {
-                    $this->attachTutor($attendance, $coTutor, $classSession, $data['date'], [
-                        'is_replacement'   => false,
-                        'is_team_teaching' => true,
-                        'replaced_tutor_id' => null,
-                    ]);
+                    foreach ($coTutors as $coTutor) {
+                        $this->attachTutor($attendance, $coTutor, $classSession, $data['date'], [
+                            'is_replacement'   => false,
+                            'is_team_teaching' => true,
+                            'replaced_tutor_id' => null,
+                        ]);
+                    }
                 }
             }
 
@@ -158,17 +178,21 @@ class AttendanceService
             ->first();
 
         if ($rate) {
-            $journal = $this->accountingService->createJournal(
-                $date,
-                "Tutor Fee: {$tutor->user->name}, Session: {$attendance->id}",
-                "TUTOR-PAY-{$attendance->id}-{$tutor->id}",
-                [
-                    ['account_code' => AccountCode::EXPENSE_TUTOR_FEE->value, 'debit' => $rate->rate, 'credit' => 0],
-                    ['account_code' => AccountCode::TUTOR_PAYABLE->value,     'debit' => 0, 'credit' => $rate->rate],
-                ],
-                'tutor_accrual',
-                $classSession->program_id
-            );
+            try {
+                $journal = $this->accountingService->createJournal(
+                    $date,
+                    "Tutor Fee: {$tutor->user->name}, Session: {$attendance->id}",
+                    "TUTOR-PAY-{$attendance->id}-{$tutor->id}",
+                    [
+                        ['account_code' => AccountCode::EXPENSE_TUTOR_FEE->value, 'debit' => $rate->rate, 'credit' => 0],
+                        ['account_code' => AccountCode::TUTOR_PAYABLE->value,     'debit' => 0, 'credit' => $rate->rate],
+                    ],
+                    'tutor_accrual',
+                    $classSession->program_id
+                );
+            } catch (\App\Exceptions\IdempotencyException $e) {
+                $journal = \App\Models\Journal::where('reference', "TUTOR-PAY-{$attendance->id}-{$tutor->id}")->first();
+            }
 
             $attendance->tutors()->attach($tutor->id, array_merge([
                 'payable_amount' => $rate->rate,
@@ -202,12 +226,11 @@ class AttendanceService
 
             // Reverse revenue recognition semua siswa
             foreach ($attendance->students as $enrollment) {
-                $refRevRec     = "REV-REC-{$attendance->id}-{$enrollment->id}";
-                $revenueAmount = bcdiv(
-                    (string) $enrollment->total_amount,
-                    (string) $enrollment->program->total_meetings,
-                    2
-                );
+                $refRevRec       = "REV-REC-{$attendance->id}-{$enrollment->id}";
+                $originalJournal = \App\Models\Journal::where('reference', $refRevRec)->first();
+                $revenueAmount   = $originalJournal
+                    ? (string) $originalJournal->total_amount
+                    : bcdiv((string) $enrollment->total_amount, (string) $enrollment->program->total_meetings, 2);
 
                 $this->accountingService->createJournal(
                     now()->toDateString(),
@@ -217,10 +240,16 @@ class AttendanceService
                         ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => $revenueAmount, 'credit' => 0],
                         ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => 0, 'credit' => $revenueAmount],
                     ],
-                    'reversal'
+                    'reversal',
+                    $enrollment->program_id
                 );
 
                 $enrollment->increment('remaining_meetings');
+
+                $freshEnrollment = $enrollment->fresh();
+                if (in_array($freshEnrollment->status, ['graduate', 'expired'])) {
+                    $freshEnrollment->update(['status' => 'active']);
+                }
             }
 
             // Reverse tutor fee semua tutor (primary + co-tutor)

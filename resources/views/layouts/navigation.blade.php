@@ -46,6 +46,7 @@
                                     <x-dropdown-link :href="route('finance.reports.profit-loss')">Profit & Loss</x-dropdown-link>
                                     <x-dropdown-link :href="route('finance.reports.balance-sheet')">Balance Sheet</x-dropdown-link>
                                     <x-dropdown-link :href="route('finance.reports.deferred-revenue')">Deferred Revenue</x-dropdown-link>
+                                    <x-dropdown-link :href="route('finance.reports.equity-statement')">Perubahan Ekuitas</x-dropdown-link>
                                 </x-slot>
                             </x-dropdown>
                         </div>
@@ -128,6 +129,7 @@
                 <x-responsive-nav-link :href="route('finance.reports.profit-loss')">Profit & Loss</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('finance.reports.balance-sheet')">Balance Sheet</x-responsive-nav-link>
                 <x-responsive-nav-link :href="route('finance.reports.deferred-revenue')">Deferred Revenue</x-responsive-nav-link>
+                <x-responsive-nav-link :href="route('finance.reports.equity-statement')">Perubahan Ekuitas</x-responsive-nav-link>
 
             @elseif(Auth::user()->role === 'tutor')
                 <x-responsive-nav-link :href="route('tutor.dashboard')" :active="request()->routeIs('tutor.dashboard')">Dashboard</x-responsive-nav-link>
@@ -160,6 +162,3 @@
         </div>
     </div>
 </nav>
-
-
-

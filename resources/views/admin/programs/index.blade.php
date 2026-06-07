@@ -44,7 +44,7 @@
 
                                 {{-- View mode --}}
                                 <td x-show="!editing" class="font-semibold text-on-surface">{{ $program->name }}</td>
-                                <td x-show="!editing"><span class="badge badge-soft">{{ $program->type }}</span></td>
+                                <td x-show="!editing"><span class="badge badge-soft">{{ ucfirst(str_replace('-', ' ', $program->type)) }}</span></td>
                                 <td x-show="!editing" class="text-on-surface">IDR {{ number_format($program->price) }}</td>
                                 <td x-show="!editing" class="text-on-surface">{{ $program->total_meetings }}x</td>
                                 <td x-show="!editing" class="text-on-surface">{{ $program->min_quota ?? '-' }}</td>
@@ -76,9 +76,9 @@
                                         <div class="fieldset">
                                             <label class="fieldset-legend text-on-surface">Tipe</label>
                                             <select name="type" class="select w-full">
-                                                @foreach(['Private', 'Semi Private', 'Group Class'] as $t)
-                                                    <option value="{{ $t }}" @selected($program->type === $t)>{{ $t }}</option>
-                                                @endforeach
+                                            @foreach(['private' => 'Private', 'semi-private' => 'Semi Private', 'group' => 'Group Class'] as $val => $label)
+                                                <option value="{{ $val }}" @selected($program->type === $val)>{{ $label }}</option>
+                                            @endforeach
                                             </select>
                                         </div>
                                         <div class="fieldset">
@@ -135,8 +135,8 @@
                     <label class="fieldset-legend text-on-surface">Tipe</label>
                     <select name="type" class="select w-full @error('type') select-error @enderror" required>
                         <option value="" disabled selected>Pilih tipe...</option>
-                        @foreach(['Private', 'Semi Private', 'Group Class'] as $t)
-                            <option value="{{ $t }}" {{ old('type') === $t ? 'selected' : '' }}>{{ $t }}</option>
+                        @foreach(['private' => 'Private', 'semi-private' => 'Semi Private', 'group' => 'Group Class'] as $val => $label)
+                            <option value="{{ $val }}" {{ old('type') === $val ? 'selected' : '' }}>{{ $label }}</option>
                         @endforeach
                     </select>
                     @error('type')<p class="label text-error">{{ $message }}</p>@enderror
@@ -173,6 +173,3 @@
     </dialog>
 
 </x-app-layout>
-
-
-

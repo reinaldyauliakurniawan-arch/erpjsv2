@@ -183,6 +183,13 @@
                         Rp {{ number_format($cashEnding,0,',','.') }}
                     </td>
                 </tr>
+                @if(isset($cashDifference) && $cashDifference != 0)
+                <tr class="bg-error/10 border-t border-error">
+                    <td colspan="2" class="px-lg py-sm text-sm text-error">
+                        ⚠ Ada selisih Rp {{ number_format(abs($cashDifference),0,',','.') }} — kemungkinan ada transaksi kas yang belum dikategorikan ke operating/investing/financing.
+                    </td>
+                </tr>
+                @endif
             </tfoot>
         </table>
     </div>

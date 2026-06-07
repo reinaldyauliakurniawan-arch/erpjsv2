@@ -4,7 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>{{ config('app.name', 'Just Speak') }} — {{ $title ?? 'Dashboard' }}</title>
+    <title>{{ config('app.name', 'Just Speak') }} - {{ $title ?? 'Dashboard' }}</title>
+    <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @php
         $color_primary   = App\Models\Setting::get('color_primary', '#065f46');
@@ -41,7 +42,14 @@
 <aside class="fixed left-0 top-0 h-screen w-[240px] hidden lg:flex flex-col z-30" style="background:{{ $color_sidebar }};border-right:1px solid rgba(255,255,255,.08)">
 
     <div class="px-lg pt-xl pb-lg" style="border-bottom:1px solid rgba(255,255,255,.08)">
-        <h1 class="text-headline-lg font-bold" style="color:var(--sidebar-text-active)">Just Speak</h1>
+        <a href="{{
+            auth()->user()->role === 'cfo' ? route('finance.index') :
+            (auth()->user()->role === 'tutor' ? route('tutor.dashboard') :
+            (auth()->user()->role === 'student' ? route('student.dashboard') :
+            route('admin.dashboard')))
+        }}">
+            <img src="{{ asset('images/logo.png') }}" alt="Just Speak" style="height:40px;display:block;">
+        </a>
         <p class="text-body-md mt-xs" style="color:var(--sidebar-text-active)">
             @if(Auth::user()->role === 'admin') Admin Portal
             @elseif(Auth::user()->role === 'cfo') CFO Portal
@@ -77,6 +85,7 @@
                 <x-sidebar-link href="{{ route('finance.adjusting-journals.index') }}" :active="request()->routeIs('finance.adjusting-journals.*')" icon="auto_fix_high">Jurnal Penyesuaian</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.reports.profit-loss') }}" :active="request()->routeIs('finance.reports.profit-loss')" icon="trending_up">Profit & Loss</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.reports.balance-sheet') }}" :active="request()->routeIs('finance.reports.balance-sheet')" icon="summarize">Balance Sheet</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.reports.equity-statement') }}" :active="request()->routeIs('finance.reports.equity-statement')" icon="change_history">Perubahan Ekuitas</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.reports.cash-flow') }}" :active="request()->routeIs('finance.reports.cash-flow')" icon="water">Cash Flow</x-sidebar-link>
             </div>
             <div class="pt-sm">
@@ -159,7 +168,14 @@
         <aside class="w-[240px] min-h-full flex flex-col p-md" style="background:{{ $color_sidebar }}">
             <div class="flex justify-between items-center mb-lg">
                 <div>
-                    <h1 class="text-headline-md font-bold" style="color:var(--sidebar-text-active)">Just Speak</h1>
+                    <a href="{{
+                        auth()->user()->role === 'cfo' ? route('finance.index') :
+                        (auth()->user()->role === 'tutor' ? route('tutor.dashboard') :
+                        (auth()->user()->role === 'student' ? route('student.dashboard') :
+                        route('admin.dashboard')))
+                    }}">
+                        <img src="{{ asset('images/logo.png') }}" alt="Just Speak" style="height:32px;display:block;">
+                    </a>
                     <p class="text-body-md" style="color:#9CA3AF">
                         @if(Auth::user()->role === 'admin') Admin Portal
                         @elseif(Auth::user()->role === 'cfo') CFO Portal
@@ -197,6 +213,7 @@
                         <x-sidebar-link href="{{ route('finance.adjusting-journals.index') }}" :active="request()->routeIs('finance.adjusting-journals.*')" icon="auto_fix_high">Jurnal Penyesuaian</x-sidebar-link>
                         <x-sidebar-link href="{{ route('finance.reports.profit-loss') }}" :active="request()->routeIs('finance.reports.profit-loss')" icon="trending_up">Profit & Loss</x-sidebar-link>
                         <x-sidebar-link href="{{ route('finance.reports.balance-sheet') }}" :active="request()->routeIs('finance.reports.balance-sheet')" icon="summarize">Balance Sheet</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.reports.equity-statement') }}" :active="request()->routeIs('finance.reports.equity-statement')" icon="change_history">Perubahan Ekuitas</x-sidebar-link>
                         <x-sidebar-link href="{{ route('finance.reports.cash-flow') }}" :active="request()->routeIs('finance.reports.cash-flow')" icon="water">Cash Flow</x-sidebar-link>
                     </div>
                     <div class="pt-sm">

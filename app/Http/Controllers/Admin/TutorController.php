@@ -15,7 +15,8 @@ class TutorController extends Controller
     public function index()
     {
         $tutors = Tutor::with('user')->get();
-        return view('admin.tutors.index', compact('tutors'));
+        $activeTutorCount = $tutors->where('status', 'active')->count();
+        return view('admin.tutors.index', compact('tutors', 'activeTutorCount'));
     }
 
     public function show($id)
@@ -47,13 +48,14 @@ class TutorController extends Controller
             'name'    => 'required|string|max:255',
             'email'   => 'required|email|unique:users,email,' . Tutor::findOrFail($id)->user_id,
             'persona' => 'required|string|max:255',
+            'status'  => 'required|in:active,inactive',
         ]);
         $tutor = Tutor::findOrFail($id);
         $tutor->user->update([
             'name'  => $request->name,
             'email' => $request->email,
         ]);
-        $tutor->update(['persona' => $request->persona]);
+        $tutor->update(['persona' => $request->persona, 'status' => $request->status]);
         return back()->with('success', 'Tutor updated successfully.');
     }
 
@@ -89,16 +91,16 @@ class TutorController extends Controller
             'availability.*.status'     => 'sometimes|in:available,not_available,occupied',
         ]);
 
-        $hardcodedBlocks = ['09:00-10:30', '10:30-12:00', '13:00-14:30', '14:30-16:00', '16:00-17:30', '18:30-20:00'];
+        $incomingBlocks = collect($request->availability)->pluck('time_block')->unique()->values()->toArray();
 
         TutorAvailability::where('tutor_id', $tutorId)
-            ->whereIn('time_block', $hardcodedBlocks)
+            ->whereIn('time_block', $incomingBlocks)
             ->delete();
 
         foreach ($request->availability as $slot) {
             TutorAvailability::create([
                 'tutor_id'   => $tutorId,
-                'day'        => strtolower($slot['day']),
+                'day'        => $slot['day'],
                 'time_block' => $slot['time_block'],
                 'status'     => $slot['status'] ?? 'available',
             ]);
@@ -126,5 +128,31 @@ class TutorController extends Controller
     {
         TutorAvailability::where('tutor_id', $tutorId)->where('id', $availabilityId)->delete();
         return back()->with('success', 'Slot removed.');
+    }
+
+    public function destroy($id)
+    {
+        $tutor = Tutor::findOrFail($id);
+
+        $hasUnpaidAttendance = \Illuminate\Support\Facades\DB::table('attendance_tutor')
+            ->where('tutor_id', $tutor->id)
+            ->whereNull('paid_at')
+            ->where('pending_rate', false)
+            ->where('payable_amount', '>', 0)
+            ->exists();
+
+        if ($hasUnpaidAttendance) {
+            return redirect()->route('admin.tutors.index')
+                ->with('error', 'Tutor tidak bisa dihapus karena masih ada hutang fee yang belum dibayar. Selesaikan payroll terlebih dahulu.');
+        }
+
+        $user  = $tutor->user;
+        $tutor->enrollments()->detach();
+        $tutor->classSessions()->detach();
+        $tutor->availability()->delete();
+        $tutor->rates()->delete();
+        $tutor->delete();
+        $user->delete();
+        return redirect()->route('admin.tutors.index')->with('success', 'Tutor berhasil dihapus.');
     }
 }

@@ -71,6 +71,7 @@ class FinanceController extends Controller
                 'enrollments.id as enrollment_id'
             )
             ->orderBy('installments.due_date')
+            ->limit(100)
             ->get();
 
         $overdueTotalAmount = $overdueInstallments->sum('amount');
@@ -122,6 +123,36 @@ class FinanceController extends Controller
                 ->sum('journal_items.debit');
         }
 
+        // Cash Balance
+        $cashBalance = DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->whereIn('accounts.code', ['1001', '1002'])
+            ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as balance')
+            ->value('balance') ?? 0;
+
+        // Collection Rate bulan ini
+        $totalTagihan = DB::table('installments')
+            ->whereBetween('due_date', [$startDate, $endDate])
+            ->sum('amount');
+        $totalTerbayar = DB::table('installments')
+            ->whereBetween('due_date', [$startDate, $endDate])
+            ->whereNotNull('paid_at')
+            ->sum('amount');
+        $collectionRate = $totalTagihan > 0 ? round(($totalTerbayar / $totalTagihan) * 100, 1) : 0;
+
+        // Burn Rate: rata-rata expense 3 bulan terakhir
+        $burnRate = collect(range(1, 6))->map(fn($i) => (float) DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+            ->where('accounts.type', 'Expense')
+            ->whereBetween('journals.date', [
+                now()->subMonths($i)->startOfMonth()->toDateString(),
+                now()->subMonths($i)->endOfMonth()->toDateString(),
+            ])
+            ->sum('journal_items.debit')
+        )->average();
+        $runwayMonths = $burnRate > 0 ? floor($cashBalance / $burnRate) : null;
+
         // Chart 2: Enrollment per program
         $enrollmentByProgram = DB::table('enrollments')
             ->join('programs', 'enrollments.program_id', '=', 'programs.id')
@@ -134,7 +165,7 @@ class FinanceController extends Controller
         $chartProgramLabels = $enrollmentByProgram->pluck('name')->toArray();
         $chartProgramData   = $enrollmentByProgram->pluck('total')->toArray();
 
-        // Chart 3: Revenue per program (bulan ini)
+// Chart 3: Revenue per program (bulan ini) — dari journal_items dengan program_id
         $revenueByProgram = DB::table('journal_items')
             ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
             ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
@@ -147,10 +178,11 @@ class FinanceController extends Controller
             ->get();
 
         $chartProgramRevenueLabels = $revenueByProgram->pluck('name')->toArray();
-        $chartProgramRevenueData   = $revenueByProgram->pluck('total')->toArray();
+        $chartProgramRevenueData   = $revenueByProgram->pluck('total')->map(fn($v) => (float)$v)->toArray();
 
         return view('admin.finance.dashboard', compact(
             'revenue', 'expense', 'netProfit',
+            'cashBalance', 'collectionRate', 'burnRate', 'runwayMonths',
             'deferredRevenue', 'tutorPayable',
             'journals', 'month',
             'overdueInstallments', 'overdueTotalAmount',
@@ -159,6 +191,43 @@ class FinanceController extends Controller
             'chartProgramLabels', 'chartProgramData',
             'chartProgramRevenueLabels', 'chartProgramRevenueData'
         ));
+    }
+
+    public function chartRevenueByProgram(Request $request)
+    {
+        $period = $request->input('period', 'year');
+        $from   = $request->input('from');
+        $to     = $request->input('to');
+
+        if ($period === 'custom' && $from && $to) {
+            $start = $from;
+            $end   = $to;
+        } elseif ($period === 'month') {
+            $start = now()->startOfMonth()->toDateString();
+            $end   = now()->toDateString();
+        } elseif ($period === 'quarter') {
+            $start = now()->startOfQuarter()->toDateString();
+            $end   = now()->toDateString();
+        } else {
+            $start = now()->startOfYear()->toDateString();
+            $end   = now()->toDateString();
+        }
+
+        $data = DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+            ->join('programs', 'journal_items.program_id', '=', 'programs.id')
+            ->where('accounts.code', AccountCode::REVENUE_TUITION_FEES->value)
+            ->whereBetween('journals.date', [$start, $end])
+            ->selectRaw('programs.name, SUM(journal_items.credit) as total')
+            ->groupBy('programs.name')
+            ->orderByDesc('total')
+            ->get();
+
+        return response()->json([
+            'labels' => $data->pluck('name'),
+            'data'   => $data->pluck('total')->map(fn($v) => (float)$v),
+        ]);
     }
 
     public function assignRate(Request $request, int $attendanceTutorId)

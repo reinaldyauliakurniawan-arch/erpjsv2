@@ -46,4 +46,13 @@ class PayrollController extends Controller
 
         return redirect()->route('admin.payroll.index')->with('success', 'Payroll approved and journals generated.');
     }
+    public function reverse(int $id, Request $request)
+    {
+    try {
+        $this->payrollService->reversePayrollRun($id, Auth::id());
+        return back()->with('success', 'Payroll run berhasil di-reverse. Attendance bulan tersebut dapat di-reverse kembali.');
+    } catch (\App\Exceptions\DomainException $e) {
+        return back()->withErrors(['error' => $e->getMessage()]);
+    }
+    }
 }

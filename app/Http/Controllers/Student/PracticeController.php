@@ -11,13 +11,13 @@ class PracticeController extends Controller
 {
     public function index()
     {
-        $userId = Auth::id();
+        $student = \App\Models\Student::where('user_id', Auth::id())->firstOrFail();
 
-        $practices = Practice::with(['students' => function ($q) use ($userId) {
-            $q->wherePivot('student_id', $userId);
+        $practices = Practice::with(['students' => function ($q) use ($student) {
+            $q->wherePivot('student_id', $student->id);
         }])
-        ->whereHas('students', function ($q) use ($userId) {
-            $q->where('practice_student.student_id', $userId);
+        ->whereHas('students', function ($q) use ($student) {
+            $q->where('practice_student.student_id', $student->id);
         })
         ->where('status', 'published')
         ->orderBy('deadline')
@@ -33,18 +33,23 @@ class PracticeController extends Controller
 
     public function open(Practice $practice)
     {
-        $userId = Auth::id();
+        $student = \App\Models\Student::where('user_id', Auth::id())->firstOrFail();
 
-        $pivot = $practice->students()->where('practice_student.student_id', $userId)->first()?->pivot;
+        $pivot = $practice->students()->where('practice_student.student_id', $student->id)->first()?->pivot;
 
         if ($pivot && !$pivot->opened_at) {
-            $practice->students()->updateExistingPivot($userId, [
+            $practice->students()->updateExistingPivot($student->id, [
                 'opened_at' => now(),
+                'completion_status' => 'in_progress',
             ]);
         }
 
         if ($practice->external_link) {
-            return redirect($practice->external_link);
+            $url = $practice->external_link;
+            if (!preg_match('/^https?:\/\//i', $url)) {
+                $url = 'https://' . $url;
+            }
+            return redirect()->away($url);
         }
 
         return back();
@@ -56,9 +61,9 @@ class PracticeController extends Controller
             'reflection' => 'required|string|min:10',
         ]);
 
-        $userId = Auth::id();
+        $student = \App\Models\Student::where('user_id', Auth::id())->firstOrFail();
 
-        $practice->students()->updateExistingPivot($userId, [
+        $practice->students()->updateExistingPivot($student->id, [
             'reflection'        => $request->reflection,
             'completion_status' => 'completed',
             'completed_at'      => now(),

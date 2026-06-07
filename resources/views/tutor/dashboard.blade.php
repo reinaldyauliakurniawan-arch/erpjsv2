@@ -17,6 +17,9 @@
                 <p class="text-xs text-on-primary/70 uppercase tracking-widest font-semibold">Belum Dibayar</p>
                 <p class="text-on-primary font-bold mt-sm" style="font-size:2.25rem;">Rp {{ number_format($unpaidTotal, 0, ',', '.') }}</p>
                 <p class="text-xs text-on-primary/60 mt-xs">Menunggu pembayaran dari admin</p>
+                @if($pendingRateCount > 0)
+                <p class="text-xs text-on-primary/60 mt-xs">⚠️ {{ $pendingRateCount }} sesi belum ada rate — fee akan muncul setelah admin konfirmasi</p>
+                @endif
             </div>
             @if($pendingRateCount > 0)
             <div style="position:relative;z-index:1;" class="mt-md">

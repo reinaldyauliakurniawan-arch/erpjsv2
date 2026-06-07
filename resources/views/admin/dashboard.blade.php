@@ -1,12 +1,32 @@
 <x-app-layout>
 <x-slot name="title">Dashboard</x-slot>
 
-<div class="p-lg space-y-lg" x-data="{ activeWaiting: 'reguler', privateTab: 'private' }">
+@php
+    $totalAlerts     = $stats['pending_tutors_enrollments']
+        + $unpaidInstallments->filter(fn($i) => \Carbon\Carbon::today()->isAfter($i->due_date))->count()
+        + $expiringEnrollments->count();
+    $overdueCount    = $unpaidInstallments->filter(fn($i) => \Carbon\Carbon::today()->isAfter($i->due_date))->count();
+    $eduLabels            = $educationStats->pluck('education_level')->values()->toArray();
+    $eduTotals            = $educationStats->pluck('total')->values()->toArray();
+    $distLabels           = $enrollmentDistribution->keys()->values()->toArray();
+    $distTotals           = $enrollmentDistribution->values()->toArray();
+@endphp
+
+<div class="p-lg space-y-lg" x-data="{
+    waitingTab: 'reguler',
+    alertOpen: false,
+    waitSearch: '',
+    expiringSearch: '',
+    installSearch: '',
+    newStudentSearch: '',
+}">
 
     {{-- ═══════════════════════════════════════════
-         HEADER
+         1. HEADER + ALERT BANNER (sampingan)
     ════════════════════════════════════════════ --}}
-    <div class="flex items-start justify-between">
+    <div class="flex items-start justify-between gap-md">
+
+        {{-- Header kiri --}}
         <div>
             <p class="text-label-lg text-on-surface-variant uppercase tracking-widest mb-xs">
                 {{ now()->translatedFormat('l, d F Y') }}
@@ -14,51 +34,129 @@
             <h1 class="text-headline-lg font-bold text-on-surface">Dashboard Utama</h1>
             <p class="text-body-md text-on-surface-variant mt-xs">Ringkasan operasional Just Speak hari ini.</p>
         </div>
-        {{-- Alert summary pill di header --}}
-        @php
-            $totalAlerts = $stats['pending_tutors_enrollments']
-                + $unpaidInstallments->filter(fn($i) => \Carbon\Carbon::today()->isAfter($i->due_date))->count()
-                + $expiringEnrollments->count();
-        @endphp
+
+        {{-- Alert banner kanan --}}
         @if($totalAlerts > 0)
-        <div class="flex items-center gap-sm px-md py-sm bg-error-container rounded-full border border-error/20">
-            <span class="material-symbols-outlined text-error text-sm">notifications_active</span>
-            <span class="text-label-lg font-bold text-error">{{ $totalAlerts }} peringatan aktif</span>
+        <div class="relative" style="min-width:20rem" x-data="{ open: false }" @click.outside="open = false">
+
+            <button @click="open = !open"
+                class="w-full flex items-center justify-between gap-sm px-md py-sm bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm hover:bg-surface-container-low transition-colors">
+                <div class="flex items-center gap-sm">
+                    <span class="material-symbols-outlined text-error text-sm">notifications_active</span>
+                    <span class="text-label-lg font-bold text-error">{{ $totalAlerts }} peringatan aktif</span>
+                </div>
+                <div class="flex items-center gap-xs">
+                    @if($stats['pending_tutors_enrollments'] > 0)
+                        <span class="badge badge-error badge-soft text-xs">Tutor {{ $stats['pending_tutors_enrollments'] }}</span>
+                    @endif
+                    @if($overdueCount > 0)
+                        <span class="badge badge-error badge-soft text-xs">Overdue {{ $overdueCount }}</span>
+                    @endif
+                    @if($expiringEnrollments->count() > 0)
+                        <span class="badge badge-warning badge-soft text-xs">Expiring {{ $expiringEnrollments->count() }}</span>
+                    @endif
+                    <span class="material-symbols-outlined text-error text-sm" x-text="open ? 'expand_less' : 'expand_more'"></span>
+                </div>
+            </button>
+
+            <div x-show="open" x-transition
+                class="absolute right-0 mt-xs w-full min-w-80 bg-surface-container-lowest border border-surface-border rounded-lg shadow-lg z-50 overflow-hidden">
+
+                <div class="px-md py-sm border-b border-surface-border">
+                    <p class="text-label-lg font-bold text-on-surface uppercase tracking-widest">Peringatan Aktif</p>
+                </div>
+
+                <div class="divide-y divide-surface-border max-h-96 overflow-y-auto">
+
+                    @if($stats['pending_tutors_enrollments'] > 0)
+                    <a href="{{ route('admin.enrollments.index') }}?status=waitlist"
+                        class="flex items-start gap-sm px-md py-sm hover:bg-surface-container-low transition-colors block">
+                        <span class="material-symbols-outlined text-error shrink-0 text-sm mt-xs">warning</span>
+                        <div>
+                            <p class="text-body-md font-bold text-on-surface">{{ $stats['pending_tutors_enrollments'] }} Enrollment Tanpa Tutor</p>
+                            <p class="text-label-lg text-on-surface-variant">Menunggu tutor ditetapkan</p>
+                        </div>
+                        <span class="material-symbols-outlined text-on-surface-variant text-sm ml-auto shrink-0">chevron_right</span>
+                    </a>
+                    @endif
+
+                    @foreach($unpaidInstallments->filter(fn($i) => \Carbon\Carbon::today()->isAfter($i->due_date)) as $inst)
+                    <a href="{{ route('admin.enrollments.show', $inst->enrollment_id) }}"
+                        class="flex items-start gap-sm px-md py-sm hover:bg-surface-container-low transition-colors block">
+                        <span class="material-symbols-outlined text-error shrink-0 text-sm mt-xs">credit_card_off</span>
+                        <div class="min-w-0">
+                            <p class="text-body-md font-bold text-on-surface truncate">{{ $inst->enrollment->student->user->name }}</p>
+                            <p class="text-label-lg text-on-surface-variant whitespace-nowrap">Cicilan overdue · IDR {{ number_format($inst->amount) }}</p>
+                        </div>
+                        <span class="material-symbols-outlined text-on-surface-variant text-sm ml-auto shrink-0">chevron_right</span>
+                    </a>
+                    @endforeach
+
+                    @foreach($expiringEnrollments as $enrollment)
+                    @php $daysLeft = (int) \Carbon\Carbon::today()->diffInDays($enrollment->expiry_date, false); @endphp
+                    <a href="{{ route('admin.enrollments.show', $enrollment->id) }}"
+                        class="flex items-start gap-sm px-md py-sm hover:bg-surface-container-low transition-colors block">
+                        <span class="material-symbols-outlined {{ $daysLeft <= 3 ? 'text-error' : 'text-warning' }} shrink-0 text-sm mt-xs">schedule</span>
+                        <div class="min-w-0">
+                            <p class="text-body-md font-bold text-on-surface truncate">{{ $enrollment->student->user->name }}</p>
+                            <p class="text-label-lg text-on-surface-variant whitespace-nowrap">Berakhir {{ $daysLeft }} hari lagi · {{ $enrollment->program->name }}</p>
+                        </div>
+                        <span class="material-symbols-outlined text-on-surface-variant text-sm ml-auto shrink-0">chevron_right</span>
+                    </a>
+                    @endforeach
+
+                </div>
+
+                <div class="px-md py-sm border-t border-surface-border">
+                    <a href="{{ route('admin.enrollments.index') }}" class="text-label-lg font-bold text-secondary hover:underline">
+                        Lihat semua enrollment →
+                    </a>
+                </div>
+
+            </div>
         </div>
         @endif
     </div>
 
     {{-- ═══════════════════════════════════════════
-         KPI STRIP — 4 kartu sejajar
+         2. KPI STRIP
     ════════════════════════════════════════════ --}}
-    <div class="grid grid-cols-2 lg:grid-cols-4 gap-md">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:var(--spacing-md)">
 
-        {{-- Siswa --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
+        {{-- Siswa Aktif --}}
+        <a href="{{ route('admin.students.index') }}"
+            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md hover:bg-surface-container-low transition-colors">
             <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
                 <span class="material-symbols-outlined text-secondary">school</span>
             </div>
             <div>
-                <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Jumlah Siswa</p>
-                <p class="text-headline-lg font-bold text-on-surface mt-xs">{{ $stats['students_count'] }}</p>
+                <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Siswa Aktif</p>
+                <p class="text-headline-lg font-bold text-on-surface mt-xs">{{ $activeStudents }}</p>
             </div>
-        </div>
+        </a>
 
-        {{-- Tutors --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
+        {{-- Room Occupancy --}}
+        <a href="{{ route('admin.schedule.index') }}"
+            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md hover:bg-surface-container-low transition-colors">
             <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
-                <span class="material-symbols-outlined text-secondary">person_search</span>
+                <span class="material-symbols-outlined text-secondary">meeting_room</span>
             </div>
             <div>
-                <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Total Tutors</p>
-                <p class="text-headline-lg font-bold text-on-surface mt-xs">{{ $stats['tutors_count'] }}</p>
+                <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Room Occupancy</p>
+                <p class="text-headline-lg font-bold text-on-surface mt-xs">{{ $occupancyRate }}%</p>
+                {{-- Progress bar --}}
+                <div class="w-full bg-surface-container-high rounded-full h-1.5 mt-sm">
+                    <div class="bg-secondary h-1.5 rounded-full transition-all"
+                        style="width: {{ $occupancyRate }}%"></div>
+                </div>
+                <p class="text-label-lg text-on-surface-variant mt-xs">{{ $occupiedCount }} / {{ $totalSlots }} slot</p>
             </div>
-        </div>
+        </a>
 
         {{-- Waiting Reguler --}}
-        <button @click="activeWaiting = 'reguler'"
-            :class="activeWaiting === 'reguler' ? 'ring-2 ring-secondary' : ''"
-            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md text-left transition-all hover:bg-surface-container-low">
+        <button @click="waitingTab = 'reguler'"
+            :class="waitingTab === 'reguler' ? 'ring-2 ring-secondary' : ''"
+            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md text-left hover:bg-surface-container-low transition-all">
             <div class="flex items-center justify-between w-full">
                 <div class="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
                     <span class="material-symbols-outlined text-warning">groups</span>
@@ -71,10 +169,10 @@
             </div>
         </button>
 
-        {{-- Waiting Private --}}
-        <button @click="activeWaiting = 'private'"
-            :class="activeWaiting === 'private' ? 'ring-2 ring-error' : ''"
-            class="bg-error-container border border-surface-border rounded-lg p-lg flex flex-col gap-md text-left transition-all hover:opacity-90">
+        {{-- Waiting Private + Semi --}}
+        <button @click="waitingTab = 'private'"
+            :class="waitingTab === 'private' || waitingTab === 'semi' ? 'ring-2 ring-error' : ''"
+            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md text-left hover:bg-surface-container-low transition-all">
             <div class="flex items-center justify-between w-full">
                 <div class="w-10 h-10 rounded-lg bg-error/10 flex items-center justify-center">
                     <span class="material-symbols-outlined text-error">person_search</span>
@@ -90,451 +188,590 @@
     </div>
 
     {{-- ═══════════════════════════════════════════
-         WAITING LIST TABLE
+         3. WAITING LIST TABLE
     ════════════════════════════════════════════ --}}
     <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+
+        {{-- Header + Tab sejajar --}}
         <div class="px-lg py-md border-b border-surface-border flex items-center justify-between">
             <div class="flex items-center gap-sm">
                 <span class="material-symbols-outlined text-on-surface-variant">format_list_bulleted</span>
                 <h2 class="text-headline-md font-semibold text-on-surface"
-                    x-text="activeWaiting === 'reguler' ? 'Daftar Tunggu Reguler' : 'Daftar Tunggu Private / Semi-Private'">
+                    x-text="waitingTab === 'reguler' ? 'Daftar Tunggu Reguler' : waitingTab === 'private' ? 'Daftar Tunggu Private' : 'Daftar Tunggu Semi-Private'">
                 </h2>
             </div>
-            <div x-show="activeWaiting === 'private'" class="flex gap-xs">
-                <button @click="privateTab = 'private'"
-                    :class="privateTab === 'private' ? 'btn-primary' : 'btn-ghost'"
+            <div class="flex items-center gap-xs">
+                <button @click="waitingTab = 'reguler'"
+                    :class="waitingTab === 'reguler' ? 'btn-primary' : 'btn-ghost'"
+                    class="btn btn-xs">Reguler</button>
+                <button @click="waitingTab = 'private'"
+                    :class="waitingTab === 'private' ? 'btn-primary' : 'btn-ghost'"
                     class="btn btn-xs">Private</button>
-                <button @click="privateTab = 'semi'"
-                    :class="privateTab === 'semi' ? 'btn-primary' : 'btn-ghost'"
-                    class="btn btn-xs">Semi-Private</button>
+                <button @click="waitingTab = 'semi'"
+                    :class="waitingTab === 'semi' ? 'btn-primary' : 'btn-ghost'"
+                    class="btn btn-xs">Semi</button>
+                <div class="relative ml-xs">
+                    <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">search</span>
+                    <input type="text" x-model="waitSearch" placeholder="Cari siswa..."
+                        class="input input-sm pl-8 w-40 bg-surface-container-low border-surface-border rounded-lg text-body-md">
+                </div>
             </div>
         </div>
 
-        {{-- Reguler --}}
-        <div x-show="activeWaiting === 'reguler'" class="overflow-x-auto">
+        {{-- Tab: Reguler --}}
+        <div x-show="waitingTab === 'reguler'">
             @if($waitingReguler->isEmpty())
                 <div class="p-lg flex items-center gap-sm text-on-surface-variant">
                     <span class="material-symbols-outlined text-sm">inbox</span>
                     <p class="text-body-md">Tidak ada siswa di waiting list reguler.</p>
                 </div>
             @else
-                <table class="table table-sm">
-                    <thead>
-                        <tr class="text-label-lg text-on-surface-variant">
-                            <th>Nama Siswa</th>
-                            <th>Program</th>
-                            <th>Tanggal Daftar</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($waitingReguler as $e)
-                        <tr class="hover:bg-surface-container-low transition-colors">
-                            <td>
-                                <div class="flex items-center gap-sm">
-                                    <div class="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-secondary text-xs">
-                                        {{ strtoupper(substr($e->student->user->name, 0, 2)) }}
+            <div class="overflow-x-auto">
+                <div style="max-height:20rem;overflow-y:auto">
+                    <table class="table table-sm">
+                        <thead class="sticky top-0 bg-surface-container-lowest z-10">
+                            <tr class="text-label-lg text-on-surface-variant">
+                                <th>Nama Siswa</th>
+                                <th>Program</th>
+                                <th>Tanggal Daftar</th>
+                                <th>Lama Tunggu</th>
+                                <th>Kelas</th>
+                                <th>Kendala</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($waitingReguler as $e)
+                            @php
+                                $waitDays        = (int) \Carbon\Carbon::parse($e->created_at)->diffInDays(now());
+                                $confirmedTutor  = $e->tutors->firstWhere('pivot.status', 'confirmed');
+                                $pendingTutor    = $e->tutors->firstWhere('pivot.status', 'pending');
+                                $enrolledCount   = $e->classSession ? $e->classSession->enrollments()->whereIn('status', ['active','waitlist'])->count() : 0;
+                                $minQuota        = $e->program->min_quota ?? 0;
+                                $studentName     = $e->student->user->name;
+                            @endphp
+                            <tr class="hover:bg-surface-container-low transition-colors"
+                                x-show="waitSearch === '' || '{{ strtolower($studentName) }}'.includes(waitSearch.toLowerCase())">
+                                <td>
+                                    <div class="flex items-center gap-sm">
+                                        <div class="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-secondary text-xs shrink-0">
+                                            {{ strtoupper(substr($studentName, 0, 2)) }}
+                                        </div>
+                                        <a href="{{ route('admin.enrollments.show', $e->id) }}"
+                                            class="font-semibold text-body-md hover:text-primary-container">{{ $studentName }}</a>
                                     </div>
-                                    <span class="font-semibold text-body-md">{{ $e->student->user->name }}</span>
-                                </div>
-                            </td>
-                            <td class="text-body-md">{{ $e->program->name }}</td>
-                            <td class="text-body-md">{{ \Carbon\Carbon::parse($e->created_at)->format('d M Y') }}</td>
-                            <td>
-                                @if($e->class_session_id)
-                                    <span class="badge badge-success badge-soft">Ada Kelas</span>
-                                @else
-                                    <span class="badge badge-warning badge-soft">Belum Ada Kelas</span>
-                                @endif
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
-                </table>
+                                </td>
+                                <td class="text-body-md">{{ $e->program->name }}</td>
+                                <td class="text-body-md">{{ \Carbon\Carbon::parse($e->created_at)->format('d M Y') }}</td>
+                                <td>
+                                    <span class="badge badge-soft {{ $waitDays > 7 ? 'badge-error' : 'badge-warning' }} whitespace-nowrap">
+                                        {{ $waitDays }} hari
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($e->classSession)
+                                        <span class="text-body-sm text-on-surface">{{ $e->classSession->name }}</span>
+                                        <span class="text-[11px] text-on-surface-variant block">{{ $enrolledCount }}/{{ $minQuota }} quota</span>
+                                    @else
+                                        <span class="text-body-sm text-on-surface-variant italic">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if(!$e->class_session_id)
+                                        <span class="text-body-sm text-error">Belum ada kelas</span>
+                                    @elseif($e->tutors->isEmpty())
+                                        <span class="text-body-sm text-error">Belum ada tutor</span>
+                                    @elseif(!$confirmedTutor && $pendingTutor)
+                                        <span class="text-body-sm text-warning">Tutor belum confirm</span>
+                                    @elseif($enrolledCount < $minQuota)
+                                        <span class="text-body-sm text-warning">Quota belum terpenuhi ({{ $enrolledCount }}/{{ $minQuota }})</span>
+                                    @else
+                                        <span class="text-body-sm text-warning">Menunggu konfirmasi admin</span>
+                                    @endif
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
             @endif
         </div>
 
-        {{-- Private --}}
-        <div x-show="activeWaiting === 'private'">
-            <div x-show="privateTab === 'private'" class="overflow-x-auto">
-                @if($waitingPrivate->isEmpty())
-                    <div class="p-lg flex items-center gap-sm text-on-surface-variant">
-                        <span class="material-symbols-outlined text-sm">inbox</span>
-                        <p class="text-body-md">Tidak ada siswa di waiting list private.</p>
-                    </div>
-                @else
+        {{-- Tab: Private --}}
+        <div x-show="waitingTab === 'private'">
+            @if($waitingPrivate->isEmpty())
+                <div class="p-lg flex items-center gap-sm text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">inbox</span>
+                    <p class="text-body-md">Tidak ada siswa di waiting list private.</p>
+                </div>
+            @else
+            <div class="overflow-x-auto">
+                <div style="max-height:20rem;overflow-y:auto">
                     <table class="table table-sm">
-                        <thead>
+                        <thead class="sticky top-0 bg-surface-container-lowest z-10">
                             <tr class="text-label-lg text-on-surface-variant">
-                                <th>Nama Siswa</th><th>Program</th><th>Tanggal Daftar</th><th>Status Penempatan</th>
+                                <th>Nama Siswa</th>
+                                <th>Program</th>
+                                <th>Tanggal Daftar</th>
+                                <th>Lama Tunggu</th>
+                                <th>Tutor</th>
+                                <th>Kendala</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($waitingPrivate as $e)
-                            <tr class="hover:bg-surface-container-low transition-colors">
+                            @php
+                                $waitDays       = (int) \Carbon\Carbon::parse($e->created_at)->diffInDays(now());
+                                $confirmedTutor = $e->tutors->firstWhere('pivot.status', 'confirmed');
+                                $pendingTutor   = $e->tutors->firstWhere('pivot.status', 'pending');
+                                $studentName    = $e->student->user->name;
+                            @endphp
+                            <tr class="hover:bg-surface-container-low transition-colors"
+                                x-show="waitSearch === '' || '{{ strtolower($studentName) }}'.includes(waitSearch.toLowerCase())">
                                 <td>
                                     <div class="flex items-center gap-sm">
-                                        <div class="w-8 h-8 rounded-full bg-error/20 flex items-center justify-center font-bold text-error text-xs">
-                                            {{ strtoupper(substr($e->student->user->name, 0, 2)) }}
+                                        <div class="w-8 h-8 rounded-full bg-error/20 flex items-center justify-center font-bold text-error text-xs shrink-0">
+                                            {{ strtoupper(substr($studentName, 0, 2)) }}
                                         </div>
-                                        <span class="font-semibold text-body-md">{{ $e->student->user->name }}</span>
+                                        <a href="{{ route('admin.enrollments.show', $e->id) }}"
+                                            class="font-semibold text-body-md hover:text-primary-container">{{ $studentName }}</a>
                                     </div>
                                 </td>
                                 <td class="text-body-md">{{ $e->program->name }}</td>
                                 <td class="text-body-md">{{ \Carbon\Carbon::parse($e->created_at)->format('d M Y') }}</td>
                                 <td>
-                                    @if($e->tutors->isEmpty())
-                                        <span class="text-on-surface-variant text-body-md italic">Belum dapat tutor</span>
+                                    <span class="badge badge-soft {{ $waitDays > 7 ? 'badge-error' : 'badge-warning' }} whitespace-nowrap">
+                                        {{ $waitDays }} hari
+                                    </span>
+                                </td>
+                                <td>
+                                    @if($confirmedTutor)
+                                        <span class="badge badge-success badge-soft whitespace-nowrap">{{ $confirmedTutor->user->name }}</span>
+                                    @elseif($pendingTutor)
+                                        <span class="badge badge-warning badge-soft whitespace-nowrap">{{ $pendingTutor->user->name }}</span>
                                     @else
-                                        <span class="badge badge-success badge-soft">{{ $e->tutors->first()->user->name ?? '-' }}</span>
+                                        <span class="text-body-sm text-on-surface-variant italic">—</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($e->tutors->isEmpty())
+                                        <span class="text-body-sm text-error">Belum ada tutor</span>
+                                    @elseif(!$confirmedTutor && $pendingTutor)
+                                        <span class="text-body-sm text-warning">Tutor belum confirm</span>
+                                    @elseif($confirmedTutor && !$e->class_session_id)
+                                        <span class="text-body-sm text-error">Belum ada jadwal</span>
+                                    @else
+                                        <span class="text-body-sm text-warning">Menunggu konfirmasi admin</span>
                                     @endif
                                 </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
-                @endif
+                </div>
             </div>
+            @endif
+        </div>
 
-            <div x-show="privateTab === 'semi'" class="overflow-x-auto">
-                @if($waitingSemi->isEmpty())
-                    <div class="p-lg flex items-center gap-sm text-on-surface-variant">
-                        <span class="material-symbols-outlined text-sm">inbox</span>
-                        <p class="text-body-md">Tidak ada siswa di waiting list semi-private.</p>
-                    </div>
-                @else
+        {{-- Tab: Semi-Private --}}
+        <div x-show="waitingTab === 'semi'">
+            @if($waitingSemi->isEmpty())
+                <div class="p-lg flex items-center gap-sm text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">inbox</span>
+                    <p class="text-body-md">Tidak ada siswa di waiting list semi-private.</p>
+                </div>
+            @else
+            <div class="overflow-x-auto">
+                <div style="max-height:20rem;overflow-y:auto">
                     <table class="table table-sm">
-                        <thead>
+                        <thead class="sticky top-0 bg-surface-container-lowest z-10">
                             <tr class="text-label-lg text-on-surface-variant">
-                                <th>Nama Siswa</th><th>Program</th><th>Tanggal Daftar</th><th>Status</th>
+                                <th>Nama Siswa</th>
+                                <th>Program</th>
+                                <th>Tanggal Daftar</th>
+                                <th>Lama Tunggu</th>
+                                <th>Kendala</th>
                             </tr>
                         </thead>
                         <tbody>
                             @foreach($waitingSemi as $e)
-                            <tr class="hover:bg-surface-container-low transition-colors">
+                            @php
+                                $waitDays    = (int) \Carbon\Carbon::parse($e->created_at)->diffInDays(now());
+                                $studentName = $e->student->user->name;
+                            @endphp
+                            <tr class="hover:bg-surface-container-low transition-colors"
+                                x-show="waitSearch === '' || '{{ strtolower($studentName) }}'.includes(waitSearch.toLowerCase())">
                                 <td>
                                     <div class="flex items-center gap-sm">
-                                        <div class="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center font-bold text-warning text-xs">
-                                            {{ strtoupper(substr($e->student->user->name, 0, 2)) }}
+                                        <div class="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center font-bold text-warning text-xs shrink-0">
+                                            {{ strtoupper(substr($studentName, 0, 2)) }}
                                         </div>
-                                        <span class="font-semibold text-body-md">{{ $e->student->user->name }}</span>
+                                        <a href="{{ route('admin.enrollments.show', $e->id) }}"
+                                            class="font-semibold text-body-md hover:text-primary-container">{{ $studentName }}</a>
                                     </div>
                                 </td>
                                 <td class="text-body-md">{{ $e->program->name }}</td>
                                 <td class="text-body-md">{{ \Carbon\Carbon::parse($e->created_at)->format('d M Y') }}</td>
                                 <td>
-                                    @if($e->class_session_id)
-                                        <span class="badge badge-success badge-soft">Sudah ada kelas</span>
+                                    <span class="badge badge-soft {{ $waitDays > 7 ? 'badge-error' : 'badge-warning' }} whitespace-nowrap">
+                                        {{ $waitDays }} hari
+                                    </span>
+                                </td>
+                                <td>
+                                    @if(!$e->class_session_id)
+                                        <span class="text-body-sm text-error">Belum ada kelas</span>
+                                    @elseif($e->tutors->isEmpty())
+                                        <span class="text-body-sm text-error">Belum ada tutor</span>
                                     @else
-                                        <span class="badge badge-warning badge-soft">Belum ada kelas</span>
+                                        <span class="text-body-sm text-warning">Menunggu konfirmasi tutor</span>
                                     @endif
                                 </td>
                             </tr>
                             @endforeach
                         </tbody>
                     </table>
-                @endif
-            </div>
-        </div>
-    </div>
-
-    {{-- ═══════════════════════════════════════════
-         MAGAZINE GRID — Chart + Alerts
-         Kolom kiri 8/12 (chart), kanan 4/12 (alerts)
-    ════════════════════════════════════════════ --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
-
-        {{-- Chart: Distribusi Waiting List --}}
-        <div class="lg:col-span-8 bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
-            <div class="px-lg py-md border-b border-surface-border flex items-center justify-between">
-                <div>
-                    <h3 class="text-headline-md font-semibold text-on-surface">Distribusi Waiting List</h3>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Reguler · Private · Semi-Private</p>
-                </div>
-                <span class="material-symbols-outlined text-on-surface-variant">bar_chart</span>
-            </div>
-            <div class="p-lg">
-                <canvas id="waitingChart" height="120"></canvas>
-            </div>
-        </div>
-
-        {{-- Alerts Panel --}}
-        <div class="lg:col-span-4 bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
-            <div class="flex items-center gap-sm mb-md">
-                <span class="material-symbols-outlined text-on-surface-variant">shield_with_heart</span>
-                <h3 class="text-headline-md font-semibold text-on-surface">Peringatan Penting</h3>
-            </div>
-
-            @php $overdueCount = $unpaidInstallments->filter(fn($i) => \Carbon\Carbon::today()->isAfter($i->due_date))->count(); @endphp
-
-            @if($stats['pending_tutors_enrollments'] > 0)
-            <div class="flex gap-md p-md bg-error-container rounded-lg border-l-4 border-error">
-                <span class="material-symbols-outlined text-error shrink-0">warning</span>
-                <div>
-                    <p class="text-body-md font-bold text-on-surface">{{ $stats['pending_tutors_enrollments'] }} Pending Assignment</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Enrollment menunggu tutor ditetapkan.</p>
                 </div>
             </div>
             @endif
-
-            @if($overdueCount > 0)
-            <div class="flex gap-md p-md bg-error-container rounded-lg border-l-4 border-error">
-                <span class="material-symbols-outlined text-error shrink-0">credit_card_off</span>
-                <div>
-                    <p class="text-body-md font-bold text-on-surface">{{ $overdueCount }} Installment Overdue</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Cicilan melewati batas jatuh tempo.</p>
-                </div>
-            </div>
-            @endif
-
-            @if($expiringEnrollments->count() > 0)
-            <div class="flex gap-md p-md bg-tertiary-fixed rounded-lg border-l-4 border-warning">
-                <span class="material-symbols-outlined text-warning shrink-0">schedule</span>
-                <div>
-                    <p class="text-body-md font-bold text-on-surface">{{ $expiringEnrollments->count() }} Enrollment Expiring</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Berakhir dalam 7 hari ke depan.</p>
-                </div>
-            </div>
-            @endif
-
-            @if($stats['pending_tutors_enrollments'] == 0 && $overdueCount == 0 && $expiringEnrollments->count() == 0)
-            <div class="flex gap-md p-md bg-secondary-container rounded-lg border-l-4 border-secondary">
-                <span class="material-symbols-outlined text-secondary shrink-0">check_circle</span>
-                <div>
-                    <p class="text-body-md font-bold text-on-surface">Semua Aman</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Tidak ada peringatan aktif.</p>
-                </div>
-            </div>
-            @endif
-
-            {{-- Divider + stat ringkas --}}
-            <div class="border-t border-surface-border pt-md space-y-sm">
-                <div class="flex items-center justify-between text-body-md">
-                    <span class="text-on-surface-variant">Enrollment expiring</span>
-                    <span class="font-bold text-on-surface">{{ $expiringEnrollments->count() }}</span>
-                </div>
-                <div class="flex items-center justify-between text-body-md">
-                    <span class="text-on-surface-variant">Cicilan belum lunas</span>
-                    <span class="font-bold text-on-surface">{{ $unpaidInstallments->count() }}</span>
-                </div>
-                <div class="flex items-center justify-between text-body-md">
-                    <span class="text-on-surface-variant">Pending tutor assignment</span>
-                    <span class="font-bold {{ $stats['pending_tutors_enrollments'] > 0 ? 'text-error' : 'text-on-surface' }}">{{ $stats['pending_tutors_enrollments'] }}</span>
-                </div>
-            </div>
         </div>
 
     </div>
 
     {{-- ═══════════════════════════════════════════
-         BOTTOM GRID — Expiring + Installments + Quick Menu
-         Layout: 8/12 kiri (2 tabel stack), 4/12 kanan (menu cepat)
+         4. ACTION TABLES — side by side
     ════════════════════════════════════════════ --}}
-    <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-lg)">
 
-        {{-- Kiri: 2 tabel penting --}}
-        <div class="lg:col-span-8 space-y-lg">
-
-            {{-- Expiring Enrollments --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
-                <div class="px-lg py-md border-b border-surface-border flex items-center gap-sm">
+        {{-- Expiring Enrollments --}}
+        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden" style="display:flex;flex-direction:column">
+            <div class="px-lg py-md border-b border-surface-border flex items-center justify-between gap-sm">
+                <div class="flex items-center gap-sm">
                     <span class="material-symbols-outlined text-warning">schedule</span>
-                    <h3 class="text-headline-md font-semibold text-on-surface flex-1">Enrollments Expiring dalam 7 Hari</h3>
-                    <span class="badge badge-soft">{{ $expiringEnrollments->count() }} total</span>
+                    <h3 class="text-headline-md font-semibold text-on-surface">Expiring dalam 7 Hari</h3>
+                    <span class="badge badge-soft">{{ $expiringEnrollments->count() }}</span>
                 </div>
-                @if($expiringEnrollments->isEmpty())
-                    <div class="p-lg flex items-center gap-sm text-on-surface-variant">
-                        <span class="material-symbols-outlined text-sm">check_circle</span>
-                        <p class="text-body-md">Tidak ada enrollment yang akan segera berakhir.</p>
-                    </div>
-                @else
-                    <div class="overflow-x-auto">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr class="text-label-lg text-on-surface-variant">
-                                    <th>Student</th>
-                                    <th>Program</th>
-                                    <th>Expiry Date</th>
-                                    <th>Sisa Hari</th>
-                                    <th>Sisa Pertemuan</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($expiringEnrollments as $enrollment)
-                                @php $daysLeft = \Carbon\Carbon::today()->diffInDays($enrollment->expiry_date, false); @endphp
-                                <tr class="{{ $daysLeft <= 3 ? 'bg-error-container' : 'bg-tertiary-fixed' }}">
-                                    <td class="font-semibold">{{ $enrollment->student->user->name }}</td>
-                                    <td>{{ $enrollment->program->name }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($enrollment->expiry_date)->format('d M Y') }}</td>
-                                    <td>
-                                        <span class="badge {{ $daysLeft <= 3 ? 'badge-error' : 'badge-warning' }} badge-soft">
-                                            {{ $daysLeft }} hari
-                                        </span>
-                                    </td>
-                                    <td>{{ $enrollment->remaining_meetings }}</td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
-            </div>
-
-            {{-- Unpaid Installments --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
-                <div class="px-lg py-md border-b border-surface-border flex items-center gap-sm">
-                    <span class="material-symbols-outlined text-error">credit_card_off</span>
-                    <h3 class="text-headline-md font-semibold text-on-surface flex-1">Installments Belum Lunas</h3>
-                    <span class="badge badge-soft">{{ $unpaidInstallments->count() }} total</span>
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">search</span>
+                    <input type="text" x-model="expiringSearch" placeholder="Cari siswa..."
+                        class="input input-sm pl-8 w-40 bg-surface-container-low border-surface-border rounded-lg text-body-md">
                 </div>
-                @if($unpaidInstallments->isEmpty())
-                    <div class="p-lg flex items-center gap-sm text-on-surface-variant">
-                        <span class="material-symbols-outlined text-sm">check_circle</span>
-                        <p class="text-body-md">Semua cicilan sudah lunas.</p>
-                    </div>
-                @else
-                    <div class="overflow-x-auto">
-                        <table class="table table-sm">
-                            <thead>
-                                <tr class="text-label-lg text-on-surface-variant">
-                                    <th>Student</th>
-                                    <th>Program</th>
-                                    <th>Amount</th>
-                                    <th>Due Date</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($unpaidInstallments as $inst)
-                                @php $isOverdue = \Carbon\Carbon::today()->isAfter($inst->due_date); @endphp
-                                <tr class="{{ $isOverdue ? 'bg-error-container' : '' }}">
-                                    <td class="font-semibold">{{ $inst->enrollment->student->user->name }}</td>
-                                    <td>{{ $inst->enrollment->program->name }}</td>
-                                    <td>IDR {{ number_format($inst->amount) }}</td>
-                                    <td>{{ \Carbon\Carbon::parse($inst->due_date)->format('d M Y') }}</td>
-                                    <td>
-                                        <span class="badge {{ $isOverdue ? 'badge-error' : 'badge-warning' }} badge-soft">
-                                            {{ $isOverdue ? 'Overdue' : 'Upcoming' }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-                @endif
             </div>
-
+            @if($expiringEnrollments->isEmpty())
+                <div class="p-lg flex items-center gap-sm text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <p class="text-body-md">Tidak ada enrollment yang akan segera berakhir.</p>
+                </div>
+            @else
+            <div class="overflow-x-auto">
+                <div style="max-height:18rem;overflow-y:auto">
+                    <table class="table table-sm">
+                        <thead class="sticky top-0 bg-surface-container-lowest z-10">
+                            <tr class="text-label-lg text-on-surface-variant">
+                                <th>Student</th>
+                                <th>Program</th>
+                                <th>Expiry</th>
+                                <th>Sisa</th>
+                                <th>Pertemuan</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($expiringEnrollments as $enrollment)
+                            @php
+                                $daysLeft    = (int) \Carbon\Carbon::today()->diffInDays($enrollment->expiry_date, false);
+                                $studentName = $enrollment->student->user->name;
+                            @endphp
+                            <tr class="hover:bg-surface-container-low transition-colors"
+                                x-show="expiringSearch === '' || '{{ strtolower($studentName) }}'.includes(expiringSearch.toLowerCase())">
+                                <td>
+                                    <a href="{{ route('admin.enrollments.show', $enrollment->id) }}"
+                                        class="font-semibold text-body-md hover:text-primary-container">{{ $studentName }}</a>
+                                </td>
+                                <td class="text-body-md">{{ $enrollment->program->name }}</td>
+                                <td class="text-body-md whitespace-nowrap">{{ \Carbon\Carbon::parse($enrollment->expiry_date)->format('d M Y') }}</td>
+                                <td>
+                                    <span class="badge {{ $daysLeft <= 3 ? 'badge-error' : 'badge-warning' }} badge-soft whitespace-nowrap">
+                                        {{ $daysLeft }} hari
+                                    </span>
+                                </td>
+                                <td class="text-body-md">{{ $enrollment->remaining_meetings }}</td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
         </div>
 
-        {{-- Kanan: Menu Cepat --}}
-        <div class="lg:col-span-4">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg sticky top-4">
-                <div class="flex items-center gap-sm mb-md">
-                    <span class="material-symbols-outlined text-on-surface-variant">grid_view</span>
-                    <h3 class="text-headline-md font-semibold text-on-surface">Menu Cepat</h3>
+        {{-- Installments Belum Lunas --}}
+        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden" style="display:flex;flex-direction:column">
+            <div class="px-lg py-md border-b border-surface-border flex items-center justify-between gap-sm">
+                <div class="flex items-center gap-sm">
+                    <span class="material-symbols-outlined text-error">credit_card_off</span>
+                    <h3 class="text-headline-md font-semibold text-on-surface">Installments Belum Lunas</h3>
+                    <span class="badge badge-soft">{{ $unpaidInstallments->count() }}</span>
                 </div>
-                <div class="grid grid-cols-2 gap-sm">
+                <div class="relative">
+                    <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">search</span>
+                    <input type="text" x-model="installSearch" placeholder="Cari siswa..."
+                        class="input input-sm pl-8 w-40 bg-surface-container-low border-surface-border rounded-lg text-body-md">
+                </div>
+            </div>
+            @if($unpaidInstallments->isEmpty())
+                <div class="p-lg flex items-center gap-sm text-on-surface-variant">
+                    <span class="material-symbols-outlined text-sm">check_circle</span>
+                    <p class="text-body-md">Semua cicilan sudah lunas.</p>
+                </div>
+            @else
+            <div class="overflow-x-auto">
+                <div style="max-height:18rem;overflow-y:auto">
+                    <table class="table table-sm">
+                        <thead class="sticky top-0 bg-surface-container-lowest z-10">
+                            <tr class="text-label-lg text-on-surface-variant">
+                                <th>Student</th>
+                                <th>Program</th>
+                                <th>Amount</th>
+                                <th>Due Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($unpaidInstallments as $inst)
+                            @php
+                                $isOverdue   = \Carbon\Carbon::today()->isAfter($inst->due_date);
+                                $studentName = $inst->enrollment->student->user->name;
+                            @endphp
+                            <tr class="hover:bg-surface-container-low transition-colors"
+                                x-show="installSearch === '' || '{{ strtolower($studentName) }}'.includes(installSearch.toLowerCase())">
+                                <td>
+                                    <a href="{{ route('admin.enrollments.show', $inst->enrollment_id) }}"
+                                        class="font-semibold text-body-md hover:text-primary-container">{{ $studentName }}</a>
+                                </td>
+                                <td class="text-body-md">{{ $inst->enrollment->program->name }}</td>
+                                <td class="text-body-md whitespace-nowrap">IDR {{ number_format($inst->amount) }}</td>
+                                <td class="text-body-md whitespace-nowrap">{{ \Carbon\Carbon::parse($inst->due_date)->format('d M Y') }}</td>
+                                <td>
+                                    <span class="badge {{ $isOverdue ? 'badge-error' : 'badge-warning' }} badge-soft whitespace-nowrap">
+                                        {{ $isOverdue ? 'Overdue' : 'Upcoming' }}
+                                    </span>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            @endif
+        </div>
+
+    </div>
+
+    {{-- ═══════════════════════════════════════════
+         5. INSIGHT ROW — Donut + Bar Chart
+    ════════════════════════════════════════════ --}}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-lg)">
+
+        {{-- Donut: Distribusi Jenjang --}}
+        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+            <div class="px-lg py-md border-b border-surface-border">
+                <h3 class="text-headline-md font-semibold text-on-surface">Distribusi Jenjang</h3>
+                <p class="text-label-lg text-on-surface-variant mt-xs">Keseluruhan siswa terdaftar</p>
+            </div>
+            <div class="p-lg flex flex-col gap-md">
+                <div style="position:relative;height:220px;width:100%;overflow:hidden">
+                    <canvas id="educationDonutChart" style="position:absolute;top:0;left:0;width:100%!important;height:100%!important"></canvas>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px" class="text-sm text-on-surface">
                     @php
-                        $menus = [
-                            ['route' => 'admin.students.index',   'icon' => 'school',              'label' => 'Students'],
-                            ['route' => 'admin.tutors.index',     'icon' => 'person_search',       'label' => 'Tutors'],
-                            ['route' => 'admin.enrollments.index','icon' => 'how_to_reg',          'label' => 'Enrollments'],
-                            ['route' => 'admin.schedule.index',   'icon' => 'calendar_month',      'label' => 'Jadwal'],
-                            ['route' => 'admin.attendance.index', 'icon' => 'assignment_turned_in','label' => 'Absensi'],
-                            ['route' => 'admin.imports.index',    'icon' => 'upload_file',         'label' => 'Import'],
-                            ['route' => 'admin.programs.index',   'icon' => 'menu_book',           'label' => 'Programs'],
-                            ['route' => 'admin.classrooms.index', 'icon' => 'meeting_room',        'label' => 'Classrooms'],
-                        ]
+                        $eduColorMap = [
+                            'SD'          => 'rgba(5,150,105,0.85)',
+                            'SMP'         => 'rgba(16,185,129,0.75)',
+                            'SMA'         => 'rgba(52,211,153,0.65)',
+                            'Kuliah'      => 'rgba(14,165,233,0.7)',
+                            'Umum'        => 'rgba(99,102,241,0.65)',
+                            'Tidak diisi' => 'rgba(148,163,184,0.5)',
+                        ];
                     @endphp
-                    @foreach($menus as $menu)
-                    <a href="{{ route($menu['route']) }}"
-                       class="group flex flex-col items-center gap-xs p-md rounded-lg border border-surface-border hover:bg-surface-container-low hover:border-secondary/30 transition-all text-center">
-                        <span class="material-symbols-outlined text-secondary group-hover:scale-110 transition-transform">{{ $menu['icon'] }}</span>
-                        <span class="text-label-lg font-bold text-on-surface-variant uppercase">{{ $menu['label'] }}</span>
-                    </a>
+                    @foreach($educationStats as $stat)
+                    @php $color = $eduColorMap[$stat->education_level] ?? 'rgba(148,163,184,0.8)'; @endphp
+                    <div class="flex items-center gap-xs">
+                        <span style="width:10px;height:10px;border-radius:2px;background:{{ $color }};flex-shrink:0;display:inline-block"></span>
+                        <span class="text-on-surface-variant">{{ $stat->education_level }}</span>
+                        <span class="font-medium ml-auto pl-sm">{{ $stat->total }}</span>
+                    </div>
                     @endforeach
                 </div>
             </div>
         </div>
 
+        {{-- Bar: Distribusi Waiting List --}}
+        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden" style="display:flex;flex-direction:column">
+            <div class="px-lg py-md border-b border-surface-border flex items-center justify-between">
+                <div>
+                    <h3 class="text-headline-md font-semibold text-on-surface">Distribusi Siswa Aktif</h3>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Group · Private · Semi-Private</p>
+                </div>
+                <span class="material-symbols-outlined text-on-surface-variant">bar_chart</span>
+            </div>
+            <div class="p-lg" style="flex:1;display:flex;flex-direction:column">
+                <div style="position:relative;flex:1;min-height:220px">
+                    <canvas id="distributionChart" style="position:absolute;top:0;left:0;width:100%!important;height:100%!important"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    {{-- ═══════════════════════════════════════════
+         6. NEW STUDENTS — full width
+    ════════════════════════════════════════════ --}}
+    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+        <div class="px-lg py-md border-b border-surface-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-sm">
+            <div class="flex items-center gap-sm">
+                <span class="material-symbols-outlined text-on-surface-variant">person_add</span>
+                <h3 class="text-headline-md font-semibold text-on-surface">Murid Baru 30 Hari Terakhir</h3>
+                <span class="badge badge-soft">{{ $newStudents->count() }}</span>
+            </div>
+            <div class="relative">
+                <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">search</span>
+                <input type="text" x-model="newStudentSearch" placeholder="Cari siswa..."
+                    class="input input-sm pl-8 w-48 bg-surface-container-low border-surface-border rounded-lg text-body-md">
+            </div>
+        </div>
+        @if($newStudents->isEmpty())
+            <div class="p-lg flex items-center gap-sm text-on-surface-variant">
+                <span class="material-symbols-outlined text-sm">inbox</span>
+                <p class="text-body-md">Belum ada murid baru bulan ini.</p>
+            </div>
+        @else
+        <div class="overflow-x-auto">
+            <div style="max-height:18rem;overflow-y:auto">
+                <table class="table table-sm">
+                    <thead class="sticky top-0 bg-surface-container-lowest z-10">
+                        <tr class="text-label-lg text-on-surface-variant">
+                            <th>Nama</th>
+                            <th>Jenjang</th>
+                            <th>Bergabung</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($newStudents as $student)
+                        @php $studentName = $student->user->name ?? '-'; @endphp
+                        <tr class="hover:bg-surface-container-low transition-colors"
+                            x-show="newStudentSearch === '' || '{{ strtolower($studentName) }}'.includes(newStudentSearch.toLowerCase())">
+                            <td>
+                                <div class="flex items-center gap-sm">
+                                    <div class="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-secondary text-xs shrink-0">
+                                        {{ strtoupper(substr($studentName, 0, 2)) }}
+                                    </div>
+                                    <span class="font-semibold text-body-md text-on-surface">{{ $studentName }}</span>
+                                </div>
+                            </td>
+                            <td>
+                                @if($student->education_level)
+                                    <span class="badge badge-soft whitespace-nowrap">{{ $student->education_level }}</span>
+                                @else
+                                    <span class="text-on-surface-variant">—</span>
+                                @endif
+                            </td>
+                            <td class="text-label-lg text-on-surface-variant whitespace-nowrap">
+                                {{ $student->created_at->diffForHumans() }}
+                            </td>
+                        </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
     </div>
 
 </div>
 
 {{-- ═══════════════════════════════════════════
-     CHART.JS — Waiting List Bar Chart
+     CHART.JS
 ════════════════════════════════════════════ --}}
-@push('scripts')
 <script>
-document.addEventListener('DOMContentLoaded', function () {
-    const canvas = document.getElementById('waitingChart');
-    if (!canvas || typeof Chart === 'undefined') return;
+document.addEventListener('DOMContentLoaded', function () { setTimeout(function() {
 
-    // Deteksi warna dari CSS variable (support dark mode)
-    const style = getComputedStyle(document.documentElement);
-    const getVar = (v) => style.getPropertyValue(v).trim();
-
-    // Data dari Blade — di-pass lewat PHP
-    const data = {
-        labels: ['Reguler', 'Private', 'Semi-Private'],
-        datasets: [{
-            label: 'Jumlah Siswa',
-            data: [
-                {{ $waitingReguler->count() }},
-                {{ $waitingPrivate->count() }},
-                {{ $waitingSemi->count() }}
-            ],
-            backgroundColor: [
-                'rgba(var(--color-warning-rgb, 234, 179, 8), 0.15)',
-                'rgba(var(--color-error-rgb, 239, 68, 68), 0.15)',
-                'rgba(var(--color-secondary-rgb, 99, 102, 241), 0.15)',
-            ],
-            borderColor: [
-                'rgb(234, 179, 8)',
-                'rgb(239, 68, 68)',
-                'rgb(99, 102, 241)',
-            ],
-            borderWidth: 2,
-            borderRadius: 8,
-            borderSkipped: false,
-        }]
-    };
-
-    new Chart(canvas, {
-        type: 'bar',
-        data: data,
-        options: {
-            responsive: true,
-            maintainAspectRatio: true,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: (ctx) => ` ${ctx.parsed.y} siswa`
-                    }
-                }
+    // Bar Chart — Distribusi Siswa Aktif
+    const distCanvas = document.getElementById('distributionChart');
+    if (distCanvas && typeof Chart !== 'undefined') {
+        new Chart(distCanvas, {
+            type: 'bar',
+            data: {
+                labels: @json($distLabels),
+                datasets: [{
+                    label: 'Jumlah Siswa Aktif',
+                    data: @json($distTotals),
+                    backgroundColor: [
+                        'rgba(5,150,105,0.75)',
+                        'rgba(5,150,105,0.5)',
+                        'rgba(5,150,105,0.25)',
+                        'rgba(5,150,105,0.15)',
+                    ],
+                    borderColor: [
+                        'rgba(5,150,105,1)',
+                        'rgba(5,150,105,1)',
+                        'rgba(5,150,105,1)',
+                        'rgba(5,150,105,1)',
+                    ],
+                    borderWidth: 2,
+                    borderRadius: 8,
+                    borderSkipped: false,
+                }]
             },
-            scales: {
-                x: {
-                    grid: { display: false },
-                    border: { display: false },
-                    ticks: { font: { size: 13 } }
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: (ctx) => ` ${ctx.parsed.y} siswa aktif` }
+                    }
                 },
-                y: {
-                    beginAtZero: true,
-                    grid: { color: 'rgba(0,0,0,0.05)' },
-                    border: { display: false },
-                    ticks: {
-                        stepSize: 1,
-                        font: { size: 12 }
+                scales: {
+                    x: { grid: { display: false }, border: { display: false }, ticks: { font: { size: 13 } } },
+                    y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.05)' }, border: { display: false }, ticks: { stepSize: 1, font: { size: 12 } } }
+                }
+            }
+        });
+    }
+
+    // Donut Chart — Education Distribution
+    const donutCanvas = document.getElementById('educationDonutChart');
+    if (donutCanvas && typeof Chart !== 'undefined') {
+        new Chart(donutCanvas.getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: @json($eduLabels),
+                datasets: [{
+                    data: @json($eduTotals),
+                    backgroundColor: [
+                        'rgba(5,150,105,0.85)',
+                        'rgba(16,185,129,0.75)',
+                        'rgba(52,211,153,0.65)',
+                        'rgba(14,165,233,0.7)',
+                        'rgba(99,102,241,0.65)',
+                        'rgba(148,163,184,0.5)',
+                    ],
+                    borderWidth: 1,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: { label: ctx => ctx.label + ': ' + ctx.raw + ' siswa' }
                     }
                 }
             }
-        }
-    });
-});
+        });
+    }
+
+}, 100); });
 </script>
-@endpush
 
 </x-app-layout>

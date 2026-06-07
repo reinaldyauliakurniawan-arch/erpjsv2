@@ -25,7 +25,12 @@ class RoomBookingController extends Controller
             'notes'        => 'nullable|string|max:255',
             'schedule_id'   => 'nullable|exists:schedules,id',
         ]);
-
+        // Cegah booking masa lampau (per time block)
+        $endTime = explode('-', $request->time_block)[1] ?? '23:59';
+        $slotEnd = \Carbon\Carbon::parse($request->date . ' ' . trim($endTime));
+        if ($slotEnd->isPast()) {
+            return back()->withErrors(['error' => 'Slot ini sudah lewat dan tidak bisa diubah.']);
+        }
         // Cegah duplikat
         $exists = RoomBooking::where('classroom_id', $request->classroom_id)
             ->where('date', $request->date)
@@ -33,14 +38,26 @@ class RoomBookingController extends Controller
             ->where('type', $request->type)
             ->exists();
 
+        // Boleh temporary booking di slot yang sudah di-skip
+        if ($request->type === 'temporary') {
+            $exists = RoomBooking::where('classroom_id', $request->classroom_id)
+                ->where('date', $request->date)
+                ->where('time_block', $request->time_block)
+                ->where('type', 'temporary')
+                ->exists();
+        }
+
         if ($exists) {
             return back()->withErrors(['error' => 'Booking ini sudah ada.']);
         }
 
-        RoomBooking::create($request->only(
-            'classroom_id', 'schedule_id', 'date', 'time_block', 'type', 'enrollment_id', 'tutor_id', 'notes'
-        ));
-
+        try {
+            RoomBooking::create($request->only(
+                'classroom_id', 'schedule_id', 'date', 'time_block', 'type', 'enrollment_id', 'tutor_id', 'notes', 'class_session_id'
+            ));
+        } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+            return back()->withErrors(['error' => 'Slot ini baru saja dibooking oleh orang lain.']);
+        }
         return back()->with('success', 'Booking berhasil disimpan.');
     }
 

@@ -98,7 +98,6 @@
         </div>
 
         {{-- Tutor (Private) --}}
-@if(!$enrollment->classSession)
 <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
     <div class="flex items-center justify-between">
         <h4 class="text-headline-md font-semibold text-on-surface">Tutor</h4>
@@ -159,7 +158,6 @@
         </table>
     @endif
 </div>
-@endif
 
         {{-- Jadwal --}}
         @if($enrollment->schedules->isNotEmpty())
@@ -287,7 +285,6 @@
     </div>
 
     {{-- Modal Assign Tutor (Private) --}}
-@if(!$enrollment->classSession)
 <dialog id="modal-assign-tutor" class="modal">
     <div class="modal-box">
         <h3 class="text-headline-md font-semibold text-on-surface mb-md">Assign Tutor</h3>
@@ -316,5 +313,4 @@
     </div>
     <form method="dialog" class="modal-backdrop"><button>close</button></form>
 </dialog>
-@endif
 </x-app-layout>

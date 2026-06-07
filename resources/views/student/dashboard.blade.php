@@ -48,8 +48,8 @@
                 @endif
             </div>
             <div class="flex flex-col items-end gap-xs">
-                <span class="badge badge-soft {{ $statusColor }} capitalize">{{ $enrollment->status }}</span>
-                <span class="badge badge-soft {{ $payColor }} capitalize">{{ str_replace('_', ' ', $enrollment->payment_status) }}</span>
+                <span class="badge badge-soft {{ $statusColor }} capitalize whitespace-nowrap">{{ $enrollment->status }}</span>
+                <span class="badge badge-soft {{ $payColor }} capitalize whitespace-nowrap">{{ str_replace('_', ' ', $enrollment->payment_status) }}</span>
             </div>
         </div>
 

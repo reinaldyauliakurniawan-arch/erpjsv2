@@ -101,7 +101,7 @@
                         <tr>
                             <th class="px-md py-sm text-left w-28">Tanggal</th>
                             <th class="px-md py-sm text-left">Keterangan</th>
-                            <th class="px-md py-sm text-left w-32 hidden sm:table-cell">Referensi</th>
+                            <th class="px-md py-sm text-left w-40 hidden sm:table-cell">Referensi</th>
                             <th class="px-md py-sm text-right w-36">Debet</th>
                             <th class="px-md py-sm text-right w-36">Kredit</th>
                             <th class="px-md py-sm text-right w-36">Saldo</th>
@@ -127,7 +127,7 @@
                             </td>
                             <td class="px-md py-sm">{{ $row['description'] }}</td>
                             <td class="px-md py-sm hidden sm:table-cell">
-                                <span class="badge badge-soft font-mono text-xs">{{ $row['reference'] }}</span>
+                                <span class="badge badge-soft font-mono text-xs whitespace-nowrap">{{ $row['reference'] }}</span>
                             </td>
                             <td class="px-md py-sm text-right font-mono">
                                 {{ $row['debit'] > 0 ? 'Rp '.number_format($row['debit'],0,',','.') : '—' }}

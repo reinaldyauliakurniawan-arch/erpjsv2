@@ -35,7 +35,10 @@ class AdjustingJournal extends Model
     public static function generateReference(string $period): string
     {
         $prefix = 'AJE-' . \Carbon\Carbon::parse($period)->format('Y-m');
-        $last = static::where('reference', 'like', $prefix . '%')->count();
-        return $prefix . '-' . str_pad($last + 1, 3, '0', STR_PAD_LEFT);
+        $last = static::where('reference', 'like', $prefix . '%')
+            ->orderByRaw('CAST(SUBSTRING_INDEX(reference, "-", -1) AS UNSIGNED) DESC')
+            ->value('reference');
+        $lastNumber = $last ? (int) substr($last, strrpos($last, '-') + 1) : 0;
+        return $prefix . '-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
     }
 }

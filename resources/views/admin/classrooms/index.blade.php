@@ -93,11 +93,14 @@
                                     @else
                                         <span class="text-on-surface-variant">—</span>
                                     @endif
+                                    <span class="badge badge-soft text-xs mt-xs {{ $classroom->is_at_just_speak ? 'badge-success' : 'badge-ghost' }}">
+                                        {{ $classroom->is_at_just_speak ? 'Just Speak' : 'Eksternal' }}
+                                    </span>
                                 </td>
                                 <td class="px-lg py-md text-right">
                                     <div class="flex items-center justify-end gap-xs">
                                         <button type="button"
-                                            onclick="openEditModal({{ $classroom->id }}, '{{ addslashes($classroom->name) }}', '{{ $classroom->capacity }}')"
+                                            onclick="openEditModal({{ $classroom->id }}, '{{ addslashes($classroom->name) }}', '{{ $classroom->capacity }}', {{ $classroom->is_at_just_speak ? 1 : 0 }})"
                                             class="btn btn-ghost btn-sm text-on-surface-variant hover:text-secondary"
                                             title="Edit">
                                             <span class="material-symbols-outlined text-[18px]">edit</span>
@@ -140,6 +143,13 @@
                         placeholder="10" min="1" />
                     @error('capacity')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
+                <div class="fieldset">
+                    <label class="fieldset-legend text-on-surface">Lokasi</label>
+                    <label class="flex items-center gap-sm cursor-pointer mt-xs">
+                        <input type="checkbox" name="is_at_just_speak" value="1" class="checkbox" checked />
+                        <span class="text-body-md text-on-surface">Ruangan di Just Speak</span>
+                    </label>
+                </div>
                 <div class="modal-action">
                     <button type="button" onclick="document.getElementById('modal-create').close()" class="btn btn-ghost">Batal</button>
                     <button type="submit" class="btn bg-secondary text-on-secondary border-none hover:opacity-90 gap-sm">
@@ -168,6 +178,13 @@
                     <label class="fieldset-legend text-on-surface">Kapasitas <span class="text-on-surface-variant font-normal">(opsional)</span></label>
                     <input type="number" name="capacity" id="edit-capacity"
                         class="input w-full" placeholder="10" min="1" />
+                </div>
+                <div class="fieldset">
+                    <label class="fieldset-legend text-on-surface">Lokasi</label>
+                    <label class="flex items-center gap-sm cursor-pointer mt-xs">
+                        <input type="checkbox" name="is_at_just_speak" id="edit-is-at-js" value="1" class="checkbox" />
+                        <span class="text-body-md text-on-surface">Ruangan di Just Speak</span>
+                    </label>
                 </div>
                 <div class="modal-action">
                     <button type="button" onclick="document.getElementById('modal-edit').close()" class="btn btn-ghost">Batal</button>
@@ -200,9 +217,10 @@
     </dialog>
 
     <script>
-    function openEditModal(id, name, capacity) {
+    function openEditModal(id, name, capacity, isAtJs) {
         document.getElementById('edit-name').value     = name;
         document.getElementById('edit-capacity').value = capacity !== 'null' ? capacity : '';
+        document.getElementById('edit-is-at-js').checked = isAtJs == 1;
         document.getElementById('form-edit').action    = `/admin/classrooms/${id}`;
         document.getElementById('modal-edit').showModal();
     }
@@ -215,6 +233,3 @@
     </script>
 
 </x-app-layout>
-
-
-

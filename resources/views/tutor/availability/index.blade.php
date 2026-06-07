@@ -160,16 +160,19 @@ document.addEventListener('DOMContentLoaded', function () {
     const customBlock = document.getElementById('custom-block');
     const customInput = document.getElementById('custom-input');
 
+    const hiddenTimeBlock = document.createElement('input');
+    hiddenTimeBlock.type = 'hidden';
+    hiddenTimeBlock.name = 'time_block_custom';
+    timeBlockSelect.closest('form').appendChild(hiddenTimeBlock);
+
     timeBlockSelect.addEventListener('change', function() {
         if (this.value === 'custom') {
             customBlock.classList.remove('hidden');
             customInput.required = true;
-            customInput.addEventListener('input', function() {
-                timeBlockSelect.value = this.value || 'custom';
-            });
         } else {
             customBlock.classList.add('hidden');
             customInput.required = false;
+            customInput.value = '';
         }
     });
 });

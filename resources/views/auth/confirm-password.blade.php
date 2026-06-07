@@ -1,30 +1,19 @@
 <x-guest-layout>
-    <div class="mb-4 text-sm text-gray-600">
-        {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}
-    </div>
+    <p style="color:rgba(255,255,255,0.8);font-size:0.875rem;margin-bottom:1.25rem;line-height:1.6;">
+        Ini adalah area aman. Konfirmasi password kamu sebelum melanjutkan.
+    </p>
 
-    <form method="POST" action="{{ route('password.confirm') }}">
+    <form method="POST" action="{{ route('password.confirm') }}" class="space-y-md">
         @csrf
-
-        <!-- Password -->
-        <div>
-            <x-input-label for="password" :value="__('Password')" />
-
-            <x-text-input id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
-
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
+        <div class="fieldset">
+            <label class="glass-label">Password</label>
+            <input id="password" type="password" name="password"
+                required autocomplete="current-password" placeholder="••••••••"
+                class="input w-full glass-input @error('password') input-error @enderror" />
+            @error('password')
+                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+            @enderror
         </div>
-
-        <div class="flex justify-end mt-4">
-            <x-primary-button>
-                {{ __('Confirm') }}
-            </x-primary-button>
-        </div>
+        <button type="submit" class="btn btn-block glass-btn">Konfirmasi</button>
     </form>
 </x-guest-layout>
-
-
-

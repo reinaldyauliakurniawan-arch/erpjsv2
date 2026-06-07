@@ -15,7 +15,7 @@
         <div class="flex items-center justify-between">
             <div>
                 <h3 class="text-headline-md font-semibold text-on-surface">Tutors</h3>
-                <p class="text-body-md text-on-surface-variant">{{ $tutors->count() }} tutor terdaftar</p>
+                <p class="text-body-md text-on-surface-variant">{{ $tutors->count() }} tutor terdaftar &mdash; <span class="text-success font-semibold">{{ $activeTutorCount }} aktif</span></p>
             </div>
             <button onclick="document.getElementById('modal-add-tutor').showModal()"
                 class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
@@ -35,11 +35,12 @@
                 <div class="overflow-x-auto">
                     <table class="table table-sm">
                         <thead>
-                            <tr class="text-label-lg text-on-surface-variant border-b border-surface-border">
+                            <tr class="text-body-md text-on-surface-variant border-b border-surface-border">
                                 <th>#</th>
                                 <th>Nama</th>
                                 <th>Email</th>
                                 <th>Persona</th>
+                                <th>Status</th>
                                 <th>Terdaftar</th>
                                 <th></th>
                             </tr>
@@ -50,8 +51,15 @@
                                 <td class="text-on-surface-variant">{{ $loop->iteration }}</td>
                                 <td class="font-semibold text-on-surface">{{ $tutor->user->name }}</td>
                                 <td class="text-on-surface-variant">{{ $tutor->user->email }}</td>
+                                <td style="max-width:140px">
+                                    <span class="badge badge-soft" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;cursor:default"
+                                        onmouseenter="showTooltip(event,'{{ $tutor->persona }}')"
+                                        onmouseleave="hideTooltip()">{{ $tutor->persona }}</span>
+                                </td>
                                 <td>
-                                    <span class="badge badge-soft">{{ $tutor->persona }}</span>
+                                    <span class="badge badge-soft {{ $tutor->status === 'active' ? 'badge-success' : 'badge-error' }}">
+                                        {{ $tutor->status ?? 'active' }}
+                                    </span>
                                 </td>
                                 <td class="text-on-surface-variant">
                                     {{ $tutor->created_at->format('d M Y') }}
@@ -107,14 +115,9 @@
 
                 <div class="fieldset">
                     <label class="fieldset-legend text-on-surface">Persona</label>
-                    <select name="persona"
-                        class="select w-full @error('persona') select-error @enderror" required>
-                        <option value="" disabled {{ old('persona') ? '' : 'selected' }}>Pilih persona...</option>
-                        <option value="native" {{ old('persona') === 'native' ? 'selected' : '' }}>Native</option>
-                        <option value="non-native" {{ old('persona') === 'non-native' ? 'selected' : '' }}>Non-Native</option>
-                        <option value="kids-specialist" {{ old('persona') === 'kids-specialist' ? 'selected' : '' }}>Kids Specialist</option>
-                        <option value="business" {{ old('persona') === 'business' ? 'selected' : '' }}>Business</option>
-                    </select>
+                    <input type="text" name="persona" value="{{ old('persona') }}"
+                        class="input w-full @error('persona') input-error @enderror"
+                        placeholder="e.g. Native, Non-Native, Kids Specialist" required />
                     @error('persona')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
 
@@ -131,7 +134,19 @@
         <form method="dialog" class="modal-backdrop"><button>close</button></form>
     </dialog>
 
+<div id="global-tooltip" style="display:none;position:fixed;background:#1f2937;color:#fff;font-size:11px;padding:4px 8px;border-radius:6px;max-width:200px;white-space:normal;pointer-events:none;z-index:9999"></div>
+
+<script>
+function showTooltip(e, text) {
+    const t = document.getElementById('global-tooltip');
+    t.textContent = text;
+    t.style.display = 'block';
+    t.style.left = e.clientX + 10 + 'px';
+    t.style.top = e.clientY - 30 + 'px';
+}
+function hideTooltip() {
+    document.getElementById('global-tooltip').style.display = 'none';
+}
+</script>
+
 </x-app-layout>
-
-
-

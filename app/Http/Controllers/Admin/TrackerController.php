@@ -15,14 +15,32 @@ class TrackerController extends Controller
         $columns = TrackerColumn::orderBy('order')->get();
         $students = Student::with(['user', 'trackerEntries'])->get();
 
-        // Pastikan setiap student punya entry untuk setiap kolom
+        // Buat entries yang belum ada secara bulk
+        $existingPairs = TrackerEntry::whereIn('student_id', $students->pluck('id'))
+            ->whereIn('tracker_column_id', $columns->pluck('id'))
+            ->get(['student_id', 'tracker_column_id'])
+            ->map(fn($e) => $e->student_id . '-' . $e->tracker_column_id)
+            ->flip();
+
+        $toInsert = [];
+        $now = now();
         foreach ($students as $student) {
             foreach ($columns as $column) {
-                TrackerEntry::firstOrCreate([
-                    'student_id' => $student->id,
-                    'tracker_column_id' => $column->id,
-                ], ['is_done' => false]);
+                $key = $student->id . '-' . $column->id;
+                if (!isset($existingPairs[$key])) {
+                    $toInsert[] = [
+                        'student_id'        => $student->id,
+                        'tracker_column_id' => $column->id,
+                        'is_done'           => false,
+                        'created_at'        => $now,
+                        'updated_at'        => $now,
+                    ];
+                }
             }
+        }
+
+        if (!empty($toInsert)) {
+            TrackerEntry::insert($toInsert);
         }
 
         // Reload dengan entries terbaru

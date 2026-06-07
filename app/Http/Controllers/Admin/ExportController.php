@@ -298,6 +298,8 @@ class ExportController extends Controller
             'users.name as student_name',
             'programs.name as program_name',
             'enrollments.remaining_meetings',
+            'enrollments.total_amount',
+            'enrollments.payment_method',
             'enrollments.created_at',
             'programs.total_meetings',
             DB::raw('COALESCE(paid.paid_amount, 0) as paid_amount')
@@ -307,11 +309,14 @@ class ExportController extends Controller
     if ($filterMonth)   $query->whereRaw("DATE_FORMAT(enrollments.created_at, '%Y-%m') = ?", [$filterMonth]);
 
     $rows = $query->get()->map(function ($e) {
-        if ($e->total_meetings <= 0 || $e->paid_amount <= 0) return null;
-        $rate       = $e->paid_amount / $e->total_meetings;
+        $paidAmount = $e->payment_method === 'full upfront'
+            ? (float) $e->total_amount
+            : (float) $e->paid_amount;
+        if ($e->total_meetings <= 0 || $paidAmount <= 0) return null;
+        $rate       = $paidAmount / $e->total_meetings;
         $used       = $e->total_meetings - $e->remaining_meetings;
         $recognized = $rate * $used;
-        $deferred   = $e->paid_amount - $recognized;
+        $deferred   = $paidAmount - $recognized;
         return [
             $e->student_name,
             $e->program_name,
@@ -319,7 +324,7 @@ class ExportController extends Controller
             $e->total_meetings,
             $used,
             $e->remaining_meetings,
-            $e->paid_amount,
+            $paidAmount,
             round($recognized),
             round($deferred),
         ];

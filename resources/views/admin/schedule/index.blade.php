@@ -4,12 +4,30 @@
     <script>
         window.classroomMap = @json($classrooms->keyBy('name')->map(fn($c) => $c->id));
         window.allClassSessions = @json($classSessionsJson);
+
+        function isSlotPast(dateStr, timeBlock) {
+            const endTime = timeBlock.split('-')[1].trim(); // e.g. "10:30"
+            const [hour, minute] = endTime.split(':').map(Number);
+            const slotEnd = new Date(dateStr);
+            slotEnd.setHours(hour, minute, 0, 0);
+            return slotEnd < new Date();
+        }
+
+        function guardSlot(dateStr, timeBlock, callback) {
+            if (isSlotPast(dateStr, timeBlock)) {
+                alert('Slot ini sudah lewat dan tidak bisa diubah.');
+                return;
+            }
+            callback();
+        }
     </script>
 
     <div class="p-lg space-y-lg" x-data="{
         view: 'room',
-        day: 'Senin',
-        days: ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu']
+        day: '{{ ['Minggu','Senin','Selasa','Rabu','Kamis','Jumat','Sabtu'][now()->dayOfWeek] }}',
+        days: ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'],
+        init() { if (this.day === 'Minggu' && {{ $weekOffset }} === 0) this.day = 'Senin'; },
+        occupancyModal: false,
     }">
 
         @if(session('success'))
@@ -29,9 +47,44 @@
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-md flex-wrap">
             <div>
                 <h2 class="text-headline-lg font-semibold text-on-surface">Schedule</h2>
-                <p class="text-body-md text-on-surface-variant">Overview jadwal harian per ruangan & tutor</p>
+                <div class="flex items-center gap-sm">
+                    <p class="text-body-md text-on-surface-variant">Overview jadwal harian per ruangan & tutor</p>
+
+                </div>
+                <div class="flex items-center gap-sm mt-sm">
+                    @if($weekOffset > -1)
+                    <a href="{{ route('admin.schedule.index', ['week' => $weekOffset - 1]) }}" class="btn btn-ghost btn-sm">
+                        <span class="material-symbols-outlined text-base">chevron_left</span>
+                    </a>
+                    @endif
+                    <span class="text-body-sm text-on-surface-variant">
+                        {{ $weekOffset === 0 ? 'Minggu Ini' : ($weekOffset === 1 ? 'Minggu Depan' : ($weekOffset === -1 ? 'Minggu Lalu' : 'Minggu Ini')) }}
+                    </span>
+                    @if($weekOffset < 2)
+                    <a href="{{ route('admin.schedule.index', ['week' => $weekOffset + 1]) }}" class="btn btn-ghost btn-sm">
+                        <span class="material-symbols-outlined text-base">chevron_right</span>
+                    </a>
+                    @endif
+                </div>
             </div>
-            <div class="inline-flex rounded-lg overflow-hidden border border-primary-container">
+            <div class="flex flex-wrap items-center gap-md">
+                <div class="flex gap-sm">
+                    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm px-md py-sm flex items-center gap-sm">
+                        <span class="material-symbols-outlined text-primary-container text-lg">meeting_room</span>
+                        <div>
+                            <p class="text-[9px] font-bold uppercase text-on-surface-variant leading-none mb-xs">Room Occupancy</p>
+                            <p class="text-body-md font-bold text-on-surface leading-none">{{ $occupancyRate }}% <span class="text-[10px] font-normal text-on-surface-variant">{{ $occupiedCount }}/{{ $totalSlots }} slot</span></p>
+                        </div>
+                    </div>
+                    <div @click="occupancyModal = true" class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm px-md py-sm flex items-center gap-sm cursor-pointer hover:bg-surface-container transition-colors">
+                        <span class="material-symbols-outlined text-primary-container text-lg">person</span>
+                        <div>
+                            <p class="text-[9px] font-bold uppercase text-on-surface-variant leading-none mb-xs">Tutor Occupancy</p>
+                            <p class="text-body-md font-bold text-on-surface leading-none">{{ $tutorOccupancyRate }}% <span class="text-[10px] font-normal text-on-surface-variant">{{ $tutorAvailOccupied }}/{{ $tutorAvailTotal }} slot</span></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="inline-flex rounded-lg overflow-hidden border border-primary-container">
                 <button type="button"
                     @click="view = 'room'"
                     :class="view === 'room' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
@@ -48,7 +101,32 @@
                 </button>
             </div>
         </div>
-
+    </div>
+        {{-- Occupancy Modal --}}
+        <div x-show="occupancyModal" x-cloak
+            class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+            @click.self="occupancyModal = false" @keydown.escape.window="occupancyModal = false">
+            <div class="bg-surface-container-lowest rounded-lg shadow-xl w-full max-w-md mx-md flex flex-col max-h-[80vh]">
+                <div class="flex items-center justify-between px-lg py-md border-b border-surface-border">
+                    <h3 class="text-title-md font-semibold text-on-surface">Tutor Availability</h3>
+                    <button @click="occupancyModal = false" class="btn btn-ghost btn-sm btn-circle">
+                        <span class="material-symbols-outlined text-base">close</span>
+                    </button>
+                </div>
+                <div class="overflow-y-auto p-lg space-y-sm" style="max-height: 60vh;">
+                
+                    @foreach($tutorStats as $t)
+                    <div class="flex items-center justify-between p-sm bg-surface-container border border-surface-border rounded-lg">
+                        <div>
+                            <p class="text-body-sm font-semibold text-on-surface">{{ $t['name'] }}</p>
+                            <p class="text-[10px] text-on-surface-variant">{{ $t['occupied'] }} occupied · {{ $t['free'] }} free · {{ $t['avail'] }} total</p>
+                        </div>
+                        <p class="text-body-md font-bold {{ $t['ratio'] < 30 ? 'text-emerald-600' : ($t['ratio'] < 70 ? 'text-yellow-500' : 'text-red-500') }}">{{ $t['ratio'] }}%</p>
+                    </div>
+                    @endforeach
+                </div>
+            </div>
+        </div>
         {{-- Day Tabs --}}
         <div class="border-b border-surface-border">
             <nav class="flex gap-xs -mb-px overflow-x-auto">
@@ -81,6 +159,7 @@
                     selectedClassSessionId: '',
                     selectedScheduleId: '',
                     selectedBookingId: '',
+                bookingNotes: '',
                 }">
                 <div class="flex items-center justify-between mb-lg">
                     <h3 class="text-body-lg font-semibold text-on-surface flex items-center gap-sm">
@@ -118,22 +197,16 @@
                                 @foreach($timeBlocks as $block)
                                     @php
                                         $schedule  = $daySchedules->where('time_block', $block)->first();
-                                        $booking   = $dayBookings->where('classroom_id', $classroom->id)->where('time_block', $block)->first();
-                                        $isSkipped = $booking && $booking->type === 'regular_skip';
+                                        $slotBookings = $dayBookings->where('classroom_id', $classroom->id)->where('time_block', $block);
+                                        $booking   = $slotBookings->where('type', 'temporary')->first() ?? $slotBookings->where('type', 'regular_skip')->first();
+                                        $isSkipped = $slotBookings->where('type', 'regular_skip')->isNotEmpty() && !$slotBookings->where('type', 'temporary')->count();
                                         $isTemp    = $booking && $booking->type === 'temporary';
                                     @endphp
 
-                                    @if($schedule && !$isSkipped)
+                                    @if($schedule && !$isSkipped && !$isTemp)
                                         {{-- Reguler aktif --}}
                                         <button type="button"
-                                            @click="modal = true; modalType = 'skip';
-                                                    selectedRoom = '{{ $classroom->name }}';
-                                                    selectedDay = '{{ $d }}';
-                                                    selectedBlock = '{{ $block }}';
-                                                    classroomId = '{{ $classroom->id }}';
-                                                    selectedDate = '{{ $date }}';
-                                                    selectedClassSessionId = '{{ $schedule->class_session_id }}';
-                                                    selectedScheduleId = '{{ $schedule->id }}';"
+                                            @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'skip'; selectedRoom = '{{ $classroom->name }}'; selectedDay = '{{ $d }}'; selectedBlock = '{{ $block }}'; classroomId = '{{ $classroom->id }}'; selectedDate = '{{ $date }}'; selectedClassSessionId = '{{ $schedule->class_session_id }}'; selectedScheduleId = '{{ $schedule->id }}'; })"
                                             class="bg-red-50 border border-red-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-red-100 transition-colors"
                                             title="Jadwal reguler — klik untuk skip">
                                             <span class="material-symbols-outlined text-red-400 text-sm">lock</span>
@@ -149,7 +222,8 @@
                                                 selectedRoom = '{{ $classroom->name }}';
                                                 selectedBlock = '{{ $block }}';
                                                 selectedDate = '{{ $date }}';
-                                                selectedBookingId = '{{ $booking->id }}';"
+                                                selectedBookingId = '{{ $booking->id }}';
+                                                bookingNotes = {{ json_encode($booking->notes ?? '') }};"
                                             class="bg-blue-50 border border-blue-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-blue-100 transition-colors"
                                             title="Temporary booking">
                                             <span class="material-symbols-outlined text-blue-400 text-sm">event</span>
@@ -161,12 +235,7 @@
                                     @elseif($isSkipped)
                                         {{-- Di-skip, slot available --}}
                                         <button type="button"
-                                            @click="modal = true; modalType = 'temporary';
-                                                    selectedRoom = '{{ $classroom->name }}';
-                                                    selectedDay = '{{ $d }}';
-                                                    selectedBlock = '{{ $block }}';
-                                                    classroomId = '{{ $classroom->id }}';
-                                                    selectedDate = '{{ $date }}';"
+                                            @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'temporary'; selectedRoom = '{{ $classroom->name }}'; selectedDay = '{{ $d }}'; selectedBlock = '{{ $block }}'; classroomId = '{{ $classroom->id }}'; selectedDate = '{{ $date }}'; })"
                                             class="bg-yellow-50 border border-yellow-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-yellow-100 transition-colors"
                                             title="Reguler skip — tersedia untuk booking">
                                             <span class="material-symbols-outlined text-yellow-500 text-sm">event_available</span>
@@ -176,12 +245,7 @@
                                     @else
                                         {{-- Kosong --}}
                                         <button type="button"
-                                            @click="modal = true; modalType = 'temporary';
-                                                    selectedRoom = '{{ $classroom->name }}';
-                                                    selectedDay = '{{ $d }}';
-                                                    selectedBlock = '{{ $block }}';
-                                                    classroomId = '{{ $classroom->id }}';
-                                                    selectedDate = '{{ $date }}';"
+                                            @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'temporary'; selectedRoom = '{{ $classroom->name }}'; selectedDay = '{{ $d }}'; selectedBlock = '{{ $block }}'; classroomId = '{{ $classroom->id }}'; selectedDate = '{{ $date }}'; })"
                                             class="bg-emerald-50 border border-emerald-200 px-xs py-xs rounded-lg flex items-center justify-center hover:bg-emerald-100 transition-colors"
                                             title="Kosong — klik untuk booking">
                                             <span class="material-symbols-outlined text-emerald-600 text-sm">add_circle</span>
@@ -225,7 +289,7 @@
                                 </div>
                                 <div class="flex flex-wrap gap-xs ml-auto">
                                     @foreach($schedule->classSession?->enrollments ?? [] as $enrollment)
-                                        <span class="badge badge-soft text-[10px]">{{ $enrollment->student->user->name }}</span>
+                                        <span class="badge badge-soft text-[10px] whitespace-nowrap">{{ $enrollment->student->user->name }}</span>
                                     @endforeach
                                 </div>
                             </div>
@@ -345,6 +409,10 @@
                         {{-- TEMP INFO --}}
 <div x-show="modalType === 'temp_info'">
     <p class="text-body-sm text-on-surface-variant mb-md">Slot ini sudah di-booking sementara.</p>
+    <div x-show="bookingNotes" class="p-sm bg-surface-container-low border border-surface-border rounded-lg mb-md">
+        <p class="text-[10px] font-bold uppercase text-on-surface-variant mb-xs">Catatan</p>
+        <p class="text-body-sm text-on-surface" x-text="bookingNotes"></p>
+    </div>
     <div class="flex justify-end gap-sm mt-md">
         <button type="button" @click="modal = false" class="btn btn-ghost">Tutup</button>
         <form method="POST" :action="'/admin/room-bookings/' + selectedBookingId"
@@ -426,7 +494,7 @@
                                         <td class="px-lg py-lg">
                                             <div class="flex flex-wrap gap-xs">
                                                 @forelse($schedule->classSession?->enrollments ?? [] as $enrollment)
-                                                    <span class="badge badge-soft text-[10px]">{{ $enrollment->student->user->name }}</span>
+                                                    <span class="badge badge-soft text-[10px] whitespace-nowrap">{{ $enrollment->student->user->name }}</span>
                                                 @empty
                                                     <span class="text-xs text-on-surface-variant">—</span>
                                                 @endforelse
@@ -567,7 +635,7 @@
                                         <td class="px-lg py-lg">
                                             <div class="flex flex-wrap gap-xs">
                                                 @forelse($schedule->classSession?->enrollments ?? [] as $enrollment)
-                                                    <span class="badge badge-soft text-[10px]">{{ $enrollment->student->user->name }}</span>
+                                                    <span class="badge badge-soft text-[10px] whitespace-nowrap">{{ $enrollment->student->user->name }}</span>
                                                 @empty
                                                     <span class="text-xs text-on-surface-variant">—</span>
                                                 @endforelse

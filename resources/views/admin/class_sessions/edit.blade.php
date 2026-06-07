@@ -61,6 +61,17 @@
                     @error('status')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
 
+                <div class="fieldset">
+                    <label class="fieldset-legend text-on-surface">Tipe Kelas</label>
+                    <select name="class_type"
+                        class="select w-full @error('class_type') select-error @enderror" required>
+                        <option value="private" {{ old('class_type', $classSession->class_type) === 'private' ? 'selected' : '' }}>Private</option>
+                        <option value="semi-private" {{ old('class_type', $classSession->class_type) === 'semi-private' ? 'selected' : '' }}>Semi-Private</option>
+                        <option value="group" {{ old('class_type', $classSession->class_type) === 'group' ? 'selected' : '' }}>Group</option>
+                    </select>
+                    @error('class_type')<p class="label text-error">{{ $message }}</p>@enderror
+                </div>
+
                 <div class="flex justify-end gap-sm pt-sm">
                     <a href="{{ route('admin.class-sessions.show', $classSession->id) }}" class="btn btn-ghost">Batal</a>
                     <button type="submit"

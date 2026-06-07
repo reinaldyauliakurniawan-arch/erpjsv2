@@ -21,9 +21,15 @@ class AvailabilityController extends Controller
 
     public function store(Request $request)
     {
+        $timeBlock = $request->time_block === 'custom'
+            ? $request->input('time_block_custom')
+            : $request->time_block;
+
+        $request->merge(['time_block' => $timeBlock]);
+
         $request->validate([
-            'day'        => 'required|in:monday,tuesday,wednesday,thursday,friday,saturday,sunday',
-            'time_block' => 'required|string|max:20',
+            'day'        => 'required|in:Senin,Selasa,Rabu,Kamis,Jumat,Sabtu,Minggu',
+            'time_block' => 'required|string|max:20|regex:/^\d{2}:\d{2}-\d{2}:\d{2}$/',
         ]);
 
         $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();

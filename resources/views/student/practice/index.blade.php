@@ -121,7 +121,14 @@
                             </button>
                         </form>
                     @else
-                        <p class="text-sm text-on-surface-variant italic">Tidak ada link eksternal untuk practice ini.</p>
+                        <p class="text-sm text-on-surface-variant italic mb-md">Tidak ada link eksternal untuk practice ini.</p>
+                        <form action="{{ route('student.practice.open', $practice) }}" method="POST">
+                            @csrf
+                            <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
+                                <span class="material-symbols-outlined text-sm">check</span>
+                                Tandai Sudah Dibuka
+                            </button>
+                        </form>
                     @endif
                 @endif
             </div>

@@ -36,12 +36,13 @@
                             open: false,
                             selected: [],
                             classes: {{ collect($classes)->map(fn($c) => ['id' => $c->id, 'name' => $c->name])->values()->toJson() }},
-                            allStudents: {{ collect($classes)->flatMap(fn($c) => $c->students->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'class_id' => $c->id]))->values()->toJson() }},
-                            checkedStudentIds: {{ collect($classes)->flatMap(fn($c) => $c->students->pluck('id'))->values()->toJson() }},
+                            allStudents: {{ collect($classes)->flatMap(fn($c) => collect($c->students)->map(fn($s) => ['id' => $s->id, 'name' => $s->name, 'class_id' => $c->id]))->values()->toJson() }},
+                            checkedStudentIds: {{ collect($classes)->flatMap(fn($c) => collect($c->students)->pluck('id'))->values()->toJson() }},
                             toggle(id) {
                                 this.selected.includes(id)
                                     ? this.selected = this.selected.filter(i => i !== id)
-                                    : this.selected.push(id)
+                                    : this.selected.push(id);
+                                this.open = false;
                             },
                             label() {
                                 if (!this.selected.length) return 'Pilih kelas...'

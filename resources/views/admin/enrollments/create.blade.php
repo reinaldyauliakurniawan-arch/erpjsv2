@@ -194,6 +194,17 @@
                                         <input type="tel" name="new_student[phone]" value="{{ old('new_student.phone') }}"
                                             class="input w-full" placeholder="+62 812 XXXX XXXX" />
                                     </div>
+                                    <div class="fieldset">
+                                        <label class="fieldset-legend text-on-surface">Jenjang Pendidikan <span class="text-on-surface-variant font-normal">(opsional)</span></label>
+                                        <select name="new_student[education_level]" class="select w-full">
+                                            <option value="">— Pilih —</option>
+                                            <option value="SD">SD</option>
+                                            <option value="SMP">SMP</option>
+                                            <option value="SMA">SMA</option>
+                                            <option value="Kuliah">Kuliah</option>
+                                            <option value="Umum">Umum</option>
+                                        </select>
+                                    </div>
                                 </div>
                             </div>
                         </template>
@@ -280,7 +291,7 @@
                                     @foreach($programs as $program)
                                         <option value="{{ $program->id }}"
                                             data-type="{{ $program->type }}"
-                                            x-show="selectedType === '{{ $program->type }}'"
+                                            x-bind:hidden="selectedType !== '{{ $program->type }}'"
                                             {{ old('program_id') == $program->id ? 'selected' : '' }}>
                                             {{ $program->name }} — Rp {{ number_format($program->price, 0, ',', '.') }}
                                         </option>

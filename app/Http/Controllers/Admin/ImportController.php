@@ -68,9 +68,11 @@ class ImportController extends Controller
         $data = array_map('str_getcsv', file($path));
         foreach ($data as $index => $row) {
             if ($index === 0) continue;
+            if (empty($row[0])) continue;
+            $capacity = isset($row[1]) && is_numeric($row[1]) && (int) $row[1] > 0 ? (int) $row[1] : 1;
             Classroom::updateOrCreate(
-                ['name' => $row[0]],
-                ['capacity' => $row[1]]
+                ['name' => trim($row[0])],
+                ['capacity' => $capacity]
             );
         }
         return back()->with('success', 'Classrooms imported successfully.');
@@ -195,7 +197,7 @@ class ImportController extends Controller
             $imported++;
         }
 
-        $msg = "Imported: {$imported} enrollments.";
+        $msg = "Imported: {$imported} enrollments. Catatan: jurnal akuntansi tidak dibuat otomatis via import — gunakan import jurnal terpisah untuk mencatat pembayaran historis.";
         if ($errors) $msg .= ' Errors: ' . implode(' | ', $errors);
         return back()->with($errors ? 'error' : 'success', $msg);
     }
@@ -229,6 +231,16 @@ class ImportController extends Controller
                     'payment_channel' => trim($paymentChannel) ?: null,
                 ]
             );
+
+            $unpaidCount = Installment::where('enrollment_id', $enrollment->id)
+                ->whereNull('paid_at')
+                ->count();
+            $enrollment->update([
+                'payment_status' => $unpaidCount === 0
+                    ? \App\Enums\PaymentStatus::FULL->value
+                    : \App\Enums\PaymentStatus::PARTIAL->value,
+            ]);
+
             $imported++;
         }
 

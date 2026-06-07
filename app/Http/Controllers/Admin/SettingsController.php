@@ -68,10 +68,25 @@ class SettingsController extends Controller
             $user->update(['password' => Hash::make($request->password)]);
         }
 
-        // Buat record tutor/student jika role berubah
-        if ($newRole === 'tutor' && !$user->tutor) {
+        // Cleanup record lama jika role berubah
+        if ($oldRole === 'tutor' && $newRole !== 'tutor' && $user->tutor) {
+            $hasUnpaidAttendance = \Illuminate\Support\Facades\DB::table('attendance_tutor')
+                ->where('tutor_id', $user->tutor->id)
+                ->whereNull('paid_at')
+                ->where('pending_rate', false)
+                ->where('payable_amount', '>', 0)
+                ->exists();
+
+            if ($hasUnpaidAttendance) {
+                return redirect()->route('admin.settings.index')
+                    ->with('error', 'Role tidak bisa diubah karena tutor masih memiliki hutang fee yang belum dibayar.');
+            }
+        }
+
+        // Buat record tutor/student jika role berubah ke tutor/student
+        if ($newRole === 'tutor' && !$user->fresh()->tutor) {
             Tutor::create(['user_id' => $user->id, 'persona' => null]);
-        } elseif ($newRole === 'student' && !$user->student) {
+        } elseif ($newRole === 'student' && !$user->fresh()->student) {
             Student::create(['user_id' => $user->id, 'notes' => null]);
         }
 
@@ -80,6 +95,44 @@ class SettingsController extends Controller
 
     public function destroyUser(User $user)
     {
+        if ($user->role === 'tutor') {
+            $tutor = $user->tutor;
+            if ($tutor) {
+                $hasUnpaidAttendance = \Illuminate\Support\Facades\DB::table('attendance_tutor')
+                    ->where('tutor_id', $tutor->id)
+                    ->whereNull('paid_at')
+                    ->where('pending_rate', false)
+                    ->where('payable_amount', '>', 0)
+                    ->exists();
+
+                if ($hasUnpaidAttendance) {
+                    return redirect()->route('admin.settings.index')
+                        ->with('error', 'User tidak bisa dihapus karena tutor masih memiliki hutang fee yang belum dibayar.');
+                }
+
+                $tutor->enrollments()->detach();
+                $tutor->classSessions()->detach();
+                $tutor->availability()->delete();
+                $tutor->rates()->delete();
+                $tutor->delete();
+            }
+        } elseif ($user->role === 'student') {
+            $student = $user->student;
+            if ($student) {
+                $hasActiveEnrollment = $student->enrollments()
+                    ->whereIn('status', ['active', 'waitlist'])
+                    ->exists();
+
+                if ($hasActiveEnrollment) {
+                    return redirect()->route('admin.settings.index')
+                        ->with('error', 'User tidak bisa dihapus karena student masih memiliki enrollment aktif.');
+                }
+
+                $student->enrollments()->each(fn($e) => $e->delete());
+                $student->delete();
+            }
+        }
+
         $user->delete();
         return redirect()->route('admin.settings.index')->with('success', 'User berhasil dihapus.');
     }

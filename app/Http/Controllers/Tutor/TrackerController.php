@@ -14,14 +14,18 @@ class TrackerController extends Controller
         $period = request('period', 'week');
         $classFilter = request('class');
 
+        $tutor = \App\Models\Tutor::where('user_id', auth()->id())->firstOrFail();
+
         $sessions = ClassSession::with([
             'enrollments.student.user',
-        ])->whereNotNull('id')->get();
+        ])->whereHas('tutors', fn($q) => $q->where('tutor_id', $tutor->id))->get();
 
-        // Ambil semua practices beserta pivot data
+        // Ambil practices milik tutor ini saja
         $practices = Practice::with([
             'students.student.user',
-        ])->where('status', 'published')->get();
+        ])->where('status', 'published')
+          ->where('tutor_id', auth()->id())
+          ->get();
 
         // Group data per class_session
         $classes = $sessions->map(function ($session) use ($practices, $period) {
@@ -32,7 +36,7 @@ class TrackerController extends Controller
                 // Practices assigned ke student ini
                 $assignedPractices = $practices->map(function ($practice) use ($student, $period) {
                     $pivot = $practice->students
-                        ->firstWhere('id', $student->user_id);
+                        ->firstWhere('id', $student->id);
 
                     if (!$pivot) return null;
 

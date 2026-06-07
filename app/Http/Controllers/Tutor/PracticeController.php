@@ -10,17 +10,30 @@ use Illuminate\Support\Facades\Auth;
 
 class PracticeController extends Controller
 {
+    public function index()
+    {
+        $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
+        $practices = Practice::where('tutor_id', Auth::id())
+            ->orderByDesc('created_at')
+            ->get();
+        return view('tutor.practice.index', compact('practices'));
+    }
+
     public function create()
     {
         // Ambil kelas yang diajar tutor ini — sesuaikan query dengan relasi yang ada
-        $classes = \App\Models\ClassSession::with(['enrollments.student'])
-    ->whereNotNull('id')
+        $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
+        $classes = \App\Models\ClassSession::with(['enrollments.student.user'])
+    ->whereHas('tutors', fn($q) => $q->where('tutor_id', $tutor->id))
     ->get()
     ->map(function ($session) {
         return (object) [
             'id'       => $session->id,
             'name'     => $session->name,
-            'students' => $session->enrollments->pluck('student')->filter()->values(),
+            'students' => $session->enrollments->map(fn($e) => $e->student ? (object)[
+                'id'   => $e->student->user_id,
+                'name' => $e->student->user->name ?? '—',
+            ] : null)->filter()->values(),
         ];
     });
 
@@ -37,7 +50,7 @@ class PracticeController extends Controller
             'deadline'           => 'nullable|date',
             'status'             => 'required|in:draft,published',
             'student_ids'        => 'nullable|array',
-            'student_ids.*'      => 'exists:users,id',
+            'student_ids.*'      => 'exists:students,id',
         ]);
 
         $practice = Practice::create([

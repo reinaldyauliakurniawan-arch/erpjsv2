@@ -17,14 +17,14 @@ class RabController extends Controller
         $years     = range(now()->year - 2, now()->year + 2);
         $accounts  = \App\Models\Account::whereIn('type', ['Expense', 'Revenue'])
             ->orderBy('code')->get(['id', 'code', 'name', 'type']);
-        $accounts  = \App\Models\Account::whereIn('type', ['Expense', 'Revenue'])
-            ->orderBy('code')->get(['id', 'code', 'name', 'type']);
 
         // Summary stats
         $totalBudget    = $rows->sum('total');
-        $divisionCount  = $rows->groupBy('division')->count();
+        $currentQuarter = ceil(now()->month / 3);
+        $qField         = "q{$currentQuarter}";
+        $budgetQuarter  = $rows->sum($qField);
 
-        return view('admin.rab.index', compact('rows', 'year', 'divisions', 'years', 'totalBudget', 'divisionCount', 'accounts'));
+        return view('admin.rab.index', compact('rows', 'year', 'divisions', 'years', 'totalBudget', 'budgetQuarter', 'accounts'));
     }
 
     public function store(Request $request)

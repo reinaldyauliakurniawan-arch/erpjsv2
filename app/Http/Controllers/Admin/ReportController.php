@@ -84,10 +84,13 @@ class ReportController extends Controller
         ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as balance')
         ->value('balance') ?? 0;
 
+    $cashDifference = round($cashEnding - ($cashOpening + $netChange), 2);
+
     return view('admin.reports.cash_flow', compact(
         'operating', 'investing', 'financing',
         'netOperating', 'netInvesting', 'netFinancing',
         'netChange', 'cashOpening', 'cashEnding',
+        'cashDifference',
         'from', 'to', 'period'
     ));
 }
@@ -241,9 +244,23 @@ class ReportController extends Controller
             : $q
         )->get()->keyBy('id');
 
-        // Adjustment only: hanya jurnal AJP yang posted
+        // Adjustment only: hanya jurnal AJP yang posted (tanpa filter tanggal — AJP harus selalu masuk)
         $adjRows = $ajpJournalIds->isNotEmpty()
-            ? $baseQuery(fn($q) => $q->whereIn('journals.id', $ajpJournalIds))->get()->keyBy('id')
+            ? DB::table('journal_items')
+                ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+                ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+                ->whereIn('journals.id', $ajpJournalIds)
+                ->selectRaw('
+                    accounts.id,
+                    accounts.code,
+                    accounts.name,
+                    accounts.type,
+                    SUM(journal_items.debit)  as debit,
+                    SUM(journal_items.credit) as credit
+                ')
+                ->groupBy('accounts.id', 'accounts.code', 'accounts.name', 'accounts.type')
+                ->orderBy('accounts.code')
+                ->get()->keyBy('id')
             : collect();
 
         // Merge semua account_id
@@ -395,21 +412,41 @@ class ReportController extends Controller
         $totalLiability = $rows->where('type', 'Liability')->sum('balance');
         $totalEquity    = $rows->where('type', 'Equity')->sum('balance');
 
-        // Tambah net profit periode berjalan (belum closing)
-        $currentYearStart = now()->startOfYear()->toDateString();
-        $netProfitCurrent = DB::table('journal_items')
+        // Net profit pakai formula identik dengan P&L (pakai contra revenue)
+        $currentYearStart = \Carbon\Carbon::parse($asOf)->startOfYear()->toDateString();
+        $plRows = DB::table('journal_items')
             ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
             ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
             ->whereIn('accounts.type', ['Revenue', 'Expense'])
             ->whereDate('journals.date', '>=', $currentYearStart)
             ->whereDate('journals.date', '<=', $asOf)
-            ->selectRaw("SUM(CASE WHEN accounts.type = 'Revenue' THEN journal_items.credit - journal_items.debit ELSE journal_items.debit - journal_items.credit END) as net")
-            ->value('net') ?? 0;
+            ->selectRaw("accounts.type, accounts.code,
+                SUM(CASE WHEN accounts.type = 'Revenue' THEN journal_items.credit ELSE journal_items.debit END) as amount")
+            ->groupBy('accounts.type', 'accounts.code')
+            ->get();
 
-        $totalEquity += (float) $netProfitCurrent;
+        $contraRevenueCodes = ['4111'];
+        $netProfitCurrent = (float) (
+            $plRows->where('type', 'Revenue')->whereNotIn('code', $contraRevenueCodes)->sum('amount')
+            - $plRows->where('type', 'Revenue')->whereIn('code', $contraRevenueCodes)->sum('amount')
+            - $plRows->where('type', 'Expense')->sum('amount')
+        );
+
+        $totalEquity += $netProfitCurrent;
 
         $accounts = \App\Models\Account::orderBy('code')->get();
-        return view('admin.reports.balance_sheet', compact('rows', 'totalAsset', 'totalLiability', 'totalEquity', 'netProfitCurrent', 'asOf', 'accounts'));
+
+        // Load existing opening balance dari jurnal OB
+        $obJournal = DB::table('journals')->where('reference', 'like', 'OB-%')->orderByDesc('id')->first();
+        $obBalances = collect();
+        if ($obJournal) {
+            $obBalances = DB::table('journal_items')
+                ->where('journal_id', $obJournal->id)
+                ->get()
+                ->keyBy('account_id');
+        }
+
+        return view('admin.reports.balance_sheet', compact('rows', 'totalAsset', 'totalLiability', 'totalEquity', 'netProfitCurrent', 'asOf', 'accounts', 'obBalances'));
     }
 
     public function deferredRevenue(Request $request)
@@ -504,11 +541,17 @@ class ReportController extends Controller
             'credit'       => (float) ($b['credit'] ?? 0),
         ])->values()->toArray();
 
+        $obReference = 'OB-' . now()->format('Y');
+
+        if (\App\Models\Journal::where('reference', $obReference)->exists()) {
+            return back()->with('error', 'Saldo awal untuk tahun ' . now()->format('Y') . ' sudah pernah disimpan.');
+        }
+
         try {
             app(\App\Services\AccountingService::class)->createJournal(
                 now()->toDateString(),
                 'Saldo Awal',
-                'OB-' . now()->format('Y'),
+                $obReference,
                 $items
             );
         } catch (\Exception $e) {

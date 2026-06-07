@@ -25,7 +25,7 @@ class Practice extends Model
 
     public function students()
     {
-        return $this->belongsToMany(User::class, 'practice_student', 'practice_id', 'student_id')
+        return $this->belongsToMany(Student::class, 'practice_student', 'practice_id', 'student_id')
                     ->withPivot('completion_status', 'completed_at', 'opened_at', 'reflection')
                     ->withTimestamps();
     }

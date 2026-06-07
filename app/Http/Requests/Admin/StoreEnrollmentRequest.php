@@ -19,6 +19,7 @@ class StoreEnrollmentRequest extends FormRequest
         'new_student.name'               => $isExisting ? 'nullable' : 'required|string|max:255',
         'new_student.email'              => $isExisting ? 'nullable' : 'required|email|unique:users,email',
         'new_student.phone'              => 'nullable|string|max:20',
+        'new_student.education_level'    => 'nullable|in:SD,SMP,SMA,Kuliah,Umum',
         'program_id'                     => 'required|exists:programs,id',
         'class_session_id'               => 'nullable|exists:class_sessions,id',
         'enrollment_date'                => 'required|date',

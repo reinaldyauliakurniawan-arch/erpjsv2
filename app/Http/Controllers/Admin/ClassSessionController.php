@@ -158,11 +158,24 @@ class ClassSessionController extends Controller
             ->with('error', 'Class session tidak bisa dihapus karena masih ada siswa aktif.');
     }
 
-    Attendance::where('class_session_id', $id)->each(function ($attendance) {
-        app(AttendanceService::class)->reverseAttendance($attendance);
+    $hasPaidAttendance = \App\Models\DB::table('attendance_tutor')
+        ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+        ->where('attendance.class_session_id', $id)
+        ->whereNotNull('attendance_tutor.paid_at')
+        ->exists();
+
+    if ($hasPaidAttendance) {
+        return redirect()->route('admin.class-sessions.index')
+            ->with('error', 'Class session tidak bisa dihapus karena ada tutor yang sudah dibayar untuk sesi ini.');
+    }
+
+    \Illuminate\Support\Facades\DB::transaction(function () use ($id, $classSession) {
+        Attendance::where('class_session_id', $id)->each(function ($attendance) {
+            app(AttendanceService::class)->reverseAttendance($attendance);
+        });
+        $classSession->delete();
     });
 
-    $classSession->delete();
     return redirect()->route('admin.class-sessions.index')->with('success', 'Class session deleted.');
 }
 
@@ -192,6 +205,11 @@ class ClassSessionController extends Controller
         $request->validate(['tutor_id' => 'required|exists:tutors,id']);
 
         $classSession = ClassSession::findOrFail($id);
+
+        if ($classSession->tutors()->where('tutor_id', $request->tutor_id)->exists()) {
+            return back()->withErrors(['error' => 'Tutor sudah ada di class session ini.']);
+        }
+
         $classSession->tutors()->attach($request->tutor_id, ['status' => 'pending']);
 
         return back()->with('success', 'Tutor assigned.');
@@ -250,7 +268,7 @@ class ClassSessionController extends Controller
 
         \App\Models\Schedule::create([
             'class_session_id' => $id,
-            'enrollment_id'    => $classSession->enrollments()->first()?->id,
+            'enrollment_id'    => null,
             'classroom_id'     => $request->classroom_id,
             'day'              => $request->day,
             'time_block'       => $timeBlock,

@@ -200,8 +200,7 @@
 
                             <div class="fieldset">
                                 <label class="fieldset-legend text-on-surface">Time Block</label>
-                                <select :name="sch.is_custom ? null : `schedules[${i}][time_block]`"
-                                    class="select w-full"
+                                <select class="select w-full"
                                     x-show="!sch.is_custom"
                                     @change="if ($event.target.value === 'Custom') { sch.is_custom = true; sch.time_block = ''; }
                                              else { sch.time_block = $event.target.value; }">
@@ -211,8 +210,9 @@
                                     @endforeach
                                     <option value="Custom">Custom...</option>
                                 </select>
+                                <input type="hidden" :name="`schedules[${i}][time_block]`" :value="sch.is_custom ? sch.custom_time : sch.time_block">
                                 <div x-show="sch.is_custom" x-cloak class="flex gap-xs items-center">
-                                    <input type="text" :name="`schedules[${i}][time_block]`"
+                                    <input type="text"
                                         x-model="sch.custom_time"
                                         placeholder="cth: 07.00-08.30"
                                         class="input w-full" />

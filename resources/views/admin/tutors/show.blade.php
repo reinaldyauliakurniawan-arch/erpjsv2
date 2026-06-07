@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">{{ $tutor->user->name }}</x-slot>
 
-    <div class="p-lg space-y-lg max-w-4xl">
+    <div class="p-lg space-y-lg">
 
         {{-- Flash --}}
         @if(session('success'))
@@ -98,7 +98,7 @@
                 @php
                     $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
                     $timeBlocks = ['09:00-10:30', '10:30-12:00', '13:00-14:30', '14:30-16:00', '16:00-17:30', '18:30-20:00'];
-                    $availMap = $tutor->availability->keyBy(fn($a) => $a->day . '|' . $a->time_block);
+                    $availMap = $tutor->availability->keyBy(fn($a) => ucfirst($a->day) . '|' . $a->time_block);
                 @endphp
 
                 <div class="overflow-x-auto">
@@ -257,6 +257,13 @@
                     @error('persona')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
 
+                <div class="fieldset">
+                    <label class="fieldset-legend text-on-surface">Status</label>
+                    <select name="status" class="select w-full" required>
+                        <option value="active" {{ $tutor->status === 'active' ? 'selected' : '' }}>Active</option>
+                        <option value="inactive" {{ $tutor->status === 'inactive' ? 'selected' : '' }}>Inactive</option>
+                    </select>
+                </div>
                 <div class="modal-action">
                     <button type="button" onclick="document.getElementById('modal-edit-tutor').close()"
                         class="btn btn-ghost">Batal</button>

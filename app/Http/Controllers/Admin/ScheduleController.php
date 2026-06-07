@@ -11,6 +11,7 @@ use App\Models\Schedule;
 use App\Models\Classroom;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ScheduleController extends Controller
 {
@@ -34,7 +35,71 @@ class ScheduleController extends Controller
 
         $days = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
 
-        $weekStart = Carbon::now()->startOfWeek(Carbon::MONDAY);
+        $weekOffset = (int) request('week', 0);
+        $weekStart = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeeks($weekOffset);
+        $weekEnd   = $weekStart->copy()->endOfWeek();
+
+        $physicalClassrooms = Classroom::where('is_at_just_speak', true)->get();
+        $tutorAvailTotal    = DB::table('tutor_availability')->whereIn('status', ['available','occupied'])->count();
+        $tutorAvailOccupied = DB::table('tutor_availability')->where('status', 'occupied')->count();
+        $tutorOccupancyRate = $tutorAvailTotal > 0 ? round($tutorAvailOccupied / $tutorAvailTotal * 100) : 0;
+
+        $tutorStats = \App\Models\Tutor::with('user')
+            ->where('status', 'active')
+            ->get()
+            ->map(function ($tutor) {
+                $avail     = DB::table('tutor_availability')->where('tutor_id', $tutor->id)->whereIn('status', ['available','occupied'])->count();
+                $occupied  = DB::table('tutor_availability')->where('tutor_id', $tutor->id)->where('status', 'occupied')->count();
+                $ratio     = $avail > 0 ? round($occupied / $avail * 100) : 0;
+                return [
+                    'name'     => $tutor->user->name,
+                    'avail'    => $avail,
+                    'occupied' => $occupied,
+                    'free'     => $avail - $occupied,
+                    'ratio'    => $ratio,
+                ];
+            })
+            ->sortBy('ratio')
+            ->values();
+        $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'];
+        $physicalIds = $physicalClassrooms->pluck('id');
+
+        $totalSlots = $physicalClassrooms->count() * 7 * count($timeBlocks);
+
+        $scheduledSlots = \App\Models\Schedule::whereIn('classroom_id', $physicalIds)
+            ->select('classroom_id','day','time_block')
+            ->distinct()
+            ->get();
+
+        $skippedSlots = \App\Models\RoomBooking::whereIn('classroom_id', $physicalIds)
+            ->where('type', 'regular_skip')
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->select('classroom_id','time_block','date')
+            ->get();
+
+        $tempSlots = \App\Models\RoomBooking::whereIn('classroom_id', $physicalIds)
+            ->where('type', 'temporary')
+            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
+            ->select('classroom_id','time_block','date')
+            ->get();
+
+        $occupiedCount = 0;
+        foreach ($physicalClassrooms as $room) {
+            foreach ($timeBlocks as $block) {
+                foreach ($scheduledSlots->where('classroom_id', $room->id)->where('time_block', $block) as $sched) {
+                    $dayIndex = array_search($sched->day, $days);
+                    if ($dayIndex === false) continue;
+                    $date = $weekStart->copy()->addDays($dayIndex)->toDateString();
+                    $isSkipped = $skippedSlots->where('classroom_id', $room->id)->where('time_block', $block)->where('date', $date)->isNotEmpty();
+                    $isTemp    = $tempSlots->where('classroom_id', $room->id)->where('time_block', $block)->where('date', $date)->isNotEmpty();
+                    if (!$isSkipped || $isTemp) $occupiedCount++;
+                }
+                $hasTempOnly = $tempSlots->where('classroom_id', $room->id)->where('time_block', $block)->isNotEmpty();
+                $hasSchedule = $scheduledSlots->where('classroom_id', $room->id)->where('time_block', $block)->isNotEmpty();
+                if ($hasTempOnly && !$hasSchedule) $occupiedCount++;
+            }
+        }
+        $occupancyRate = $totalSlots > 0 ? round($occupiedCount / $totalSlots * 100) : 0;
         $weekDates = collect($days)->mapWithKeys(function ($day, $i) use ($weekStart) {
             return [$day => $weekStart->copy()->addDays($i)->toDateString()];
         });
@@ -75,7 +140,8 @@ class ScheduleController extends Controller
 
         return view('admin.schedule.index', compact(
             'byRoom', 'byTutor', 'classrooms', 'classSessions', 'classSessionsJson',
-            'days', 'weekDates', 'bookings'
+            'days', 'weekDates', 'bookings', 'weekOffset', 'occupancyRate', 'occupiedCount', 'totalSlots',
+            'tutorOccupancyRate', 'tutorAvailOccupied', 'tutorAvailTotal', 'tutorStats'
         ));
     }
 
@@ -126,8 +192,39 @@ class ScheduleController extends Controller
     ]);
 
     $schedule = Schedule::findOrFail($id);
+    $oldDay       = $schedule->day;
+    $oldTimeBlock = $schedule->time_block;
+
+    $tutorIds = $schedule->classSession
+        ? $schedule->classSession->tutors()->pluck('tutors.id')
+        : collect();
+
     $schedule->roomBookings()->delete();
     $schedule->update($request->only('classroom_id', 'day', 'time_block'));
+
+    // Bebaskan slot lama
+    foreach ($tutorIds as $tutorId) {
+        $stillOccupied = Schedule::where('day', $oldDay)
+            ->where('time_block', $oldTimeBlock)
+            ->where('id', '!=', $schedule->id)
+            ->whereHas('classSession.tutors', fn($q) => $q->where('tutor_id', $tutorId))
+            ->exists();
+
+        if (!$stillOccupied) {
+            \App\Models\TutorAvailability::where('tutor_id', $tutorId)
+                ->where('day', $oldDay)
+                ->where('time_block', $oldTimeBlock)
+                ->update(['status' => 'available']);
+        }
+    }
+
+    // Tandai slot baru sebagai occupied
+    foreach ($tutorIds as $tutorId) {
+        \App\Models\TutorAvailability::where('tutor_id', $tutorId)
+            ->where('day', $request->day)
+            ->where('time_block', $request->time_block)
+            ->update(['status' => 'occupied']);
+    }
 
     return back()->with('success', 'Jadwal updated.');
 }
@@ -135,8 +232,27 @@ class ScheduleController extends Controller
 public function destroy($id)
 {
     $schedule = Schedule::findOrFail($id);
+
+    $tutorIds = $schedule->classSession
+        ? $schedule->classSession->tutors()->pluck('tutors.id')
+        : collect();
+
     $schedule->roomBookings()->delete();
     $schedule->delete();
+
+    foreach ($tutorIds as $tutorId) {
+        $stillOccupied = Schedule::where('day', $schedule->day)
+            ->where('time_block', $schedule->time_block)
+            ->whereHas('classSession.tutors', fn($q) => $q->where('tutor_id', $tutorId))
+            ->exists();
+
+        if (!$stillOccupied) {
+            \App\Models\TutorAvailability::where('tutor_id', $tutorId)
+                ->where('day', $schedule->day)
+                ->where('time_block', $schedule->time_block)
+                ->update(['status' => 'available']);
+        }
+    }
 
     return back()->with('success', 'Jadwal deleted.');
 }

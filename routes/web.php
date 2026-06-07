@@ -118,7 +118,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance', [AdminAttendance::class, 'index'])->name('attendance.index');
         Route::delete('/attendance/{id}', [AdminAttendance::class, 'destroy'])->name('attendance.destroy');
         Route::patch('/attendance/{id}', [AdminAttendance::class, 'update'])->name('attendance.update');
-        Route::patch('/schedule/attendance/{id}', [AdminSchedule::class, 'updateAttendance'])->name('schedule.update-attendance');
+        Route::patch('/attendance/{id}', [AdminAttendance::class, 'update'])->name('attendance.update');
         Route::get('/tracker', [App\Http\Controllers\Admin\TrackerController::class, 'index'])->name('tracker.index');
         Route::post('/tracker/columns', [App\Http\Controllers\Admin\TrackerController::class, 'storeColumn'])->name('tracker.columns.store');
         Route::delete('/tracker/columns/{column}', [App\Http\Controllers\Admin\TrackerController::class, 'destroyColumn'])->name('tracker.columns.destroy');
@@ -128,8 +128,9 @@ Route::middleware('auth')->group(function () {
     // CFO routes — finance
     Route::prefix('finance')->name('finance.')->middleware('role:cfo')->group(function() {
         Route::get('/', [FinanceController::class, 'dashboard'])->name('index');
-        Route::get('/finance/reports', [FinanceController::class, 'reports'])->name('reports');
-        Route::post('/finance/pending-rates/{id}/assign', [FinanceController::class, 'assignRate'])->name('rate.assign');
+        Route::get('/reports', [FinanceController::class, 'reports'])->name('reports');
+        Route::get('/chart/revenue-by-program', [FinanceController::class, 'chartRevenueByProgram'])->name('chart.revenue-by-program');
+        Route::post('/pending-rates/{id}/assign', [FinanceController::class, 'assignRate'])->name('rate.assign');
 
         Route::resource('accounts', AccountController::class);
         Route::get('/journals/data', [JournalController::class, 'data'])->name('journals.data');
@@ -144,9 +145,11 @@ Route::middleware('auth')->group(function () {
         Route::get('/assets', [FixedAssetController::class, 'index'])->name('assets.index');
         Route::post('/assets', [FixedAssetController::class, 'store'])->name('assets.store');
         Route::patch('/assets/{fixedAsset}', [FixedAssetController::class, 'update'])->name('assets.update');
+        Route::post('/assets/generate-depreciation', [FixedAssetController::class, 'generateDepreciation'])->name('assets.generate-depreciation');
         Route::delete('/assets/{fixedAsset}', [FixedAssetController::class, 'destroy'])->name('assets.destroy');
         Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('reports.profit-loss');
         Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
+        Route::get('/reports/equity-statement', [App\Http\Controllers\Admin\EquityStatementController::class, 'index'])->name('reports.equity-statement');
         Route::post('/reports/opening-balance', [ReportController::class, 'storeOpeningBalance'])->name('opening-balance.store');
         Route::get('/reports/deferred-revenue', [ReportController::class, 'deferredRevenue'])->name('reports.deferred-revenue');
 
@@ -175,6 +178,7 @@ Route::middleware('auth')->group(function () {
         Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
         Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
         Route::post('/payroll/{id}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
+        Route::post('/payroll/{id}/reverse', [PayrollController::class, 'reverse'])->name('payroll.reverse');
 
         // RAB
         Route::get('/rab', [RabController::class, 'index'])->name('rab.index');
@@ -202,6 +206,7 @@ Route::middleware('auth')->group(function () {
         Route::patch('/availability/{id}', [TutorAvailability::class, 'update'])->name('availability.update');
         Route::post('/room-bookings', [App\Http\Controllers\Tutor\RoomBookingController::class, 'store'])->name('room-bookings.store');
         Route::delete('/room-bookings/{id}', [App\Http\Controllers\Tutor\RoomBookingController::class, 'destroy'])->name('room-bookings.destroy');
+        Route::get('practice', [App\Http\Controllers\Tutor\PracticeController::class, 'index'])->name('practice.index');
         Route::get('practice/create', [App\Http\Controllers\Tutor\PracticeController::class, 'create'])->name('practice.create');
         Route::post('practice', [App\Http\Controllers\Tutor\PracticeController::class, 'store'])->name('practice.store');
         Route::get('tracker', [App\Http\Controllers\Tutor\TrackerController::class, 'index'])->name('tracker.index');

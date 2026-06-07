@@ -33,7 +33,8 @@
     </div>
 
     {{-- Summary Cards --}}
-    <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
+    @php $isBalance = abs($totalAsset - ($totalLiability + $totalEquity)) < 1; @endphp
+    <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Aset</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalAsset, 0, ',', '.') }}</p>
@@ -45,6 +46,15 @@
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Ekuitas</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalEquity, 0, ',', '.') }}</p>
+        </div>
+        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Status</p>
+            <p class="text-xl font-bold mt-xs {{ $isBalance ? 'text-success' : 'text-error' }}">
+                {{ $isBalance ? 'Balance ✓' : 'Tidak Balance ✗' }}
+            </p>
+            @if(!$isBalance)
+            <p class="text-xs text-error mt-xs">Selisih: Rp {{ number_format(abs($totalAsset - ($totalLiability + $totalEquity)), 0, ',', '.') }}</p>
+            @endif
         </div>
     </div>
 
@@ -101,9 +111,11 @@ function exportCSV() {
                         <span class="badge badge-soft text-xs ml-xs">{{ $account->type }}</span>
                     </div>
                     <input type="number" name="balances[{{ $account->id }}][debit]"
-                        class="input input-sm w-full text-right" placeholder="Debit" min="0" value="0">
+                        class="input input-sm w-full text-right" placeholder="Debit" min="0"
+                        value="{{ $obBalances->get($account->id)?->debit ?? 0 }}">
                     <input type="number" name="balances[{{ $account->id }}][credit]"
-                        class="input input-sm w-full text-right" placeholder="Kredit" min="0" value="0">
+                        class="input input-sm w-full text-right" placeholder="Kredit" min="0"
+                        value="{{ $obBalances->get($account->id)?->credit ?? 0 }}">
                 </div>
                 @endforeach
             </div>

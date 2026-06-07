@@ -17,7 +17,8 @@ class StoreStudentRequest extends FormRequest
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:8',
-            'notes' => 'nullable|string',
+            'notes'            => 'nullable|string',
+            'education_level'  => 'nullable|in:SD,SMP,SMA,Kuliah,Umum',
         ];
     }
 }

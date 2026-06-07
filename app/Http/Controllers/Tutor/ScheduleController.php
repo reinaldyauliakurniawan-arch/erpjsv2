@@ -76,6 +76,13 @@ class ScheduleController extends Controller
     $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
     $type  = $request->type ?? 'temporary';
 
+    // Cegah booking masa lampau (per time block)
+    $endTime = explode('-', $request->time_block)[1] ?? '23:59';
+    $slotEnd = \Carbon\Carbon::parse($request->date . ' ' . trim($endTime));
+    if ($slotEnd->isPast()) {
+        return back()->withErrors(['error' => 'Slot ini sudah lewat dan tidak bisa diubah.']);
+    }
+
     $conflict = RoomBooking::where('classroom_id', $request->classroom_id)
         ->where('date', $request->date)
         ->where('time_block', $request->time_block)
@@ -86,15 +93,19 @@ class ScheduleController extends Controller
         return back()->with('error', 'Slot ini sudah ada booking dengan tipe yang sama.');
     }
 
-    RoomBooking::create([
-        'classroom_id' => $request->classroom_id,
-        'schedule_id'  => $request->schedule_id,
-        'date'         => $request->date,
-        'time_block'   => $request->time_block,
-        'type'         => $type,
-        'tutor_id'     => $tutor->id,
-        'notes'        => $request->notes,
-    ]);
+    try {
+        RoomBooking::create([
+            'classroom_id' => $request->classroom_id,
+            'schedule_id'  => $request->schedule_id,
+            'date'         => $request->date,
+            'time_block'   => $request->time_block,
+            'type'         => $type,
+            'tutor_id'     => $tutor->id,
+            'notes'        => $request->notes,
+        ]);
+    } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
+        return back()->with('error', 'Slot ini baru saja dibooking oleh orang lain.');
+    }
 
     $msg = $type === 'regular_skip' ? 'Sesi berhasil di-skip.' : 'Slot berhasil dibooking.';
     return back()->with('success', $msg);
