@@ -26,32 +26,32 @@ class EnrollmentService
         $classType = ClassType::from($program->type);
 
         $roomNotes = [];
-foreach ($data['schedules'] ?? [] as $schedule) {
-    $note = $this->validateRoomOccupancy(
-        $schedule['classroom_id'],
-        $schedule['day'],
-        $schedule['time_block'],
-        $classType->value
-    );
-    if ($note) $roomNotes[] = $note;
-}
+        foreach ($data['schedules'] ?? [] as $schedule) {
+            $note = $this->validateRoomOccupancy(
+                $schedule['classroom_id'],
+                $schedule['day'],
+                $schedule['time_block'],
+                $classType->value
+            );
+            if ($note) $roomNotes[] = $note;
+        }
         if (!empty($data['schedules']) && !empty($data['existing_student_id'])) {
             foreach ($data['schedules'] as $schedule) {
-        if (empty($schedule['day']) || empty($schedule['time_block'])) continue;
+                if (empty($schedule['day']) || empty($schedule['time_block'])) continue;
 
-        $conflict = Schedule::whereHas('enrollment', function ($q) use ($data) {
-            $q->where('student_id', $data['existing_student_id'])
-              ->whereIn('status', ['active', 'waitlist']);
-        })
-        ->where('day', $schedule['day'])
-        ->where('time_block', $schedule['time_block'])
-        ->exists();
+                $conflict = Schedule::whereHas('enrollment', function ($q) use ($data) {
+                    $q->where('student_id', $data['existing_student_id'])
+                      ->whereIn('status', ['active', 'waitlist']);
+                })
+                ->where('day', $schedule['day'])
+                ->where('time_block', $schedule['time_block'])
+                ->exists();
 
-        if ($conflict) {
-            throw new DomainException("Student sudah memiliki sesi di {$schedule['day']} {$schedule['time_block']}.");
+                if ($conflict) {
+                    throw new DomainException("Student sudah memiliki sesi di {$schedule['day']} {$schedule['time_block']}.");
+                }
+            }
         }
-    }
-}
         return DB::transaction(function () use ($data, $program, $classType) {
 
             // Existing atau baru

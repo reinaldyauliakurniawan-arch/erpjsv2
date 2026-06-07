@@ -118,7 +118,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance', [AdminAttendance::class, 'index'])->name('attendance.index');
         Route::delete('/attendance/{id}', [AdminAttendance::class, 'destroy'])->name('attendance.destroy');
         Route::patch('/attendance/{id}', [AdminAttendance::class, 'update'])->name('attendance.update');
-        Route::patch('/attendance/{id}', [AdminAttendance::class, 'update'])->name('attendance.update');
         Route::get('/tracker', [App\Http\Controllers\Admin\TrackerController::class, 'index'])->name('tracker.index');
         Route::post('/tracker/columns', [App\Http\Controllers\Admin\TrackerController::class, 'storeColumn'])->name('tracker.columns.store');
         Route::delete('/tracker/columns/{column}', [App\Http\Controllers\Admin\TrackerController::class, 'destroyColumn'])->name('tracker.columns.destroy');

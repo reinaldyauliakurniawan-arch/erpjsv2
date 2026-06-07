@@ -155,9 +155,7 @@ public function eligibleSessions(Request $request)
             if ($activeCount >= $capacity) return false;
 
             // Meeting berjalan ≤ 8 (dari attendance)
-            $finishedMeetings = \App\Models\Attendance::where('enrollment_id', function($q) use ($session) {
-                $q->select('id')->from('enrollments')->where('class_session_id', $session->id)->limit(1);
-            })->count();
+            $finishedMeetings = \App\Models\Attendance::where('class_session_id', $session->id)->count();
 
             return $finishedMeetings <= 8;
         })
@@ -169,9 +167,8 @@ public function eligibleSessions(Request $request)
             'classroom'        => $session->schedules->first()?->classroom?->name,
             'capacity'         => $session->schedules->first()?->classroom?->capacity,
             'enrolled_count'   => $session->enrollments()->whereIn('status', ['active', 'waitlist'])->count(),
-            'finished_meetings'=> \App\Models\Attendance::whereIn('enrollment_id',
-                $session->enrollments()->pluck('id')
-            )->distinct('date')->count('date'),
+            'finished_meetings'=> \App\Models\Attendance::where('class_session_id', $session->id)
+                ->distinct('date')->count('date'),
             'tutors'           => $session->tutors->map(fn($t) => [
                 'id'   => $t->id,
                 'name' => $t->user->name,

@@ -86,7 +86,9 @@ class PayrollService
 
             return $payrollRun;
         });
-        public function reversePayrollRun(int $payrollRunId, int $reversedBy): PayrollRun
+    }
+
+    public function reversePayrollRun(int $payrollRunId, int $reversedBy): PayrollRun
     {
         $payrollRun = PayrollRun::findOrFail($payrollRunId);
 
@@ -140,7 +142,5 @@ class PayrollService
 
             return $payrollRun;
         });
-    }
-}
     }
 }

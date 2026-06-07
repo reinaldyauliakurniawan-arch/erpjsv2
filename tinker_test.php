@@ -1,1 +1,0 @@
-"<?php echo json_encode(App\Models\Student::with(['activeEnrollment', 'enrollments'])->take(5)->get()->map(function(\$s) { return ['name' => \$s->user->name, 'active' => \$s->activeEnrollment?->status, 'all' => \$s->enrollments->pluck('status')]; }));"  
