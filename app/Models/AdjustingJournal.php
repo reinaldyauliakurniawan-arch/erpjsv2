@@ -36,7 +36,8 @@ class AdjustingJournal extends Model
     {
         $prefix = 'AJE-' . \Carbon\Carbon::parse($period)->format('Y-m');
         $last = static::where('reference', 'like', $prefix . '%')
-            ->orderByRaw('CAST(SUBSTRING_INDEX(reference, "-", -1) AS UNSIGNED) DESC')
+            ->orderByRaw('CAST(SUBSTRING_INDEX(reference, \"-\", -1) AS UNSIGNED) DESC')
+            ->lockForUpdate()
             ->value('reference');
         $lastNumber = $last ? (int) substr($last, strrpos($last, '-') + 1) : 0;
         return $prefix . '-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);

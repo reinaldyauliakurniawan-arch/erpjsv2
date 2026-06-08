@@ -48,8 +48,9 @@ class AttendanceService
                 ]);
 
                 // Eager load enrollments sekaligus untuk hindari N+1
-                $enrollments = Enrollment::with(['program', 'student.user', 'schedules'])
+                $enrollments = Enrollment::with(['program', 'student.user', 'schedules', 'installments'])
                     ->whereIn('id', collect($data['students'])->pluck('enrollment_id'))
+                    ->where('class_session_id', $classSession->id)
                     ->lockForUpdate()
                     ->get()
                     ->keyBy('id');
@@ -105,11 +106,12 @@ class AttendanceService
                         }
                     }
 
-                    $revenueAmount = bcdiv(
-                        (string) $enrollment->total_amount,
-                        (string) $enrollment->program->total_meetings,
-                        2
-                    );
+                    $paidAmount = $enrollment->payment_method === 'full upfront'
+                        ? (float) $enrollment->total_amount
+                        : (float) $enrollment->installments->whereNotNull('paid_at')->sum('amount');
+                    $revenueAmount = $enrollment->program->total_meetings > 0
+                        ? bcdiv((string) $paidAmount, (string) $enrollment->program->total_meetings, 2)
+                        : '0';
 
                     try {
                         $this->accountingService->createJournal(

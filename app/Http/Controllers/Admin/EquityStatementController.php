@@ -32,7 +32,7 @@ class EquityStatementController extends Controller
             ->whereIn('accounts.type', ['Revenue', 'Expense'])
             ->whereBetween('journals.date', [$startOfYear, $endOfYear])
             ->selectRaw("accounts.type, accounts.code,
-                SUM(CASE WHEN accounts.type = 'Revenue' THEN journal_items.credit ELSE journal_items.debit END) as amount")
+                SUM(CASE WHEN accounts.type = 'Revenue' THEN (journal_items.credit - journal_items.debit) ELSE (journal_items.debit - journal_items.credit) END) as amount")
             ->groupBy('accounts.type', 'accounts.code')
             ->get();
 

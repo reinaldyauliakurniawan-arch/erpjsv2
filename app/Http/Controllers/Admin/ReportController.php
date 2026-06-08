@@ -421,7 +421,7 @@ class ReportController extends Controller
             ->whereDate('journals.date', '>=', $currentYearStart)
             ->whereDate('journals.date', '<=', $asOf)
             ->selectRaw("accounts.type, accounts.code,
-                SUM(CASE WHEN accounts.type = 'Revenue' THEN (journal_items.credit - journal_items.debit) ELSE (journal_items.debit - journal_items.credit) END) as amount\")\n            ->groupBy('accounts.type', 'accounts.code')
+                SUM(CASE WHEN accounts.type = 'Revenue' THEN (journal_items.credit - journal_items.debit) ELSE (journal_items.debit - journal_items.credit) END) as amount")
             ->groupBy('accounts.type', 'accounts.code')
             ->get();
 

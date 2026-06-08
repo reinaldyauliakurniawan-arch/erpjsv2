@@ -42,10 +42,7 @@ class TrackerController extends Controller
                     $p = $pivot->pivot;
 
                     // Filter by period
-                    if ($period === 'week') {
-                        $startOfWeek = Carbon::now()->startOfWeek();
-                        if ($practice->created_at < $startOfWeek) return null;
-                    }
+                    // Semua practice tetap ditampilkan; filter week hanya mempengaruhi perhitungan menit
 
                     return [
                         'id'                => $practice->id,
@@ -59,8 +56,11 @@ class TrackerController extends Controller
                     ];
                 })->filter()->values();
 
+                $startOfWeek = Carbon::now()->startOfWeek();
                 $totalMinutes = $assignedPractices
-                    ->where('completion_status', 'completed')
+                    ->filter(fn($p) => $p['completion_status'] === 'completed'
+                        && $p['completed_at']
+                        && ($period !== 'week' || Carbon::parse($p['completed_at'])->gte($startOfWeek)))
                     ->sum('estimated_duration');
 
                 $weeklyTarget = 60;

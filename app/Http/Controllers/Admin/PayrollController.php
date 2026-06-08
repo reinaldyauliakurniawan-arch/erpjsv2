@@ -30,10 +30,10 @@ class PayrollController extends Controller
         try {
             $this->payrollService->createPayrollRun($request->month);
         } catch (\App\Exceptions\DomainException $e) {
-            return redirect()->route('admin.payroll.index')->withErrors(['month' => $e->getMessage()]);
+            return redirect()->route('finance.payroll.index')->withErrors(['month' => $e->getMessage()]);
         }
 
-        return redirect()->route('admin.payroll.index')->with('success', 'Payroll run initiated.');
+        return redirect()->route('finance.payroll.index')->with('success', 'Payroll run initiated.');
     }
 
     public function approve($id)
@@ -41,10 +41,10 @@ class PayrollController extends Controller
         try {
             $this->payrollService->approvePayrollRun($id, Auth::id());
         } catch (\App\Exceptions\DomainException $e) {
-            return redirect()->route('admin.payroll.index')->withErrors(['error' => $e->getMessage()]);
+            return redirect()->route('finance.payroll.index')->withErrors(['error' => $e->getMessage()]);
         }
 
-        return redirect()->route('admin.payroll.index')->with('success', 'Payroll approved and journals generated.');
+        return redirect()->route('finance.payroll.index')->with('success', 'Payroll approved and journals generated.');
     }
     public function reverse(int $id, Request $request)
     {
