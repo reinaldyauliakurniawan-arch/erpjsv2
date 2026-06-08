@@ -18,7 +18,7 @@ class Practice extends Model
         'deadline' => 'date',
     ];
 
-    public function tutor()
+    public function user()
     {
         return $this->belongsTo(User::class, 'tutor_id');
     }

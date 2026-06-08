@@ -21,9 +21,8 @@ class TrackerController extends Controller
         ])->whereHas('tutors', fn($q) => $q->where('tutor_id', $tutor->id))->get();
 
         // Ambil practices milik tutor ini saja
-        $practices = Practice::with([
-            'students.student.user',
-        ])->where('status', 'published')
+        $practices = Practice::with(['students'])
+          ->where('status', 'published')
           ->where('tutor_id', auth()->id())
           ->get();
 
@@ -36,7 +35,7 @@ class TrackerController extends Controller
                 // Practices assigned ke student ini
                 $assignedPractices = $practices->map(function ($practice) use ($student, $period) {
                     $pivot = $practice->students
-                        ->firstWhere('id', $student->id);
+                        ->firstWhere('id', $student->user_id);
 
                     if (!$pivot) return null;
 

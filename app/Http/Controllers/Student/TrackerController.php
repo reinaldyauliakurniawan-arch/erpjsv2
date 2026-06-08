@@ -15,11 +15,11 @@ class TrackerController extends Controller
         $userId  = Auth::id();
         $student = Student::where('user_id', $userId)->firstOrFail();
 
-        $practices = Practice::with(['students' => function ($q) use ($userId) {
-            $q->wherePivot('student_id', $userId);
+        $practices = Practice::with(['students' => function ($q) use ($student) {
+            $q->wherePivot('student_id', $student->id);
         }])
-        ->whereHas('students', function ($q) use ($userId) {
-            $q->where('practice_student.student_id', $userId);
+        ->whereHas('students', function ($q) use ($student) {
+            $q->where('practice_student.student_id', $student->id);
         })
         ->where('status', 'published')
         ->orderBy('deadline')

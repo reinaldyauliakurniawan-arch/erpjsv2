@@ -1083,12 +1083,12 @@ class DatabaseSeeder extends Seeder
                     $userRow = DB::table('students')->where('id',$sid)->first();
                     if (!$userRow) continue;
 
-                    if (DB::table('practice_student')->where('practice_id',$practiceId)->where('student_id',$userRow->user_id)->exists()) continue;
+                    if (DB::table('practice_student')->where('practice_id',$practiceId)->where('student_id',$sid)->exists()) continue;
 
                     $cs = fake()->randomElement(['assigned','assigned','in_progress','completed']);
                     DB::table('practice_student')->insert([
                         'practice_id'       => $practiceId,
-                        'student_id'        => $userRow->user_id,
+                        'student_id'        => $sid,
                         'completion_status' => $cs,
                         'completed_at'      => $cs === 'completed' ? Carbon::now()->subDays(rand(1,14)) : null,
                         'created_at'        => $now,'updated_at'=>$now,
@@ -1225,16 +1225,56 @@ class DatabaseSeeder extends Seeder
 
             if ($totalDepreciation <= 0) continue;
 
+            $isPosted = $i > 0;
+
             $adjId = DB::table('adjusting_journals')->insertGetId([
                 'period'       => $period->toDateString(),
                 'reference'    => $ref,
                 'description'  => 'Penyusutan Aset Tetap ' . $period->isoFormat('MMMM YYYY'),
                 'type'         => 'depreciation',
-                'status'       => $i > 0 ? 'posted' : 'draft',
+                'status'       => $isPosted ? 'posted' : 'draft',
                 'total_amount' => $totalDepreciation,
                 'created_at'   => $now,
                 'updated_at'   => $now,
             ]);
+
+            // Kalau posted, buat jurnal di tabel journals juga
+            $postedJournalId = null;
+            if ($isPosted) {
+                $postedJournalId = DB::table('journals')->insertGetId([
+                    'date'         => $period->endOfMonth()->toDateString(),
+                    'description'  => '[AJP] Penyusutan Aset Tetap ' . $period->isoFormat('MMMM YYYY'),
+                    'reference'    => $ref,
+                    'total_amount' => $totalDepreciation,
+                    'type'         => 'adjusting',
+                    'approved_by'  => self::ADMIN_USER_ID,
+                    'created_at'   => $now,
+                    'updated_at'   => $now,
+                ]);
+
+                DB::table('journal_items')->insert([
+                    [
+                        'journal_id' => $postedJournalId,
+                        'account_id' => $expenseAccountId,
+                        'debit'      => $totalDepreciation,
+                        'credit'     => 0,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ],
+                    [
+                        'journal_id' => $postedJournalId,
+                        'account_id' => $accumulatedAccountId,
+                        'debit'      => 0,
+                        'credit'     => $totalDepreciation,
+                        'created_at' => $now,
+                        'updated_at' => $now,
+                    ],
+                ]);
+
+                DB::table('adjusting_journals')->where('id', $adjId)->update([
+                    'posted_journal_id' => $postedJournalId,
+                ]);
+            }
 
             DB::table('adjusting_journal_items')->insert([
                 [

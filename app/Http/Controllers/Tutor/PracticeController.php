@@ -21,21 +21,24 @@ class PracticeController extends Controller
 
     public function create()
     {
-        // Ambil kelas yang diajar tutor ini — sesuaikan query dengan relasi yang ada
-        $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
-        $classes = \App\Models\ClassSession::with(['enrollments.student.user'])
-    ->whereHas('tutors', fn($q) => $q->where('tutor_id', $tutor->id))
-    ->get()
-    ->map(function ($session) {
-        return (object) [
-            'id'       => $session->id,
-            'name'     => $session->name,
-            'students' => $session->enrollments->map(fn($e) => $e->student ? (object)[
-                'id'   => $e->student->user_id,
-                'name' => $e->student->user->name ?? '—',
-            ] : null)->filter()->values(),
-        ];
-    });
+         = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
+         = \App\Models\ClassSession::with(['enrollments.student.user'])
+            ->whereHas('tutors', fn() => ->where('tutor_id', ->id))
+            ->where('status', 'active')
+            ->get()
+            ->map(function () {
+                return (object) [
+                    'id'         => ->id,
+                    'name'       => ->name,
+                    'class_type' => ->class_type,
+                    'students'   => ->enrollments
+                        ->where('status', 'active')
+                        ->map(fn() => ->student ? (object)[
+                            'id'   => ->student->id,
+                            'name' => ->student->user->name ?? '—',
+                        ] : null)->filter()->values(),
+                ];
+            });
 
         return view('tutor.practice.create', compact('classes'));
     }
@@ -49,6 +52,8 @@ class PracticeController extends Controller
             'estimated_duration' => 'nullable|integer|min:1',
             'deadline'           => 'nullable|date',
             'status'             => 'required|in:draft,published',
+            'class_ids'          => 'nullable|array',
+            'class_ids.*'        => 'exists:class_sessions,id',
             'student_ids'        => 'nullable|array',
             'student_ids.*'      => 'exists:students,id',
         ]);
@@ -63,11 +68,27 @@ class PracticeController extends Controller
             'status'             => $validated['status'],
         ]);
 
-        if (!empty($validated['student_ids'])) {
-            $practice->students()->attach($validated['student_ids']);
+        $studentIds = collect($validated['student_ids'] ?? []);
+
+        // Auto-assign semua student aktif untuk semi-private & group
+        if (!empty($validated['class_ids'])) {
+            $sessions = \App\Models\ClassSession::with(['enrollments' => fn($q) => $q->where('status', 'active')])
+                ->whereIn('id', $validated['class_ids'])
+                ->whereIn('class_type', ['semi-private', 'group'])
+                ->get();
+
+            foreach ($sessions as $session) {
+                $sessionStudentIds = $session->enrollments->pluck('student_id');
+                $studentIds = $studentIds->merge($sessionStudentIds);
+            }
         }
 
-        return redirect()->route('tutor.practice.create')
+        $uniqueIds = $studentIds->unique()->values()->toArray();
+        if (!empty($uniqueIds)) {
+            $practice->students()->attach($uniqueIds);
+        }
+
+        return redirect()->route('tutor.practice.index')
                          ->with('success', 'Practice berhasil disimpan.');
     }
 }
