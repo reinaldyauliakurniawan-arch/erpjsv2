@@ -17,10 +17,7 @@
             <p class="text-sm text-on-surface-variant mt-xs">{{ $journal->reference }}</p>
         </div>
 
-        @php
-            $reverseRef = 'REV-' . $journal->reference;
-            $alreadyReversed = \App\Models\Journal::where('reference', $reverseRef)->exists();
-        @endphp
+
 
         @if(!$alreadyReversed && !str_starts_with($journal->reference, 'REV-'))
         <form method="POST" action="{{ route('finance.journals.reverse', $journal) }}"
@@ -127,6 +124,3 @@
 
 </div>
 </x-app-layout>
-
-
-

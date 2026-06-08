@@ -138,6 +138,7 @@ function applyFilter() {
     if (period === 'custom') {
         from = document.getElementById('filter-from').value;
         to   = document.getElementById('filter-to').value;
+        if (!from || !to) return;
     } else {
         ({ from, to } = getPeriodRange(period));
     }

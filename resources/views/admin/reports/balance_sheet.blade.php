@@ -8,14 +8,16 @@
             <h1 class="text-xl font-semibold text-on-surface">Balance Sheet</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Posisi keuangan per tanggal tertentu</p>
         </div>
-        <button onclick="exportCSV()" class="btn btn-sm btn-ghost border border-surface-border">
-            <span class="material-symbols-outlined text-base">download</span>
-            Export CSV
-        </button>
-        <button onclick="document.getElementById('modal-saldo-awal').showModal()" class="btn btn-sm btn-ghost border border-surface-border">
-            <span class="material-symbols-outlined text-base">edit_note</span>
-            Saldo Awal
-        </button>
+        <div class="flex gap-sm">
+            <button onclick="exportCSV()" class="btn btn-sm btn-ghost border border-surface-border">
+                <span class="material-symbols-outlined text-base">download</span>
+                Export CSV
+            </button>
+            <button onclick="document.getElementById('modal-saldo-awal').showModal()" class="btn btn-sm btn-ghost border border-surface-border">
+                <span class="material-symbols-outlined text-base">edit_note</span>
+                Saldo Awal
+            </button>
+        </div>
     </div>
 
     {{-- Filter --}}

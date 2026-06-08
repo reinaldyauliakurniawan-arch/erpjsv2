@@ -96,9 +96,9 @@
                 @csrf
 
                 @php
-                    $days = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
-                    $timeBlocks = ['09:00-10:30', '10:30-12:00', '13:00-14:30', '14:30-16:00', '16:00-17:30', '18:30-20:00'];
-                    $availMap = $tutor->availability->keyBy(fn($a) => ucfirst($a->day) . '|' . $a->time_block);
+                    $days = array_map(fn($d) => $d->value, \App\Enums\DayOfWeek::cases());
+                    $timeBlocks = array_filter(array_map(fn($t) => $t->value, \App\Enums\TimeBlock::cases()), fn($v) => $v !== 'Custom');
+                    $availMap = $tutor->availability->keyBy(fn($a) => $a->day . '|' . $a->time_block);
                 @endphp
 
                 <div class="overflow-x-auto">
@@ -181,7 +181,7 @@
                 </form>
 
                 @php
-                    $customSlots = $tutor->availability->filter(fn($a) => !in_array($a->time_block, $timeBlocks));
+                    $customSlots = $tutor->availability->filter(fn($a) => !in_array($a->time_block, array_values($timeBlocks)));
                 @endphp
 
                 @if($customSlots->isEmpty())

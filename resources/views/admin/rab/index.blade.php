@@ -82,7 +82,14 @@ function updateCards() {
 function showAlert(msg, type) {
     const box = document.getElementById('alert-box');
     box.className = `alert alert-${type} alert-soft text-sm`;
-    box.innerHTML = `<span class="material-symbols-outlined">${type === 'success' ? 'check_circle' : 'error'}</span><span>${msg}</span>`;
+    const icon = document.createElement('span');
+    icon.className = 'material-symbols-outlined';
+    icon.textContent = type === 'success' ? 'check_circle' : 'error';
+    const text = document.createElement('span');
+    text.textContent = msg;
+    box.innerHTML = '';
+    box.appendChild(icon);
+    box.appendChild(text);
     box.classList.remove('hidden');
     setTimeout(() => box.classList.add('hidden'), 3500);
 }

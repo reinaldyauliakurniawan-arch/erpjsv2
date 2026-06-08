@@ -112,11 +112,9 @@
                         </div>
 
                         <div class="modal-action">
-                            <form method="dialog">
-                                <button class="btn btn-ghost">Batal</button>
-                            </form>
-                            <button type="submit" class="btn btn-error">Hapus Akun</button>
-                        </div>
+                                <button type="button" onclick="document.getElementById('modal-delete').close()" class="btn btn-ghost">Batal</button>
+                                <button type="submit" class="btn btn-error">Hapus Akun</button>
+                            </div>
                     </form>
                 </div>
                 <form method="dialog" class="modal-backdrop"><button>close</button></form>
@@ -125,6 +123,3 @@
 
     </div>
 </x-app-layout>
-
-
-

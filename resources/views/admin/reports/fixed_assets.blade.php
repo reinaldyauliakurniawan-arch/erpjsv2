@@ -27,7 +27,7 @@
                 @csrf
                 <input type="hidden" name="period" value="{{ now()->format('Y-m-d') }}">
                 <button type="submit" class="btn btn-ghost border border-surface-border gap-sm"
-                    onclick="return confirm('Generate jurnal penyusutan bulan {{ now()->format('M Y') }}?')">
+                    onclick="return confirm('Generate jurnal penyusutan bulan ' + new Date().toLocaleDateString('id-ID', {month:'long', year:'numeric'}) + '?')">
                     <span class="material-symbols-outlined text-[18px]">autorenew</span>
                     Generate Penyusutan Bulan Ini
                 </button>
@@ -355,23 +355,24 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
-function applySearch(val) {
-    window.assetTable.setFilter([
-        [
-            { field: 'name',     type: 'like', value: val },
-            { field: 'category', type: 'like', value: val },
-        ]
+function buildFilters() {
+    const showInactive = document.getElementById('show-inactive').checked;
+    const searchVal    = document.getElementById('search-asset').value;
+    const filters = [];
+    if (!showInactive) filters.push({ field: 'is_active', type: '=', value: true });
+    if (searchVal)     filters.push([
+        { field: 'name',     type: 'like', value: searchVal },
+        { field: 'category', type: 'like', value: searchVal },
     ]);
+    window.assetTable.setFilter(filters);
+}
+
+function applySearch(val) {
+    buildFilters();
 }
 
 function toggleInactive(show) {
-    if (show) {
-        window.assetTable.clearFilter();
-    } else {
-        window.assetTable.setFilter('is_active', '=', true);
-    }
-    const searchVal = document.getElementById('search-asset').value;
-    if (searchVal) applySearch(searchVal);
+    buildFilters();
 }
 
 function openEdit(id) {

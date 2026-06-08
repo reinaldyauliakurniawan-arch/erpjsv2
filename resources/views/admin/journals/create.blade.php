@@ -29,24 +29,7 @@
         <p class="text-sm text-on-surface-variant mt-xs">Entri jurnal umum — debit harus sama dengan kredit</p>
     </div>
 
-    {{-- Flash Error --}}
-    @if(session('error'))
-    <div class="alert alert-error alert-soft">
-        <span class="material-symbols-outlined">error</span>
-        <span>{{ session('error') }}</span>
-    </div>
-    @endif
 
-    @if($errors->any())
-    <div class="alert alert-error alert-soft">
-        <span class="material-symbols-outlined">error</span>
-        <ul class="list-disc list-inside text-sm">
-            @foreach($errors->all() as $e)
-                <li>{{ $e }}</li>
-            @endforeach
-        </ul>
-    </div>
-    @endif
 
     {{-- Form --}}
     <form method="POST" action="{{ route('finance.journals.store') }}"

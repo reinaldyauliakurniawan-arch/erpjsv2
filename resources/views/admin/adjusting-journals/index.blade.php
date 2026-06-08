@@ -81,7 +81,6 @@
             <div id="ajp-table"></div>
         </div>
     </div>
-    </div>
 
     {{-- Modal: Generate Otomatis --}}
     <dialog id="modal-generate" class="modal">
@@ -344,7 +343,7 @@
         window.ajpTable.setData('{{ route("finance.adjusting-journals.data") }}', {
             type, status,
             period_from: periodFrom ? periodFrom + '-01' : '',
-            period_to:   periodTo   ? periodTo   + '-28' : '',
+            period_to:   periodTo   ? periodTo   + '-31' : '',
         });
     }
 

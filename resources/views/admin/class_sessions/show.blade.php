@@ -144,7 +144,8 @@
                                 } }}">{{ $enrollment->status }}</span>
                             </td>
                             <td class="text-on-surface">{{ $enrollment->remaining_meetings }}x</td>
-                            <td class="text-right flex items-center justify-end gap-xs">
+                            <td class="text-right">
+                                <div class="flex items-center justify-end gap-xs">
                                 <a href="{{ route('admin.enrollments.show', $enrollment->id) }}"
                                     class="btn btn-ghost btn-sm gap-xs">
                                     <span class="material-symbols-outlined text-[16px]">open_in_new</span>
@@ -159,6 +160,7 @@
                                         Keluarkan
                                     </button>
                                 </form>
+                                </div>
                             </td>
                         </tr>
                         @endforeach

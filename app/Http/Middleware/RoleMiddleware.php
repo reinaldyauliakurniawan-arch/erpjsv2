@@ -7,9 +7,14 @@ class RoleMiddleware
 {
     public function handle(Request $request, Closure $next, string ...$roles): Response
     {
-        if (!$request->user() || !in_array($request->user()->role, $roles)) {
+        if (!$request->user()) {
+            return redirect()->route('login');
+        }
+
+        if (!in_array($request->user()->role, $roles)) {
             abort(403, 'Unauthorized.');
         }
+
         return $next($request);
     }
 }

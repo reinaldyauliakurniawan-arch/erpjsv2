@@ -6,10 +6,17 @@
         availableEnrollments: [],
         selectedEnrollments: [],
         schedules: [{ classroom_id: '', day: '', time_block: '', custom_time: '', is_custom: false }],
+        _fetchController: null,
         async fetchEnrollments(programId) {
             if (!programId) { this.availableEnrollments = []; return; }
-            const res = await fetch(`/admin/class-sessions/enrollments/${programId}`);
-            this.availableEnrollments = await res.json();
+            if (this._fetchController) this._fetchController.abort();
+            this._fetchController = new AbortController();
+            try {
+                const res = await fetch(`/admin/class-sessions/enrollments/${programId}`, { signal: this._fetchController.signal });
+                this.availableEnrollments = await res.json();
+            } catch (e) {
+                if (e.name !== 'AbortError') this.availableEnrollments = [];
+            }
         },
         toggleEnrollment(id) {
             const idx = this.selectedEnrollments.indexOf(id);

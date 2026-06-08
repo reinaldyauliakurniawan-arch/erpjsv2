@@ -152,6 +152,8 @@
 
     <script>
         function toggleEntry(studentId, columnId, btn) {
+            if (btn.disabled) return;
+            btn.disabled = true;
             fetch('{{ route('admin.tracker.toggle') }}', {
                 method: 'POST',
                 headers: {
@@ -162,23 +164,18 @@
             })
             .then(r => r.json())
             .then(data => {
-                const wasDone = btn.dataset.done === '1';
-
-                // Update icon & data-done
                 btn.dataset.done = data.is_done ? '1' : '0';
                 btn.innerHTML = data.is_done
                     ? '<span class="material-symbols-outlined text-secondary text-xl" style="font-variation-settings:\'FILL\' 1">check_circle</span>'
                     : '<span class="material-symbols-outlined text-on-surface-variant text-xl opacity-30">circle</span>';
 
-                // Update Alpine state di row
                 const row = btn.closest('tr');
                 const alpineData = Alpine.$data(row);
                 alpineData.done += data.is_done ? 1 : -1;
-            });
+            })
+            .catch(() => {})
+            .finally(() => { btn.disabled = false; });
         }
     </script>
 
 </x-app-layout>
-
-
-

@@ -109,7 +109,9 @@ class JournalController extends Controller
     public function show(Journal $journal)
     {
         $journal->load('items.account');
-        return view('admin.journals.show', compact('journal'));
+        $reverseRef = 'REV-' . $journal->reference;
+        $alreadyReversed = Journal::where('reference', $reverseRef)->exists();
+        return view('admin.journals.show', compact('journal', 'alreadyReversed'));
     }
 
     public function reverse(Journal $journal)
