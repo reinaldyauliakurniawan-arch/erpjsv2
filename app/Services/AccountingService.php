@@ -27,12 +27,7 @@ class AccountingService
      */
     public function createJournal(string $date, string $description, string $reference, array $items, string $type = 'general', ?int $programId = null): Journal
     {
-        // 1. Idempotency check
-        if (Journal::where('reference', $reference)->exists()) {
-            throw new IdempotencyException("Journal with reference {$reference} already exists.");
-        }
-
-        // 2. Validate balance
+        // 1. Validate balance
         $totalDebit = collect($items)->sum('debit');
         $totalCredit = collect($items)->sum('credit');
 
@@ -41,6 +36,11 @@ class AccountingService
         }
 
         return DB::transaction(function () use ($date, $description, $reference, $items, $totalDebit, $type, $programId) {
+            // 2. Idempotency check di dalam transaction untuk cegah race condition
+            if (Journal::where('reference', $reference)->lockForUpdate()->exists()) {
+                throw new IdempotencyException("Journal with reference {$reference} already exists.");
+            }
+
             $journal = Journal::create([
                 'date' => $date,
                 'description' => $description,

@@ -35,24 +35,26 @@ class EnrollmentService
             );
             if ($note) $roomNotes[] = $note;
         }
-        if (!empty($data['schedules']) && !empty($data['existing_student_id'])) {
-            foreach ($data['schedules'] as $schedule) {
-                if (empty($schedule['day']) || empty($schedule['time_block'])) continue;
+        return DB::transaction(function () use ($data, $program, $classType) {
 
-                $conflict = Schedule::whereHas('enrollment', function ($q) use ($data) {
-                    $q->where('student_id', $data['existing_student_id'])
-                      ->whereIn('status', ['active', 'waitlist']);
-                })
-                ->where('day', $schedule['day'])
-                ->where('time_block', $schedule['time_block'])
-                ->exists();
+            if (!empty($data['schedules']) && !empty($data['existing_student_id'])) {
+                foreach ($data['schedules'] as $schedule) {
+                    if (empty($schedule['day']) || empty($schedule['time_block'])) continue;
 
-                if ($conflict) {
-                    throw new DomainException("Student sudah memiliki sesi di {$schedule['day']} {$schedule['time_block']}.");
+                    $conflict = Schedule::whereHas('enrollment', function ($q) use ($data) {
+                        $q->where('student_id', $data['existing_student_id'])
+                          ->whereIn('status', ['active', 'waitlist']);
+                    })
+                    ->where('day', $schedule['day'])
+                    ->where('time_block', $schedule['time_block'])
+                    ->lockForUpdate()
+                    ->exists();
+
+                    if ($conflict) {
+                        throw new DomainException("Student sudah memiliki sesi di {$schedule['day']} {$schedule['time_block']}.");
+                    }
                 }
             }
-        }
-        return DB::transaction(function () use ($data, $program, $classType) {
 
             // Existing atau baru
             if (!empty($data['existing_student_id'])) {
@@ -254,20 +256,5 @@ if ($quotaMet && $hasTutor) {
     return "Ruangan {$classroom->name} pada {$day} {$timeBlock} sudah dipakai kelas lain namun masih tersedia.";
 }
 
-    public function withValidator($validator)
-    {
-        $validator->after(function ($validator) {
-            if ($this->payment_method === 'installment') {
-                $installments = $this->installments ?? [];
-                foreach ($installments as $i => $inst) {
-                    if (empty($inst['amount'])) {
-                        $validator->errors()->add("installments.{$i}.amount", 'Jumlah cicilan wajib diisi.');
-                    }
-                if (empty($inst['due_date'])) {
-                        $validator->errors()->add("installments.{$i}.due_date", 'Jatuh tempo wajib diisi.');
-                    }
-                }
-            }
-        });
-    }
+
 }

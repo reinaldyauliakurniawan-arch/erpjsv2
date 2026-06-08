@@ -20,7 +20,7 @@ class Attendance extends Model
 
     public function tutors()
     {
-        return $this->belongsToMany(Tutor::class, 'attendance_tutor')->withPivot('payable_amount', 'pending_rate', 'journal_id', 'is_replacement', 'replaced_tutor_id')->withTimestamps();
+        return $this->belongsToMany(Tutor::class, 'attendance_tutor')->withPivot('payable_amount', 'pending_rate', 'journal_id', 'is_replacement', 'is_team_teaching', 'replaced_tutor_id')->withTimestamps();
     }
 
     public function students()

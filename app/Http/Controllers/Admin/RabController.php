@@ -44,21 +44,23 @@ class RabController extends Controller
         $year = $request->input('year', now()->year);
 
         // Delete existing for this year, then re-insert (full replace pattern)
-        Rab::where('year', $year)->delete();
+        \Illuminate\Support\Facades\DB::transaction(function () use ($year, $request) {
+            Rab::where('year', $year)->delete();
 
-        foreach ($request->rows as $row) {
-            Rab::create([
-                'year'         => $year,
-                'division'     => $row['division'],
-                'account_name' => $row['account_name'],
-                'activity'     => $row['activity'] ?? null,
-                'account_code' => $row['account_code'] ?? null,
-                'q1'           => (int) $row['q1'],
-                'q2'           => (int) $row['q2'],
-                'q3'           => (int) $row['q3'],
-                'q4'           => (int) $row['q4'],
-            ]);
-        }
+            foreach ($request->rows as $row) {
+                Rab::create([
+                    'year'         => $year,
+                    'division'     => $row['division'],
+                    'account_name' => $row['account_name'],
+                    'activity'     => $row['activity'] ?? null,
+                    'account_code' => $row['account_code'] ?? null,
+                    'q1'           => (int) $row['q1'],
+                    'q2'           => (int) $row['q2'],
+                    'q3'           => (int) $row['q3'],
+                    'q4'           => (int) $row['q4'],
+                ]);
+            }
+        });
 
         return response()->json(['success' => true, 'message' => 'RAB berhasil disimpan.']);
     }

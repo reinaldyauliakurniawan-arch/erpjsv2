@@ -21,21 +21,21 @@ class PracticeController extends Controller
 
     public function create()
     {
-         = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
-         = \App\Models\ClassSession::with(['enrollments.student.user'])
-            ->whereHas('tutors', fn() => ->where('tutor_id', ->id))
+        $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
+        $classes = \App\Models\ClassSession::with(['enrollments.student.user'])
+            ->whereHas('tutors', fn($q) => $q->where('tutor_id', $tutor->id))
             ->where('status', 'active')
             ->get()
-            ->map(function () {
+            ->map(function ($session) {
                 return (object) [
-                    'id'         => ->id,
-                    'name'       => ->name,
-                    'class_type' => ->class_type,
-                    'students'   => ->enrollments
+                    'id'         => $session->id,
+                    'name'       => $session->name,
+                    'class_type' => $session->class_type,
+                    'students'   => $session->enrollments
                         ->where('status', 'active')
-                        ->map(fn() => ->student ? (object)[
-                            'id'   => ->student->id,
-                            'name' => ->student->user->name ?? '—',
+                        ->map(fn($e) => $e->student ? (object)[
+                            'id'   => $e->student->id,
+                            'name' => $e->student->user->name ?? '—',
                         ] : null)->filter()->values(),
                 ];
             });

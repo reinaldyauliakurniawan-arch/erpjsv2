@@ -21,7 +21,7 @@ class PayrollService
     {
         $monthKey = \Carbon\Carbon::parse($month)->startOfMonth()->toDateString();
 
-        $existing = PayrollRun::where('month', $monthKey)->first();
+        $existing = PayrollRun::where('month', $monthKey)->whereNotIn('status', ['reversed'])->first();
         if ($existing) {
             throw new DomainException("Payroll run untuk bulan ini sudah ada (status: {$existing->status}).");
         }

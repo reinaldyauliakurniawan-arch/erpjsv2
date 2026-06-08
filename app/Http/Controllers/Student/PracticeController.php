@@ -37,6 +37,8 @@ class PracticeController extends Controller
 
         $pivot = $practice->students()->where('practice_student.student_id', $student->id)->first()?->pivot;
 
+        abort_unless($pivot !== null, 403);
+
         if ($pivot && !$pivot->opened_at) {
             $practice->students()->updateExistingPivot($student->id, [
                 'opened_at' => now(),
@@ -62,6 +64,11 @@ class PracticeController extends Controller
         ]);
 
         $student = \App\Models\Student::where('user_id', Auth::id())->firstOrFail();
+
+        abort_unless(
+            $practice->students()->where('practice_student.student_id', $student->id)->exists(),
+            403
+        );
 
         $practice->students()->updateExistingPivot($student->id, [
             'reflection'        => $request->reflection,
