@@ -172,7 +172,7 @@ Route::middleware('auth')->group(function () {
         // Imports — finance
         Route::post('/imports/coa', [ImportController::class, 'importCOA'])->name('imports.coa');
         Route::post('/imports/journals', [ImportController::class, 'importJournals'])->name('imports.journals');
-        Route::get('/finance/imports', [ImportController::class, 'financeImports'])->name('finance.imports');
+        Route::get('/imports', [ImportController::class, 'financeImports'])->name('imports');
 
         Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
         Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');

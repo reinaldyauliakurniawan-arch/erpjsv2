@@ -100,6 +100,7 @@
                 <x-sidebar-link href="{{ route('finance.assets.index') }}" :active="request()->routeIs('finance.assets.*')" icon="inventory_2">Aset Tetap</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.payroll.index') }}" :active="request()->routeIs('finance.payroll.*')" icon="payments">Payroll</x-sidebar-link>
                 <x-sidebar-link href="{{ route('finance.reports.deferred-revenue') }}" :active="request()->routeIs('finance.reports.deferred-revenue')" icon="savings">Deferred Revenue</x-sidebar-link>
+                <x-sidebar-link href="{{ route('finance.imports') }}" :active="request()->routeIs('finance.imports')" icon="upload_file">Import Data</x-sidebar-link>
             </div>
 
         @elseif(Auth::user()->role === 'tutor')
@@ -228,6 +229,7 @@
                         <x-sidebar-link href="{{ route('finance.assets.index') }}" :active="request()->routeIs('finance.assets.*')" icon="inventory_2">Aset Tetap</x-sidebar-link>
                         <x-sidebar-link href="{{ route('finance.payroll.index') }}" :active="request()->routeIs('finance.payroll.*')" icon="payments">Payroll</x-sidebar-link>
                         <x-sidebar-link href="{{ route('finance.reports.deferred-revenue') }}" :active="request()->routeIs('finance.reports.deferred-revenue')" icon="savings">Deferred Revenue</x-sidebar-link>
+                        <x-sidebar-link href="{{ route('finance.imports') }}" :active="request()->routeIs('finance.imports')" icon="upload_file">Import Data</x-sidebar-link>
                     </div>
                 @elseif(Auth::user()->role === 'tutor')
                     <x-sidebar-link href="{{ route('tutor.dashboard') }}" :active="request()->routeIs('tutor.dashboard')" icon="dashboard">Dashboard</x-sidebar-link>
