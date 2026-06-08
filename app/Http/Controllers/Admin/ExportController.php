@@ -196,8 +196,8 @@ class ExportController extends Controller
             ],
             'classrooms' => [
                 'filename' => 'template_classrooms.csv',
-                'headers'  => ['name', 'capacity'],
-                'example'  => [['Ruang A', '10']],
+                'headers'  => ['name', 'capacity', 'is_at_just_speak'],
+                'example'  => [['Ruang A', '10', 'true']],
             ],
             'programs' => [
                 'filename' => 'template_programs.csv',
@@ -206,17 +206,17 @@ class ExportController extends Controller
             ],
             'tutors' => [
                 'filename' => 'template_tutors.csv',
-                'headers'  => ['name', 'email', 'persona', 'program_name', 'rate'],
+                'headers'  => ['name', 'email', 'persona', 'program_name', 'rate', 'phone', 'status'],
                 'example'  => [
-                    ['John Doe', 'john@example.com', 'S1', 'ESP Flash', '55000'],
-                    ['John Doe', 'john@example.com', 'S1', 'ESP Plus', '55000'],
-                    ['Jane Smith', 'jane@example.com', 'S2', 'ESP Flash', '60000'],
+                    ['John Doe', 'john@example.com', 'S1', 'ESP Flash', '55000', '08123456789', 'active'],
+                    ['John Doe', 'john@example.com', 'S1', 'ESP Plus', '55000', '', ''],
+                    ['Jane Smith', 'jane@example.com', 'S2', 'ESP Flash', '60000', '08987654321', 'active'],
                 ],
             ],
             'students' => [
                 'filename' => 'template_students.csv',
-                'headers'  => ['name', 'email', 'notes'],
-                'example'  => [['Budi Santoso', 'budi@example.com', 'beginner']],
+                'headers'  => ['name', 'email', 'notes', 'phone', 'education_level'],
+                'example'  => [['Budi Santoso', 'budi@example.com', 'beginner', '08123456789', 'SMA']],
             ],
             'enrollments' => [
                 'filename' => 'template_enrollments.csv',

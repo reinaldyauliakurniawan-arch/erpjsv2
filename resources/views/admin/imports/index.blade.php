@@ -24,7 +24,7 @@
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Classrooms</h4>
-                    <p class="text-body-sm text-on-surface-variant">CSV: name, capacity</p>
+                    <p class="text-body-sm text-on-surface-variant">CSV: name, capacity, is_at_just_speak</p>
                 </div>
                 <a href="{{ route('admin.exports.template', 'classrooms') }}"
                     class="btn btn-ghost btn-sm gap-xs shrink-0">
@@ -82,7 +82,7 @@
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Tutors</h4>
-                    <p class="text-body-sm text-on-surface-variant">CSV: name, email, persona</p>
+                    <p class="text-body-sm text-on-surface-variant">CSV: name, email, persona, program_name, rate, phone, status</p>
                 </div>
                 <a href="{{ route('admin.exports.template', 'tutors') }}"
                     class="btn btn-ghost btn-sm gap-xs shrink-0">
@@ -111,7 +111,7 @@
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Students</h4>
-                    <p class="text-body-sm text-on-surface-variant">CSV: name, email, notes</p>
+                    <p class="text-body-sm text-on-surface-variant">CSV: name, email, notes, phone, education_level</p>
                 </div>
                 <a href="{{ route('admin.exports.template', 'students') }}"
                     class="btn btn-ghost btn-sm gap-xs shrink-0">

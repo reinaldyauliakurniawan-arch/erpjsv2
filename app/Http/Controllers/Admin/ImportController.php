@@ -70,9 +70,10 @@ class ImportController extends Controller
             if ($index === 0) continue;
             if (empty($row[0])) continue;
             $capacity = isset($row[1]) && is_numeric($row[1]) && (int) $row[1] > 0 ? (int) $row[1] : 1;
+            $isAtJustSpeak = isset($row[2]) ? filter_var(trim($row[2]), FILTER_VALIDATE_BOOLEAN) : true;
             Classroom::updateOrCreate(
                 ['name' => trim($row[0])],
-                ['capacity' => $capacity]
+                ['capacity' => $capacity, 'is_at_just_speak' => $isAtJustSpeak]
             );
         }
         return back()->with('success', 'Classrooms imported successfully.');
@@ -118,11 +119,14 @@ class ImportController extends Controller
             if (!isset($tutorCache[$email])) {
                 $user = User::firstOrCreate(
                     ['email' => $email],
-                    ['name' => trim($row[0]), 'password' => Hash::make('password123'), 'role' => 'tutor']
+                    ['name' => trim($row[0]), 'password' => Hash::make('password123'), 'role' => 'tutor', 'phone' => trim($row[5] ?? '') ?: null]
                 );
                 $tutor = Tutor::updateOrCreate(
                     ['user_id' => $user->id],
-                    ['persona' => trim($row[2] ?? '')]
+                    [
+                        'persona' => trim($row[2] ?? ''),
+                        'status'  => trim($row[6] ?? '') ?: 'active',
+                    ]
                 );
                 $tutorCache[$email] = $tutor->id;
             }
@@ -154,9 +158,17 @@ class ImportController extends Controller
             if (count($row) < 2) continue;
             $user = User::firstOrCreate(
                 ['email' => $row[1]],
-                ['name' => $row[0], 'password' => Hash::make('password123'), 'role' => 'student']
+                ['name' => $row[0], 'password' => Hash::make('password123'), 'role' => 'student', 'phone' => trim($row[3] ?? '') ?: null]
             );
-            Student::updateOrCreate(['user_id' => $user->id], ['notes' => $row[2] ?? null]);
+            $validLevels = ['SD', 'SMP', 'SMA', 'Kuliah', 'Umum'];
+            $level = trim($row[4] ?? '');
+            Student::updateOrCreate(
+                ['user_id' => $user->id],
+                [
+                    'notes'           => trim($row[2] ?? '') ?: null,
+                    'education_level' => in_array($level, $validLevels) ? $level : null,
+                ]
+            );
         }
         return back()->with('success', 'Students imported successfully.');
     }
