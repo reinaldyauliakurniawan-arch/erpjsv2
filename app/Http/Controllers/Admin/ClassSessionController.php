@@ -158,7 +158,7 @@ class ClassSessionController extends Controller
             ->with('error', 'Class session tidak bisa dihapus karena masih ada siswa aktif.');
     }
 
-    $hasPaidAttendance = \App\Models\DB::table('attendance_tutor')
+    $hasPaidAttendance = \Illuminate\Support\Facades\DB::table('attendance_tutor')
         ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
         ->where('attendance.class_session_id', $id)
         ->whereNotNull('attendance_tutor.paid_at')

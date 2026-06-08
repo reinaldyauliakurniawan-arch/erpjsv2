@@ -59,7 +59,7 @@ class RabRealisasiController extends Controller
                 ->get();
 
             foreach ($qRows as $row) {
-                $val = $row->type === 'Expense' ? $row->total_debit : $row->total_credit;
+                $val = $row->type === 'Expense' ? ($row->total_debit - $row->total_credit) : ($row->total_credit - $row->total_debit);
                 $realisasiQ[$row->account_code]["q{$q}"] = $val;
             }
         }
@@ -70,7 +70,7 @@ class RabRealisasiController extends Controller
             $real = $key ? $realisasi->get($key) : null;
             $realVal = 0;
             if ($real) {
-                $realVal = $real->type === 'Expense' ? $real->total_debit : $real->total_credit;
+                $realVal = $real->type === 'Expense' ? ($real->total_debit - $real->total_credit) : ($real->total_credit - $real->total_debit);
             }
 
             $rq1 = $realisasiQ[$key]['q1'] ?? 0;

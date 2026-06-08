@@ -236,7 +236,7 @@ class FinanceController extends Controller
             'payable_amount' => 'required|numeric|min:1',
         ]);
 
-        $row = DB::table('attendance_tutor')->where('id', $attendanceTutorId)->first();
+        $row = DB::table('attendance_tutor')->where('id', $attendanceTutorId)->lockForUpdate()->first();
 
         if (!$row || !$row->pending_rate) {
             return back()->with('error', 'Rate sudah di-assign sebelumnya.');

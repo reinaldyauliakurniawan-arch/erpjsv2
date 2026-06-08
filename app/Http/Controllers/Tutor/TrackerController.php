@@ -35,7 +35,7 @@ class TrackerController extends Controller
                 // Practices assigned ke student ini
                 $assignedPractices = $practices->map(function ($practice) use ($student, $period) {
                     $pivot = $practice->students
-                        ->firstWhere('id', $student->user_id);
+                        ->firstWhere('id', $student->id);
 
                     if (!$pivot) return null;
 

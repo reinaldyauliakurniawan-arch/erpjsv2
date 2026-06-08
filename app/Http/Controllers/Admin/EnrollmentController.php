@@ -145,32 +145,31 @@ public function eligibleSessions(Request $request)
         ->where('status', 'active')
         ->whereHas('schedules', fn($q) => $q->where('day', $day)->where('time_block', $timeBlock))
         ->get()
-        ->each(function () {
-            ->_active_count = ->enrollments()->whereIn('status', ['active', 'waitlist'])->count();
-            ->_finished     = \App\Models\Attendance::where('class_session_id', ->id)->distinct('date')->count('date');
-        })
-        ->filter(function () use () {
-             = ->schedules->first();
-             = ?->classroom?->capacity ?? 999;
-            if (->_active_count >= ) return false;
+        ->map(function ($session) use ($day, $timeBlock) {
+            $activeCount = $session->enrollments()->whereIn('status', ['active', 'waitlist'])->count();
+            $finished    = \App\Models\Attendance::where('class_session_id', $session->id)->distinct('date')->count('date');
+            $schedule    = $session->schedules->first();
+            $capacity    = $schedule?->classroom?->capacity ?? 999;
 
-             = \App\Models\Program::find();
-            return ->_finished <= 8;
+            if ($activeCount >= $capacity) return null;
+            if ($finished > 8) return null;
+
+            return [
+                'id'                => $session->id,
+                'name'              => $session->name,
+                'day'               => $day,
+                'time_block'        => $timeBlock,
+                'classroom'         => $schedule?->classroom?->name,
+                'capacity'          => $schedule?->classroom?->capacity,
+                'enrolled_count'    => $activeCount,
+                'finished_meetings' => $finished,
+                'tutors'            => $session->tutors->map(fn($t) => [
+                    'id'   => $t->id,
+                    'name' => $t->user->name,
+                ]),
+            ];
         })
-        ->map(fn() => [
-            'id'               => ->id,
-            'name'             => ->name,
-            'day'              => ,
-            'time_block'       => ,
-            'classroom'        => ->schedules->first()?->classroom?->name,
-            'capacity'         => ->schedules->first()?->classroom?->capacity,
-            'enrolled_count'   => ->_active_count,
-            'finished_meetings'=> ->_finished,
-            'tutors'           => ->tutors->map(fn() => [
-                'id'   => ->id,
-                'name' => ->user->name,
-            ]),
-        ])
+        ->filter()
         ->values();
 
     return response()->json($sessions);

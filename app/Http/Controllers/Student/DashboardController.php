@@ -48,6 +48,7 @@ class DashboardController extends Controller
                 'enrollments.id as enrollment_id',
             )
             ->orderByDesc('attendance.date')
+            ->limit(50)
             ->get();
 
         // Next session per enrollment

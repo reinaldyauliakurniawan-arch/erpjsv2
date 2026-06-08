@@ -9,6 +9,8 @@ return new class extends Migration
     public function up(): void
 {
     Schema::table('attendance', function (Blueprint $table) {
+        $table->dropForeign(['enrollment_id']);
+        $table->dropColumn('enrollment_id');
         $table->foreignId('class_session_id')->nullable()->constrained()->onDelete('cascade');
     });
 }

@@ -53,6 +53,13 @@ public function withValidator($validator)
         if ($this->input('payment_method') === 'full upfront' && empty($this->input('total_amount'))) {
             $validator->errors()->add('total_amount', 'Total amount wajib diisi untuk pembayaran full upfront.');
         }
+
+        if ($this->input('payment_method') === 'installment' && !empty($this->input('installments')) && !empty($this->input('total_amount'))) {
+            $installmentSum = collect($this->input('installments'))->sum('amount');
+            if (abs($installmentSum - (float) $this->input('total_amount')) > 1) {
+                $validator->errors()->add('installments', 'Total cicilan (Rp ' . number_format($installmentSum) . ') harus sama dengan total harga (Rp ' . number_format($this->input('total_amount')) . ').');
+            }
+        }
     });
 }
 }

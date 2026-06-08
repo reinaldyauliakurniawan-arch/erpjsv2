@@ -13,7 +13,7 @@ class PracticeController extends Controller
     public function index()
     {
         $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
-        $practices = Practice::where('tutor_id', Auth::id())
+        $practices = Practice::where('tutor_id', $tutor->id)
             ->orderByDesc('created_at')
             ->get();
         return view('tutor.practice.index', compact('practices'));
@@ -58,8 +58,9 @@ class PracticeController extends Controller
             'student_ids.*'      => 'exists:students,id',
         ]);
 
+        $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
         $practice = Practice::create([
-            'tutor_id'           => Auth::id(),
+            'tutor_id'           => $tutor->id,
             'title'              => $validated['title'],
             'description'        => $validated['description'] ?? null,
             'external_link'      => $validated['external_link'] ?? null,

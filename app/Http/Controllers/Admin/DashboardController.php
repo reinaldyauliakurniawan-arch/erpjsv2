@@ -111,6 +111,7 @@ class DashboardController extends Controller
         $unpaidInstallments = Installment::with(['enrollment.student.user', 'enrollment.program'])
             ->whereNull('paid_at')
             ->orderBy('due_date')
+            ->limit(50)
             ->get();
 
         // ── Insight ───────────────────────────────────────────

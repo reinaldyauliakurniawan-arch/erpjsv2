@@ -87,10 +87,11 @@ class CheckExpirations extends Command
 
             if ($remainingDeferred > 0) {
                 try {
+                    \Illuminate\Support\Facades\DB::transaction(function () use ($e, $remainingDeferred, $today) {
                     $this->accountingService->createJournal(
                         $today->format('Y-m-d'),
                         "Auto Revenue Recognition on Expiry: Student {$e->student->user->name}",
-                        "AUTO-EXPIRY-{$e->id}",
+                        "MANUAL-EXPIRY-{$e->id}",
                         [
                             ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $remainingDeferred, 'credit' => 0],
                             ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $remainingDeferred],
@@ -120,6 +121,11 @@ class CheckExpirations extends Command
                         }
                     }
                     $this->info("Expired enrollment #{$e->id}: recognized sisa IDR " . number_format($remainingDeferred));
+                    }); // end DB::transaction
+                } catch (\App\Exceptions\IdempotencyException $ex) {
+                    // Jurnal sudah ada (dari manual expire) — tetap update status enrollment
+                    $e->update(['status' => 'expired', 'remaining_meetings' => 0]);
+                    $this->warn("Enrollment #{$e->id}: jurnal sudah ada, status diupdate.");
                 } catch (\Exception $ex) {
                     $this->error("Failed to recognize revenue for enrollment #{$e->id}: " . $ex->getMessage());
                 }

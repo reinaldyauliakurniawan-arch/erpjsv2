@@ -40,13 +40,19 @@ class AttendanceController extends Controller
             $query->whereHas('classSession.program', fn($q) => $q->where('type', $request->program_type));
         }
 
-        $attendances = $query->get();
-
-        $duplicateKeys = $attendances
-            ->groupBy(fn($a) => $a->date . '|' . $a->time_block . '|' . $a->class_session_id)
-            ->filter(fn($g) => $g->count() > 1)
-            ->keys()
+        // Deteksi duplikat via SQL, tidak perlu load semua data
+        $duplicateKeys = (clone $query)
+            ->selectRaw('CONCAT(date, "|", time_block, "|", class_session_id) as dup_key')
+            ->groupByRaw('date, time_block, class_session_id')
+            ->havingRaw('COUNT(*) > 1')
+            ->pluck('dup_key')
             ->toArray();
+
+        $page      = max(1, (int) $request->input('page', 1));
+        $size      = (int) $request->input('size', 50);
+        $attendances = $query->paginate($size, ['*'], 'page', $page);
+        $totalPages = $attendances->lastPage();
+        $attendances = $attendances->getCollection();
 
         $today = Carbon::today()->toDateString();
 
@@ -116,8 +122,9 @@ $replacements = $att->tutors
         ];
 
         return response()->json([
-            'rows'    => $rows,
-            'summary' => $summary,
+            'rows'      => $rows,
+            'summary'   => $summary,
+            'last_page' => $totalPages,
         ]);
     }
 
@@ -143,7 +150,11 @@ $replacements = $att->tutors
     public function destroy(int $id)
     {
         $attendance = Attendance::findOrFail($id);
-        $this->attendanceService->reverseAttendance($attendance);
+        try {
+            $this->attendanceService->reverseAttendance($attendance);
+        } catch (\App\Exceptions\DomainException $e) {
+            return redirect()->route('admin.attendance.index')->withErrors(['error' => $e->getMessage()]);
+        }
 
         return redirect()->route('admin.attendance.index')->with('success', 'Attendance deleted.');
     }
