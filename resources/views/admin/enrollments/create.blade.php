@@ -388,9 +388,6 @@
                         {{-- Group / Semi-private --}}
                         <div x-show="(selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !sessionLoading" x-cloak>
                             <input type="hidden" name="class_session_id" :value="selectedSessionId">
-                            <input type="hidden" name="schedules[0][day]" :value="selectedDay">
-                            <input type="hidden" name="schedules[0][time_block]" :value="selectedTimeBlock">
-                            <input type="hidden" name="schedules[0][classroom_id]" :value="selectedSession?.classroom_id ?? ''">
 
                             <div x-show="eligibleSessions.length === 0 && !sessionLoading"
                                 class="p-sm bg-surface-container-low border border-surface-border rounded-lg text-body-sm text-on-surface-variant mb-md">

@@ -135,7 +135,7 @@
                 <div id="custom-block" class="hidden">
                     <div class="fieldset">
                         <label class="fieldset-legend">Custom Time Block</label>
-                        <input type="text" id="custom-input" class="input w-full"
+                        <input type="text" id="custom-input" name="time_block_custom" class="input w-full"
                             placeholder="cth: 11:30-13:00">
                     </div>
                 </div>
@@ -159,11 +159,6 @@ document.addEventListener('DOMContentLoaded', function () {
     const timeBlockSelect = document.querySelector('select[name="time_block"]');
     const customBlock = document.getElementById('custom-block');
     const customInput = document.getElementById('custom-input');
-
-    const hiddenTimeBlock = document.createElement('input');
-    hiddenTimeBlock.type = 'hidden';
-    hiddenTimeBlock.name = 'time_block_custom';
-    timeBlockSelect.closest('form').appendChild(hiddenTimeBlock);
 
     timeBlockSelect.addEventListener('change', function() {
         if (this.value === 'custom') {

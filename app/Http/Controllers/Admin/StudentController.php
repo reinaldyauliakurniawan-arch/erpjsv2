@@ -159,8 +159,10 @@ public function data(Request $request)
             ->exists();
 
         if ($hasActiveEnrollment) {
-            return redirect()->route('admin.students.index')
-                ->with('error', 'Student tidak bisa dihapus karena masih memiliki enrollment aktif. Expire atau graduate enrollment terlebih dahulu.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Student tidak bisa dihapus karena masih memiliki enrollment aktif. Expire atau graduate enrollment terlebih dahulu.',
+            ], 422);
         }
 
         $hasJournal = \App\Models\Journal::whereIn(
@@ -169,8 +171,10 @@ public function data(Request $request)
         )->exists();
 
         if ($hasJournal) {
-            return redirect()->route('admin.students.index')
-                ->with('error', 'Student tidak bisa dihapus karena memiliki riwayat jurnal pembayaran.');
+            return response()->json([
+                'success' => false,
+                'message' => 'Student tidak bisa dihapus karena memiliki riwayat jurnal pembayaran.',
+            ], 422);
         }
 
         $user = $student->user;
@@ -178,6 +182,6 @@ public function data(Request $request)
         $student->delete();
         $user->delete();
 
-        return redirect()->route('admin.students.index')->with('success', 'Student berhasil dihapus.');
+        return response()->json(['success' => true]);
     }
 }

@@ -143,10 +143,10 @@ function guardSlot(dateStr, timeBlock, callback) {
                             <td class="py-sm">
                                 @php
                                     $todayDate = now()->toDateString();
-                                    $alreadySkipped = $slot->roomBookings()
+                                    $alreadySkipped = $slot->roomBookings
                                         ->where('type', 'regular_skip')
-                                        ->whereDate('date', $todayDate)
-                                        ->exists();
+                                        ->filter(fn($b) => \Carbon\Carbon::parse($b->date)->toDateString() === $todayDate)
+                                        ->isNotEmpty();
                                 @endphp
                                 @if(!$alreadySkipped)
                                 <button type="button"
@@ -157,7 +157,9 @@ function guardSlot(dateStr, timeBlock, callback) {
                                 </button>
                                 @else
                                 @php
-                                    $skipBooking = $slot->roomBookings()->where('type','regular_skip')->whereDate('date',$todayDate)->first();
+                                    $skipBooking = $slot->roomBookings
+                                        ->where('type', 'regular_skip')
+                                        ->first(fn($b) => \Carbon\Carbon::parse($b->date)->toDateString() === $todayDate);
                                 @endphp
                                 <div class="text-xs text-yellow-600 font-semibold">
                                     Skipped

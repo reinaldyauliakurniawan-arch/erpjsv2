@@ -26,7 +26,7 @@ class ScheduleController extends Controller
         });
 
         // Jadwal milik tutor ini
-        $mySchedules = Schedule::with(['classroom', 'classSession.enrollments.student.user', 'classSession.program'])
+        $mySchedules = Schedule::with(['classroom', 'classSession.enrollments.student.user', 'classSession.program', 'roomBookings'])
             ->whereHas('classSession.tutors', fn($q) => $q->where('tutor_id', $tutor->id))
             ->orderBy('day')
             ->orderBy('time_block')

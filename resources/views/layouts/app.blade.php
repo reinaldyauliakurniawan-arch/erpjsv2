@@ -8,9 +8,10 @@
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     @php
-        $color_primary   = App\Models\Setting::get('color_primary', '#065f46');
-        $color_secondary = App\Models\Setting::get('color_secondary', '#059669');
-        $color_sidebar   = App\Models\Setting::get('color_sidebar', '#111827');
+        $_settings       = App\Models\Setting::whereIn('key', ['color_primary','color_secondary','color_sidebar'])->pluck('value','key');
+        $color_primary   = $_settings->get('color_primary', '#065f46');
+        $color_secondary = $_settings->get('color_secondary', '#059669');
+        $color_sidebar   = $_settings->get('color_sidebar', '#111827');
     @endphp
     <style>
         :root {
@@ -43,10 +44,10 @@
 
     <div class="px-lg pt-xl pb-lg" style="border-bottom:1px solid rgba(255,255,255,.08)">
         <a href="{{
-            auth()->user()->role === 'cfo' ? route('finance.index') :
-            (auth()->user()->role === 'tutor' ? route('tutor.dashboard') :
+            auth()->user()->role === 'cfo'     ? route('finance.index') :
+            (auth()->user()->role === 'tutor'   ? route('tutor.dashboard') :
             (auth()->user()->role === 'student' ? route('student.dashboard') :
-            route('admin.dashboard')))
+            (auth()->user()->role === 'admin'   ? route('admin.dashboard') : '/')))
         }}">
             <img src="{{ asset('images/logo.png') }}" alt="Just Speak" style="height:40px;display:block;">
         </a>
@@ -169,10 +170,10 @@
             <div class="flex justify-between items-center mb-lg">
                 <div>
                     <a href="{{
-                        auth()->user()->role === 'cfo' ? route('finance.index') :
-                        (auth()->user()->role === 'tutor' ? route('tutor.dashboard') :
+                        auth()->user()->role === 'cfo'     ? route('finance.index') :
+                        (auth()->user()->role === 'tutor'   ? route('tutor.dashboard') :
                         (auth()->user()->role === 'student' ? route('student.dashboard') :
-                        route('admin.dashboard')))
+                        (auth()->user()->role === 'admin'   ? route('admin.dashboard') : '/')))
                     }}">
                         <img src="{{ asset('images/logo.png') }}" alt="Just Speak" style="height:32px;display:block;">
                     </a>

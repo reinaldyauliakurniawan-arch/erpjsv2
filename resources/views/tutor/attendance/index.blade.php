@@ -94,7 +94,7 @@
                      x-transition style="display:none;"
                      class="border-t border-surface-border p-lg space-y-md bg-surface-container-low">
 
-                    <template x-for="(session, idx) in cls.sessions.slice(0, 5)" :key="session.id">
+                    <template x-for="(session, idx) in cls.sessions.slice(0, cls.visibleCount)" :key="session.id">
                         <div class="bg-surface-container-lowest border border-surface-border rounded-lg p-md">
                             <div class="flex items-center justify-between mb-sm">
                                 <div class="flex items-center gap-sm">
@@ -120,10 +120,10 @@
                         </div>
                     </template>
 
-                    <div x-show="cls.sessions.length > 5" class="text-center">
+                    <div x-show="cls.sessions.length > cls.visibleCount" class="text-center">
                         <button @click="loadMoreSessions(cls.class_session_id)"
                                 class="btn btn-ghost btn-sm text-on-surface-variant">
-                            <span x-show="!cls.loadingMore">Tampilkan <span x-text="Math.min(5, cls.sessions.length - 5)"></span> sesi lagi</span>
+                            <span x-show="!cls.loadingMore">Tampilkan <span x-text="Math.min(5, cls.sessions.length - cls.visibleCount)"></span> sesi lagi</span>
                             <span x-show="cls.loadingMore" class="material-symbols-outlined text-base animate-spin">progress_activity</span>
                         </button>
                     </div>
@@ -168,18 +168,14 @@
                 <p class="text-body-sm text-on-surface" x-text="sessionModal.notes || 'Tidak ada catatan'"></p>
             </div>
 
-            <div>
-                <span class="badge badge-soft badge-success text-body-sm"
-                    Kehadiran (<span x-text="sessionModal.presentStudents.length"></span>/<span x-text="sessionModal.totalStudents"></span> siswa)
+            <div class="flex items-center gap-sm p-sm bg-surface-container-low border border-surface-border rounded-lg">
+                <span class="material-symbols-outlined text-secondary text-[20px]">group</span>
+                <p class="text-body-md text-on-surface">
+                    <span class="font-bold" x-text="sessionModal.presentCount"></span>
+                    <span class="text-on-surface-variant"> / </span>
+                    <span class="font-bold" x-text="sessionModal.totalStudents"></span>
+                    <span class="text-on-surface-variant"> siswa hadir</span>
                 </p>
-                <div class="flex flex-wrap gap-xs">
-                    <template x-for="student in sessionModal.presentStudents" :key="student">
-                        <span class="badge badge-soft badge-success text-xs" x-text="student"></span>
-                    </template>
-                    <template x-for="student in sessionModal.absentStudents" :key="student">
-                        <span class="badge badge-soft badge-error text-body-sm" x-text="student"></span>
-                    </template>
-                </div>
             </div>
         </div>
 
@@ -416,23 +412,7 @@ function attendancePage() {
             submitting:       false,
         },
 
-        expandedClasses: [],
-        groupedClasses: [],
-        sessionModal: {
-            open: false,
-            program: '',
-            sessionNumber: '',
-            date: '',
-            mode: '',
-            modeLabel: '',
-            tutor: '',
-            notes: '',
-            totalStudents: 0,
-            presentStudents: [],
-            absentStudents: [],
-        },
-
-                init() {
+        init() {
             this.fetchData();
         },
 
@@ -612,6 +592,7 @@ function attendancePage() {
                 ...c,
                 avgAttendance: c.totalStudents > 0 ? Math.round((c.hadirSum / c.totalStudents) * 100) : 0,
                 loadingMore: false,
+                visibleCount: 5,
             }));
         },
 
@@ -622,6 +603,9 @@ function attendancePage() {
         },
 
         openSessionModal(session) {
+            const hadirParts = String(session.hadir || '0/0').split('/');
+            const presentCount = parseInt(hadirParts[0]) || 0;
+            const totalCount   = parseInt(hadirParts[1]) || 0;
             this.sessionModal = {
                 open: true,
                 program: session.program,
@@ -631,9 +615,8 @@ function attendancePage() {
                 modeLabel: session.mode === 'replacement' ? 'Replacement' : session.mode === 'team_teaching' ? 'Team Teaching' : 'Kelas Sendiri',
                 tutor: session.tutor || 'Anda',
                 notes: session.notes || '',
-                totalStudents: 10,
-                presentStudents: [],
-                absentStudents: [],
+                presentCount: presentCount,
+                totalStudents: totalCount,
             };
             const cls = this.groupedClasses.find(c => c.class_session_id === session.class_session_id);
             if (cls) {
@@ -648,10 +631,12 @@ function attendancePage() {
 
         loadMoreSessions(classSessionId) {
             const cls = this.groupedClasses.find(c => c.class_session_id === classSessionId);
-            if (cls) cls.loadingMore = true;
+            if (!cls) return;
+            cls.loadingMore = true;
             setTimeout(() => {
-                if (cls) cls.loadingMore = false;
-            }, 300);
+                cls.visibleCount += 5;
+                cls.loadingMore = false;
+            }, 150);
         },
 
 

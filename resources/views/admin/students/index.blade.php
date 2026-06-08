@@ -316,14 +316,17 @@
             },
 
             confirmDelete(id, name) {
-                if (confirm('Hapus student ' + name + '?')) {
-                    const form = document.createElement('form');
-                    form.method = 'POST';
-                    form.action = '/admin/students/' + id;
-                    form.innerHTML = '<input type="hidden" name="_token" value="{{ csrf_token() }}"><input type="hidden" name="_method" value="DELETE">';
-                    document.body.appendChild(form);
-                    form.submit();
-                }
+                if (!confirm('Hapus student ' + name + '? Data tidak bisa dikembalikan.')) return;
+                fetch('/admin/students/' + id, {
+                    method: 'DELETE',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                        'Accept': 'application/json',
+                    }
+                }).then(r => r.json()).then(data => {
+                    if (data.success) this.fetchData();
+                    else alert(data.message ?? 'Gagal menghapus student.');
+                }).catch(() => alert('Terjadi kesalahan. Coba lagi.'));
             },
 
             init() {

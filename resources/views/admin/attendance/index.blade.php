@@ -281,6 +281,10 @@
 
             // Fetch
             async fetchData() {
+                if (this.period === 'custom' && (!this.dateFrom || !this.dateTo)) {
+                    alert('Silakan isi tanggal mulai dan tanggal akhir terlebih dahulu.');
+                    return;
+                }
                 this.loading = true;
                 try {
                     const { from, to } = this.resolveDates();
