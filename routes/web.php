@@ -208,6 +208,8 @@ Route::middleware('auth')->group(function () {
         Route::get('practice', [App\Http\Controllers\Tutor\PracticeController::class, 'index'])->name('practice.index');
         Route::get('practice/create', [App\Http\Controllers\Tutor\PracticeController::class, 'create'])->name('practice.create');
         Route::post('practice', [App\Http\Controllers\Tutor\PracticeController::class, 'store'])->name('practice.store');
+        Route::get('practice/{practice}/edit', [App\Http\Controllers\Tutor\PracticeController::class, 'edit'])->name('practice.edit');
+        Route::put('practice/{practice}', [App\Http\Controllers\Tutor\PracticeController::class, 'update'])->name('practice.update');
         Route::get('tracker', [App\Http\Controllers\Tutor\TrackerController::class, 'index'])->name('tracker.index');
     });
 

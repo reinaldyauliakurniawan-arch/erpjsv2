@@ -96,6 +96,7 @@ class AttendanceController extends Controller
                 'payable'          => $pivot?->payable_amount ?? 0,
                 'pending_rate'     => $pivot?->pending_rate ?? false,
                 'paid_at'          => $pivot?->paid_at,
+                'notes'            => $att->notes,
             ];
         });
 

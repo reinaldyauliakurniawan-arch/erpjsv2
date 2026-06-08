@@ -28,6 +28,12 @@
         <span>{{ session('error') }}</span>
     </div>
     @endif
+    @if($errors->any())
+    <div class="alert alert-error alert-soft">
+        <span class="material-symbols-outlined">error</span>
+        <span>{{ $errors->first() }}</span>
+    </div>
+    @endif
 
     {{-- Legend --}}
     <div class="flex items-center gap-md text-xs text-on-surface-variant">

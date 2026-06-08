@@ -33,9 +33,12 @@ class TrackerController extends Controller
                 if (!$student) return null;
 
                 // Practices assigned ke student ini
-                $assignedPractices = $practices->map(function ($practice) use ($student, $period) {
+                $seenPracticeIds = [];
+                $assignedPractices = $practices->map(function ($practice) use ($student, $period, &$seenPracticeIds) {
+                    if (in_array($practice->id, $seenPracticeIds)) return null;
                     $pivot = $practice->students
                         ->firstWhere('id', $student->id);
+                    if ($pivot) $seenPracticeIds[] = $practice->id;
 
                     if (!$pivot) return null;
 

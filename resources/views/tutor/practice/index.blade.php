@@ -18,9 +18,16 @@
                 {{ $practice->deadline ? 'Deadline: '.$practice->deadline->format('d M Y') : 'Tanpa deadline' }}
             </p>
         </div>
-        <span class="badge badge-soft {{ $practice->status === 'published' ? 'badge-success' : 'badge-ghost' }} text-xs">
-            {{ ucfirst($practice->status) }}
-        </span>
+        <div class="flex items-center gap-sm">
+            <span class="badge badge-soft {{ $practice->status === 'published' ? 'badge-success' : 'badge-ghost' }} text-xs">
+                {{ ucfirst($practice->status) }}
+            </span>
+            @if($practice->status === 'draft')
+            <a href="{{ route('tutor.practice.edit', $practice->id) }}" class="btn btn-ghost btn-xs">
+                <span class="material-symbols-outlined text-base">edit</span> Edit
+            </a>
+            @endif
+        </div>
     </div>
     @empty
     <div class="text-center text-on-surface-variant py-xl">

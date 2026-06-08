@@ -449,7 +449,11 @@ function attendancePage() {
         },
 
         searchSessions() {
-            if (this.modal.query.length === 0 && this.modal.mode !== 'own') { this.modal.results = []; return; }
+            if (this.modal.query.length === 0 && this.modal.mode === 'replacement') {
+                // replacement: load semua kelas aktif tanpa filter
+            } else if (this.modal.query.length === 0 && this.modal.mode !== 'own') {
+                this.modal.results = []; return;
+            }
             this.modal.searching = true;
             fetch(`{{ route('tutor.attendance.search-sessions') }}?q=${encodeURIComponent(this.modal.query)}&mode=${this.modal.mode}`)
                 .then(r => r.json())

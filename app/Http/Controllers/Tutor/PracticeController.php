@@ -92,4 +92,48 @@ class PracticeController extends Controller
         return redirect()->route('tutor.practice.index')
                          ->with('success', 'Practice berhasil disimpan.');
     }
+
+    public function edit(Practice $practice)
+    {
+        if ($practice->tutor_id !== Auth::id()) {
+            abort(403);
+        }
+        $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
+        $classes = \App\Models\ClassSession::with(['enrollments.student.user'])
+            ->whereHas('tutors', fn($q) => $q->where('tutor_id', $tutor->id))
+            ->where('status', 'active')
+            ->get()
+            ->map(function ($session) {
+                return (object) [
+                    'id'         => $session->id,
+                    'name'       => $session->name,
+                    'class_type' => $session->class_type,
+                    'students'   => $session->enrollments
+                        ->where('status', 'active')
+                        ->map(fn($e) => $e->student ? (object)[
+                            'id'   => $e->student->id,
+                            'name' => $e->student->user->name ?? '—',
+                        ] : null)->filter()->values(),
+                ];
+            });
+        return view('tutor.practice.edit', compact('practice', 'classes'));
+    }
+
+    public function update(Request $request, Practice $practice)
+    {
+        if ($practice->tutor_id !== Auth::id()) {
+            abort(403);
+        }
+        $validated = $request->validate([
+            'title'              => 'required|string|max:255',
+            'description'        => 'nullable|string',
+            'external_link'      => 'nullable|url',
+            'estimated_duration' => 'nullable|integer|min:1',
+            'deadline'           => 'nullable|date',
+            'status'             => 'required|in:draft,published',
+        ]);
+        $practice->update($validated);
+        return redirect()->route('tutor.practice.index')
+                         ->with('success', 'Practice berhasil diperbarui.');
+    }
 }
