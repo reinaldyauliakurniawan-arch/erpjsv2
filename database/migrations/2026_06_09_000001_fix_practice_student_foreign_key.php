@@ -9,6 +9,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('practice_student', function (Blueprint $table) {
+            $table->dropForeign(['student_id']);
             $table->foreign('student_id')->references('id')->on('students')->cascadeOnDelete();
         });
     }
