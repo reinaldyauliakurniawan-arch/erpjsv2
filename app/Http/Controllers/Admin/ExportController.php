@@ -220,7 +220,7 @@ class ExportController extends Controller
             ],
             'enrollments' => [
                 'filename' => 'template_enrollments.csv',
-                'headers'  => ['student_email', 'program_name', 'class_session_name', 'enrollment_date', 'expiry_date', 'payment_method', 'payment_channel', 'total_amount', 'payment_status', 'status', 'remaining_meetings'],
+                'headers'  => ['student_email', 'program_name', 'class_session_name', 'enrollment_date', 'expiry_date', 'payment_method [full upfront/installment]', 'payment_channel [cash/bank]', 'total_amount', 'payment_status [pending/partial/full]', 'status [active/graduate/expired/cancelled/waitlist]', 'remaining_meetings'],
                 'example'  => [['budi@example.com', 'ESP Flash', 'ESP Flash Batch 1', '2024-01-01', '2024-06-01', 'full upfront', 'cash', '1500000', 'full', 'active', '12']],
             ],
             'installments' => [
@@ -231,12 +231,12 @@ class ExportController extends Controller
             'schedules' => [
                 'filename' => 'template_schedules.csv',
                 'headers'  => ['student_email', 'program_name', 'classroom_name', 'day', 'time_block', 'class_session_name'],
-                'example'  => [['budi@example.com', 'ESP Flash', 'Room A', 'Monday', '09.00-10.30', '']],
+                'example'  => [['budi@example.com', 'ESP Flash', 'Room A', 'Senin', '09:00-10:30', '']],
             ],
             'tutor_availability' => [
                 'filename' => 'template_tutor_availability.csv',
                 'headers'  => ['tutor_email', 'day', 'time_block', 'status'],
-                'example'  => [['john@example.com', 'Monday', '09.00-10.30', 'available']],
+                'example'  => [['john@example.com', 'Senin', '09:00-10:30', 'available']],
             ],
             'class_sessions' => [
                 'filename' => 'template_class_sessions.csv',
@@ -250,8 +250,8 @@ class ExportController extends Controller
             ],
             'fixed_assets' => [
                 'filename' => 'template_fixed_assets.csv',
-                'headers'  => ['name', 'category', 'acquired_at', 'cost', 'salvage_value', 'useful_life', 'depreciation_method', 'notes', 'expense_account_code', 'accumulated_account_code', 'is_active'],
-                'example'  => [['Laptop Dell', 'Electronics', '2024-01-01', '15000000', '1000000', '4', 'straight_line', '', '6001', '1601', '1']],
+                'headers'  => ['name', 'category', 'acquired_at', 'cost', 'salvage_value', 'useful_life_in_months', 'depreciation_method', 'notes', 'expense_account_code', 'accumulated_account_code', 'is_active'],
+                'example'  => [['Laptop Dell', 'Electronics', '2024-01-01', '15000000', '1000000', '48', 'straight_line', '', '6001', '1601', '1']],
             ],
             'tracker_columns' => [
                 'filename' => 'template_tracker_columns.csv',

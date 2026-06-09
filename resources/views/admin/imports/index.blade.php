@@ -16,6 +16,12 @@
                 <span>{{ session('error') }}</span>
             </div>
         @endif
+        @if(session('warning'))
+            <div role="alert" class="alert alert-warning alert-soft">
+                <span class="material-symbols-outlined">warning</span>
+                <span>{{ session('warning') }}</span>
+            </div>
+        @endif
 
         <h3 class="text-headline-lg font-semibold text-on-surface">Imports & Exports</h3>
 
@@ -139,7 +145,7 @@
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Enrollments</h4>
-            <p class="text-body-sm text-on-surface-variant">CSV: student_email, program_name, class_session_name, enrollment_date, expiry_date, payment_method, payment_channel (cash/bank), total_amount, payment_status, status, remaining_meetings</p>
+            <p class="text-body-sm text-on-surface-variant">CSV: student_email, program_name, class_session_name, enrollment_date, expiry_date, payment_method (full upfront/installment), payment_channel (cash/bank), total_amount, payment_status (pending/partial/full), status (active/graduate/expired/cancelled/waitlist), remaining_meetings</p>
         </div>
         <a href="{{ route('admin.exports.template', 'enrollments') }}" class="btn btn-ghost btn-sm gap-xs shrink-0">
             <span class="material-symbols-outlined text-[16px]">download</span>Template
@@ -277,7 +283,7 @@
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Fixed Assets</h4>
-            <p class="text-body-sm text-on-surface-variant">CSV: name, category, acquired_at, cost, salvage_value, useful_life, depreciation_method, notes, expense_account_code, accumulated_account_code, is_active</p>
+            <p class="text-body-sm text-on-surface-variant">CSV: name, category, acquired_at, cost, salvage_value, useful_life_in_months, depreciation_method, notes, expense_account_code, accumulated_account_code, is_active</p>
         </div>
         <a href="{{ route('admin.exports.template', 'fixed_assets') }}" class="btn btn-ghost btn-sm gap-xs shrink-0">
             <span class="material-symbols-outlined text-[16px]">download</span>Template

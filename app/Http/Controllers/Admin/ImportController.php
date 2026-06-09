@@ -66,17 +66,22 @@ class ImportController extends Controller
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
+        $imported = 0; $errors = [];
         foreach ($data as $index => $row) {
             if ($index === 0) continue;
-            if (empty($row[0])) continue;
+            if (empty($row[0])) { $errors[] = "Row {$index}: kolom name kosong."; continue; }
+            if (isset($row[1]) && !is_numeric($row[1])) { $errors[] = "Row {$index}: capacity harus angka, dapat '{$row[1]}'."; continue; }
             $capacity = isset($row[1]) && is_numeric($row[1]) && (int) $row[1] > 0 ? (int) $row[1] : 1;
             $isAtJustSpeak = isset($row[2]) ? filter_var(trim($row[2]), FILTER_VALIDATE_BOOLEAN) : true;
             Classroom::updateOrCreate(
                 ['name' => trim($row[0])],
                 ['capacity' => $capacity, 'is_at_just_speak' => $isAtJustSpeak]
             );
+            $imported++;
         }
-        return back()->with('success', 'Classrooms imported successfully.');
+        $msg = "Imported: {$imported} classrooms.";
+        if ($errors) $msg .= ' Errors: ' . implode(' | ', $errors);
+        return back()->with($errors ? 'error' : 'success', $msg);
     }
 
     public function importPrograms(Request $request)
@@ -84,21 +89,28 @@ class ImportController extends Controller
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
+        $imported = 0; $errors = [];
         foreach ($data as $index => $row) {
             if ($index === 0) continue;
-            if (count($row) < 4) continue;
-            if (!in_array(trim($row[1]), ['private', 'semi-private', 'group'])) continue;
+            if (count($row) < 4) { $errors[] = "Row {$index}: kurang dari 4 kolom."; continue; }
+            if (empty($row[0])) { $errors[] = "Row {$index}: kolom name kosong."; continue; }
+            if (!in_array(trim($row[1]), ['private', 'semi-private', 'group'])) { $errors[] = "Row {$index}: type '{$row[1]}' tidak valid, harus private / semi-private / group."; continue; }
+            if (!is_numeric($row[2])) { $errors[] = "Row {$index}: price harus angka, dapat '{$row[2]}'."; continue; }
+            if (!is_numeric($row[3])) { $errors[] = "Row {$index}: total_meetings harus angka, dapat '{$row[3]}'."; continue; }
             Program::updateOrCreate(
-                ['name' => $row[0]],
+                ['name' => trim($row[0])],
                 [
-                    'type'           => $row[1],
+                    'type'           => trim($row[1]),
                     'price'          => (float) $row[2],
                     'total_meetings' => (int) $row[3],
                     'min_quota'      => isset($row[4]) && is_numeric($row[4]) ? (int) $row[4] : 1,
                 ]
             );
+            $imported++;
         }
-        return back()->with('success', 'Programs imported successfully.');
+        $msg = "Imported: {$imported} programs.";
+        if ($errors) $msg .= ' Errors: ' . implode(' | ', $errors);
+        return back()->with($errors ? 'error' : 'success', $msg);
     }
 
     public function importTutors(Request $request)
@@ -106,17 +118,20 @@ class ImportController extends Controller
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
-
-        $tutorCache = [];
+        $tutorCache = []; $imported = 0; $errors = [];
 
         foreach ($data as $index => $row) {
             if ($index === 0) continue;
-            if (count($row) < 3) continue;
-            if (empty($row[0]) || empty($row[1])) continue;
+            if (count($row) < 3) { $errors[] = "Row {$index}: kurang dari 3 kolom."; continue; }
+            if (empty($row[0])) { $errors[] = "Row {$index}: kolom name kosong."; continue; }
+            if (empty($row[1])) { $errors[] = "Row {$index}: kolom email kosong."; continue; }
 
             $email = trim($row[1]);
 
             if (!isset($tutorCache[$email])) {
+                if (User::where('email', $email)->where('role', 'student')->exists()) {
+                    $errors[] = "Row {$index}: email '{$email}' sudah terdaftar sebagai student, dilewati."; continue;
+                }
                 $user = User::firstOrCreate(
                     ['email' => $email],
                     ['name' => trim($row[0]), 'password' => Hash::make('password123'), 'role' => 'tutor', 'phone' => trim($row[5] ?? '') ?: null]
@@ -129,6 +144,7 @@ class ImportController extends Controller
                     ]
                 );
                 $tutorCache[$email] = $tutor->id;
+                $imported++;
             }
 
             $programName = trim($row[3] ?? '');
@@ -141,11 +157,17 @@ class ImportController extends Controller
                         ['tutor_id' => $tutorCache[$email], 'program_id' => $program->id],
                         ['rate' => (float) $rate]
                     );
+                } else {
+                    $errors[] = "Row {$index}: program '{$programName}' tidak ditemukan, rate tidak disimpan.";
                 }
+            } elseif ($programName !== '' && !is_numeric($rate)) {
+                $errors[] = "Row {$index}: rate '{$rate}' bukan angka untuk program '{$programName}'.";
             }
         }
 
-        return back()->with('success', 'Tutors imported successfully.');
+        $msg = "Imported: {$imported} tutors.";
+        if ($errors) $msg .= ' Errors: ' . implode(' | ', $errors);
+        return back()->with($errors ? 'error' : 'success', $msg);
     }
 
     public function importStudents(Request $request)
@@ -153,24 +175,37 @@ class ImportController extends Controller
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
+        $imported = 0; $errors = [];
+        $validLevels = ['SD', 'SMP', 'SMA', 'Kuliah', 'Umum'];
         foreach ($data as $index => $row) {
             if ($index === 0) continue;
-            if (count($row) < 2) continue;
-            $user = User::firstOrCreate(
-                ['email' => $row[1]],
-                ['name' => $row[0], 'password' => Hash::make('password123'), 'role' => 'student', 'phone' => trim($row[3] ?? '') ?: null]
-            );
-            $validLevels = ['SD', 'SMP', 'SMA', 'Kuliah', 'Umum'];
+            if (count($row) < 2) { $errors[] = "Row {$index}: kurang dari 2 kolom."; continue; }
+            if (empty($row[0])) { $errors[] = "Row {$index}: kolom name kosong."; continue; }
+            if (empty($row[1])) { $errors[] = "Row {$index}: kolom email kosong."; continue; }
             $level = trim($row[4] ?? '');
+            if ($level !== '' && !in_array($level, $validLevels)) {
+                $errors[] = "Row {$index}: education_level '{$level}' tidak valid, harus SD / SMP / SMA / Kuliah / Umum. Baris tetap diimport dengan education_level kosong.";
+                $level = '';
+            }
+            if (User::where('email', trim($row[1]))->whereIn('role', ['admin', 'tutor'])->exists()) {
+                $errors[] = "Row {$index}: email '{$row[1]}' sudah terdaftar sebagai admin atau tutor, dilewati."; continue;
+            }
+            $user = User::firstOrCreate(
+                ['email' => trim($row[1])],
+                ['name' => trim($row[0]), 'password' => Hash::make('password123'), 'role' => 'student', 'phone' => trim($row[3] ?? '') ?: null]
+            );
             Student::updateOrCreate(
                 ['user_id' => $user->id],
                 [
                     'notes'           => trim($row[2] ?? '') ?: null,
-                    'education_level' => in_array($level, $validLevels) ? $level : null,
+                    'education_level' => $level !== '' ? $level : null,
                 ]
             );
+            $imported++;
         }
-        return back()->with('success', 'Students imported successfully.');
+        $msg = "Imported: {$imported} students.";
+        if ($errors) $msg .= ' Errors: ' . implode(' | ', $errors);
+        return back()->with($errors ? 'error' : 'success', $msg);
     }
 
     public function importEnrollments(Request $request)
@@ -193,6 +228,24 @@ class ImportController extends Controller
 
             $classSession = $classSessionName ? ClassSession::where('name', trim($classSessionName))->first() : null;
 
+            $validPaymentMethods  = ['full upfront', 'installment'];
+            $validPaymentChannels = ['cash', 'bank'];
+            $validStatuses        = ['active', 'graduate', 'expired', 'cancelled', 'waitlist'];
+            $validPaymentStatuses = ['pending', 'partial', 'full'];
+
+            if (!in_array(trim($paymentMethod), $validPaymentMethods)) {
+                $errors[] = "Row {$index}: payment_method '{$paymentMethod}' tidak valid, harus: " . implode(' / ', $validPaymentMethods) . '.'; continue;
+            }
+            if (trim($paymentChannel) !== '' && !in_array(trim($paymentChannel), $validPaymentChannels)) {
+                $errors[] = "Row {$index}: payment_channel '{$paymentChannel}' tidak valid, harus: " . implode(' / ', $validPaymentChannels) . '.'; continue;
+            }
+            if (!in_array(trim($status), $validStatuses)) {
+                $errors[] = "Row {$index}: status '{$status}' tidak valid, harus: " . implode(' / ', $validStatuses) . '.'; continue;
+            }
+            if (!in_array(trim($paymentStatus), $validPaymentStatuses)) {
+                $errors[] = "Row {$index}: payment_status '{$paymentStatus}' tidak valid, harus: " . implode(' / ', $validPaymentStatuses) . '.'; continue;
+            }
+
             Enrollment::updateOrCreate(
                 ['student_id' => $student->id, 'program_id' => $program->id, 'enrollment_date' => trim($enrollmentDate)],
                 [
@@ -209,9 +262,11 @@ class ImportController extends Controller
             $imported++;
         }
 
-        $msg = "Imported: {$imported} enrollments. Catatan: jurnal akuntansi tidak dibuat otomatis via import — gunakan import jurnal terpisah untuk mencatat pembayaran historis.";
+        $msg = "Imported: {$imported} enrollments.";
         if ($errors) $msg .= ' Errors: ' . implode(' | ', $errors);
-        return back()->with($errors ? 'error' : 'success', $msg);
+        return back()
+            ->with($errors ? 'error' : 'success', $msg)
+            ->with('warning', '⚠️ Jurnal akuntansi tidak dibuat otomatis via import. Gunakan fitur import jurnal terpisah untuk mencatat pembayaran historis agar laporan keuangan akurat.');
     }
 
     public function importInstallments(Request $request)
