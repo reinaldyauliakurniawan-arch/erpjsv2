@@ -12,7 +12,6 @@ class PracticeController extends Controller
 {
     public function index()
     {
-        $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
         $practices = Practice::where('tutor_id', Auth::id())
             ->orderByDesc('created_at')
             ->get();

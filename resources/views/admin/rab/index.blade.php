@@ -108,6 +108,7 @@ async function saveAll() {
     const rows = window.rabTable.getData().map(r => ({
         division:     r.division,
         account_name: (() => { const a = ACCOUNTS.find(x => x.code === r.account_code); return a ? a.name : (r.account_name || ''); })(),
+        account_code: r.account_code || null,
         activity:     r.activity,
         q1: parseInt(r.q1)||0,
         q2: parseInt(r.q2)||0,

@@ -678,12 +678,11 @@ function attendancePage() {
 function reverseAttendance(id) {
     if (!confirm('Reverse absensi ini? Semua tutor yang terlibat akan ikut di-reverse.')) return;
     fetch(`/tutor/attendance/${id}`, {
-        method: 'POST',
+        method: 'DELETE',
         headers: {
             'Content-Type': 'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
             'Accept': 'application/json',
-            'X-HTTP-Method-Override': 'DELETE',
         },
     })
     .then(r => r.json())
