@@ -15,7 +15,7 @@
         <div class="bg-primary-container rounded-lg p-lg relative overflow-hidden" style="min-height:160px;display:flex;flex-direction:column;justify-content:space-between;">
             <div style="position:relative;z-index:1;">
                 <p class="text-xs text-on-primary/70 uppercase tracking-widest font-semibold">Belum Dibayar</p>
-                <p class="text-on-primary font-bold mt-sm" style="font-size:2.25rem;">Rp {{ number_format($unpaidTotal, 0, ',', '.') }}</p>
+                <p class="text-on-primary font-bold mt-sm" style="font-size:var(--text-headline-lg);">Rp {{ number_format($unpaidTotal, 0, ',', '.') }}</p>
                 <p class="text-xs text-on-primary/60 mt-xs">Menunggu pembayaran dari admin</p>
                 @if($pendingRateCount > 0)
                 <p class="text-xs text-on-primary/60 mt-xs">⚠️ {{ $pendingRateCount }} sesi belum ada rate — fee akan muncul setelah admin konfirmasi</p>
@@ -38,7 +38,7 @@
         <div class="bg-surface-container-lowest border border-surface-border rounded-lg p-lg relative overflow-hidden" style="min-height:160px;display:flex;flex-direction:column;justify-content:space-between;">
             <div style="position:relative;z-index:1;">
                 <p class="text-xs text-on-surface-variant uppercase tracking-widest font-semibold">Dibayar Bulan Ini</p>
-                <p class="text-success font-bold mt-sm" style="font-size:2.25rem;">Rp {{ number_format($paidThisMonth, 0, ',', '.') }}</p>
+                <p class="text-success font-bold mt-sm" style="font-size:var(--text-headline-lg);">Rp {{ number_format($paidThisMonth, 0, ',', '.') }}</p>
                 <p class="text-xs text-on-surface-variant mt-xs">{{ now()->translatedFormat('F Y') }}</p>
             </div>
             <div class="flex items-center gap-xs mt-md" style="position:relative;z-index:1;">

@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap");
 @import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0&display=swap");
 
 @import "tailwindcss";
@@ -39,42 +39,91 @@
    at runtime through the layout's :root block).
    ════════════════════════════════════════════════════════════════════ */
 @theme {
-    /* Typography */
+    /* Typography — Golden Ratio scale (φ = 1.618), base = 1rem (16px).
+       All sizes are in rem so they scale with the user's browser font-size
+       preference (true responsiveness). Display & headline tokens use
+       clamp() so they also auto-shrink on small viewports.
+
+       Scale (relative to base 1rem):
+         display-lg   ×1.618⁴  = 6.854rem   (~109.66px)
+         display-md   ×1.618³  = 4.236rem   (~67.78px)
+         headline-lg  ×1.618²  = 2.618rem   (~41.89px)
+         headline-md  ×1.618¹  = 1.618rem   (~25.89px)
+         body-lg      BASE     = 1rem       (16px)
+         body-md      ÷1.618   = 0.75rem    (12px, floored from 0.618rem for readability)
+         label-lg     ÷1.618²  = 0.6875rem  (11px, floored from 0.382rem for readability)
+         label-sm     ÷1.618³  = 0.625rem   (10px, readability floor)
+
+       Pure ÷1.618 below base would produce 9.89px → 6.11px → 3.78px which
+       is unreadable. The floor of 0.625rem (10px) is the WCAG-aligned
+       minimum for non-body text. */
     --font-sans: "Montserrat", ui-sans-serif, system-ui, sans-serif;
     --default-font-family: "Montserrat", ui-sans-serif, system-ui, sans-serif;
 
-    --text-display-lg: 67.77px;
+    /* Per Brand Guide: Montserrat is the ONLY text font in the app.
+       `font-mono` utility (used for codes, time blocks, money) maps to
+       Montserrat too — there is no monospace font in this design system.
+       Centralized here so we don't have to touch the 30+ blade views that
+       already use `font-mono` for code/account/money alignment. */
+    --font-mono: "Montserrat", ui-monospace, monospace;
+
+    --text-display-lg: clamp(2.5rem, 5vw + 1rem, 6.854rem);
     --text-display-lg--line-height: 1.2;
     --text-display-lg--letter-spacing: -0.02em;
 
-    --text-display-md: 41.89px;
+    --text-display-md: clamp(2rem, 4vw + 0.5rem, 4.236rem);
     --text-display-md--line-height: 1.2;
     --text-display-md--letter-spacing: -0.01em;
 
-    --text-headline-lg: 25.89px;
+    --text-headline-lg: clamp(1.5rem, 3vw + 0.5rem, 2.618rem);
     --text-headline-lg--line-height: 1.3;
 
-    --text-headline-lg-mobile: 21px;
-    --text-headline-lg-mobile--line-height: 1.3;
-
-    --text-headline-md: 16px;
+    --text-headline-md: clamp(1.25rem, 2vw + 0.25rem, 1.618rem);
     --text-headline-md--line-height: 1.4;
 
-    --text-body-lg: 16px;
+    --text-body-lg: 1rem;
     --text-body-lg--line-height: 1.6;
 
-    --text-body-md: 13px;
+    --text-body-md: 0.75rem;
     --text-body-md--line-height: 1.6;
 
-    --text-label-lg: 11px;
+    --text-label-lg: 0.6875rem;
     --text-label-lg--line-height: 1.2;
     --text-label-lg--letter-spacing: 0.05em;
 
     /* Compact label — used in dense tables & inline badges.
-       One step smaller than label-lg, still tokenized. */
-    --text-label-sm: 10px;
+       Readability floor at 0.625rem (10px). */
+    --text-label-sm: 0.625rem;
     --text-label-sm--line-height: 1.2;
     --text-label-sm--letter-spacing: 0.04em;
+
+    /* ── Override Tailwind's default text-* utility scale so the 350+ existing
+       `text-xs/sm/base/lg/xl/2xl/3xl/4xl/5xl` usages in views automatically
+       follow the golden-ratio scale too. Centralized — one change cascades
+       to every view that uses Tailwind text utilities.
+
+       Mapping (Tailwind name → golden-ratio rem value):
+         text-xs     0.625rem  (10px)  — was 0.75rem
+         text-sm     0.6875rem (11px)  — was 0.875rem
+         text-base   1rem      (16px)  — same as body-lg (BASE)
+         text-lg     1.618rem  (25.89) — was 1.125rem
+         text-xl     2.618rem  (41.89) — was 1.25rem
+         text-2xl    4.236rem  (67.78) — was 1.5rem
+         text-3xl    4.236rem  (67.78) — was 1.875rem (alias of 2xl, capped)
+         text-4xl    6.854rem  (109.66) — was 2.25rem
+         text-5xl    6.854rem  (109.66) — was 3rem (alias of 4xl, capped)
+
+       Larger Tailwind tokens (text-6xl, text-7xl, text-8xl, text-9xl) are
+       left at their defaults since they're rarely used in this app. */
+    --text-xs:   0.625rem;   --text-xs--line-height:   1.2;
+    --text-sm:   0.6875rem;  --text-sm--line-height:   1.4;
+    --text-base: 1rem;       --text-base--line-height: 1.6;
+    --text-lg:   1.618rem;   --text-lg--line-height:   1.4;
+    --text-xl:   2.618rem;   --text-xl--line-height:   1.3;
+    --text-2xl:  4.236rem;   --text-2xl--line-height:  1.2;
+    --text-3xl:  4.236rem;   --text-3xl--line-height:  1.2;
+    --text-4xl:  6.854rem;   --text-4xl--line-height:  1.1;
+    --text-5xl:  6.854rem;   --text-5xl--line-height:  1.1;
 
     /* Spacing scale */
     --spacing-xs: 4px;
@@ -516,7 +565,7 @@
 }
 
 .sidebar-link .material-symbols-outlined {
-    font-size: 18px;
+    font-size: 1.125rem;
 }
 
 /* Special variant for the logout button — danger color on hover */
@@ -565,7 +614,7 @@
     align-items: center;
     justify-content: center;
     font-weight: 700;
-    font-size: 14px;
+    font-size: 0.875rem;
     color: var(--color-on-secondary);
     background-color: var(--color-secondary);
 }
@@ -695,7 +744,7 @@
 
 .glass-label {
     color: rgba(255, 255, 255, 0.9) !important;
-    font-size: 0.875rem;
+    font-size: var(--text-body-md);
     font-weight: 500;
 }
 
@@ -704,7 +753,7 @@
 }
 
 .guest-brand h1 {
-    font-size: 2rem;
+    font-size: var(--text-headline-lg);
     font-weight: 800;
     color: #fff;
     letter-spacing: -0.02em;
@@ -712,7 +761,7 @@
 
 .guest-brand p {
     color: rgba(255, 255, 255, 0.75);
-    font-size: 0.9rem;
+    font-size: var(--text-body-md);
     margin-top: 0.25rem;
 }
 
@@ -724,13 +773,13 @@
 
 .guest-error-text {
     color: rgba(255, 200, 200, 0.9);
-    font-size: 0.8rem;
+    font-size: var(--text-body-md);
 }
 
 .guest-forgot-link,
 .guest-link {
     color: rgba(255, 255, 255, 0.7);
-    font-size: 0.875rem;
+    font-size: var(--text-body-md);
 }
 
 .guest-forgot-link:hover,
@@ -741,7 +790,7 @@
 
 .guest-info-text {
     color: rgba(255, 255, 255, 0.8);
-    font-size: 0.875rem;
+    font-size: var(--text-body-md);
     margin-bottom: 1.25rem;
     line-height: 1.6;
 }
@@ -752,7 +801,7 @@
     padding: 0.75rem 1rem;
     margin-bottom: 1rem;
     color: #fff;
-    font-size: 0.875rem;
+    font-size: var(--text-body-md);
 }
 
 .guest-ghost-btn {
@@ -895,10 +944,10 @@
     flex-shrink: 0;
 }
 
-.app-avatar--xs { width: 20px; height: 20px; font-size: 10px; }
-.app-avatar--sm { width: 32px; height: 32px; font-size: 12px; }
-.app-avatar--md { width: 36px; height: 36px; font-size: 14px; }
-.app-avatar--lg { width: 48px; height: 48px; font-size: 18px; }
+.app-avatar--xs { width: 1.25rem; height: 1.25rem; font-size: 0.625rem; }
+.app-avatar--sm { width: 2rem; height: 2rem; font-size: 0.75rem; }
+.app-avatar--md { width: 2.25rem; height: 2.25rem; font-size: 0.875rem; }
+.app-avatar--lg { width: 3rem; height: 3rem; font-size: 1.125rem; }
 
 /* ── Page Header (title + subtitle) ───────────────────────────────── */
 .app-page-header {
@@ -1066,7 +1115,7 @@
     border-top: 1px solid var(--color-surface-border);
     border-radius: 0 0 var(--radius-lg) var(--radius-lg);
     padding: var(--spacing-sm) var(--spacing-md);
-    font-size: 12px;
+    font-size: var(--text-body-md);
     color: var(--color-on-surface-variant);
 }
 
