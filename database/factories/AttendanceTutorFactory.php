@@ -10,11 +10,33 @@ class AttendanceTutorFactory extends Factory
     {
         return [
             'attendance_id' => \App\Models\Attendance::factory(),
-            'tutor_id' => \App\Models\Tutor::factory(),
+            'tutor_id'      => \App\Models\Tutor::factory(),
             'payable_amount' => fake()->numberBetween(50000, 500000),
-            'pending_rate' => fake()->numberBetween(50000, 200000),
-            'journal_id' => null,
-            'paid_at' => null,
+            // Bug fix: pending_rate must be boolean false by default.
+            // PayrollService approves only attendances where pending_rate = false.
+            // Previously this was set to a random int, breaking all payroll tests.
+            'pending_rate'  => false,
+            'journal_id'    => null,
+            'paid_at'       => null,
+            'is_replacement' => false,
+            'replaced_tutor_id' => null,
+            'is_team_teaching' => false,
         ];
+    }
+
+    /**
+     * Mark this attendance-tutor row as having a pending rate (excluded from payroll).
+     */
+    public function pendingRate(): static
+    {
+        return $this->state(fn () => ['pending_rate' => true]);
+    }
+
+    /**
+     * Mark this attendance-tutor row as already paid (excluded from payroll).
+     */
+    public function paid(): static
+    {
+        return $this->state(fn () => ['paid_at' => now()]);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Tests\Unit\Services;
 
+use App\Enums\AccountCode;
 use App\Enums\PaymentStatus;
 use App\Exceptions\DomainException;
 use App\Models\Account;
@@ -72,6 +73,7 @@ class EnrollmentServiceTest extends TestCase
             'enrollment_date' => '2025-01-10',
             'expiry_date'     => '2025-06-10',
             'payment_method'  => 'full upfront',
+            'payment_channel' => 'cash',
             'new_student'     => [
                 'name'  => 'Andi Pratama',
                 'email' => 'andi@example.com',
@@ -102,7 +104,9 @@ class EnrollmentServiceTest extends TestCase
         $this->assertDatabaseHas('enrollments', [
             'id'                 => $enrollment->id,
             'status'             => 'active',
-            'payment_status'     => PaymentStatus::PENDING->value,
+            // Bug fix: 'full upfront' payment sets payment_status to FULL, not PENDING.
+            // Service logic: payment_method === 'full upfront' ? PaymentStatus::FULL : PaymentStatus::PARTIAL
+            'payment_status'     => PaymentStatus::FULL->value,
             'remaining_meetings' => 8,
         ]);
     }
@@ -328,5 +332,120 @@ class EnrollmentServiceTest extends TestCase
         $enrollment = $this->service->enroll($data);
 
         $this->assertCount(2, $enrollment->schedules);
+    }
+
+    // =========================================================
+    //  EDGE CASES — existing student reuse, tutor availability, payment channel
+    // =========================================================
+
+    #[Test]
+    public function it_reuses_existing_student_when_existing_student_id_provided()
+    {
+        $program = $this->makePrivateProgram();
+        $student = \App\Models\Student::factory()->create();
+
+        $data = $this->baseData($program, [
+            'existing_student_id' => $student->id,
+        ]);
+        unset($data['new_student']);
+
+        $enrollment = $this->service->enroll($data);
+
+        $this->assertEquals($student->id, $enrollment->student_id);
+        // No new user should be created with email 'andi@example.com'
+        $this->assertDatabaseMissing('users', ['email' => 'andi@example.com']);
+    }
+
+    #[Test]
+    public function it_marks_tutor_availability_as_occupied_when_enrolled_with_schedule()
+    {
+        $program     = $this->makePrivateProgram();
+        $tutor       = Tutor::factory()->withUser()->create();
+        $classroom   = $this->makeClassroom();
+        $availability = \App\Models\TutorAvailability::factory()->create([
+            'tutor_id'   => $tutor->id,
+            'day'        => 'Friday',
+            'time_block' => '09:00-10:30',
+            'status'     => 'available',
+        ]);
+
+        $data = $this->baseData($program, [
+            'tutor_ids' => [$tutor->id],
+            'schedules' => [
+                ['classroom_id' => $classroom->id, 'day' => 'Friday', 'time_block' => '09:00-10:30'],
+            ],
+        ]);
+
+        $this->service->enroll($data);
+
+        $this->assertEquals('occupied', $availability->fresh()->status);
+    }
+
+    #[Test]
+    public function it_creates_journal_with_bank_account_when_payment_channel_is_bank()
+    {
+        $program = $this->makePrivateProgram(['price' => 1_000_000]);
+        Account::factory()->create(['code' => AccountCode::BANK->value, 'name' => 'Bank']);
+
+        $data = $this->baseData($program, [
+            'payment_channel' => 'bank',
+        ]);
+
+        $this->service->enroll($data);
+
+        // Journal should exist with total 1_000_000
+        $this->assertDatabaseHas('journals', ['total_amount' => 1_000_000]);
+
+        // Bank account should have a debit entry
+        $bankAccount = Account::where('code', AccountCode::BANK->value)->first();
+        $this->assertDatabaseHas('journal_items', [
+            'account_id' => $bankAccount->id,
+            'debit'      => 1_000_000,
+        ]);
+    }
+
+    #[Test]
+    public function it_throws_when_class_session_does_not_belong_to_program()
+    {
+        $this->expectException(\Illuminate\Database\Eloquent\ModelNotFoundException::class);
+
+        $program      = $this->makeGroupProgram();
+        $otherProgram = $this->makeGroupProgram();
+        $classroom    = $this->makeClassroom();
+        $session      = ClassSession::factory()->create([
+            'program_id' => $otherProgram->id, // belongs to a different program
+            'status'     => 'active',
+        ]);
+
+        $data = $this->baseData($program, [
+            'class_session_id' => $session->id,
+            'schedules' => [
+                ['classroom_id' => $classroom->id, 'day' => 'Tuesday', 'time_block' => '10:00-11:30'],
+            ],
+        ]);
+
+        $this->service->enroll($data);
+    }
+
+    #[Test]
+    public function it_attaches_multiple_tutors_to_class_session_for_private_program()
+    {
+        $program = $this->makePrivateProgram();
+        $tutor1  = Tutor::factory()->withUser()->create();
+        $tutor2  = Tutor::factory()->withUser()->create();
+
+        $enrollment = $this->service->enroll(array_merge(
+            $this->baseData($program),
+            ['tutor_ids' => [$tutor1->id, $tutor2->id]]
+        ));
+
+        $this->assertDatabaseHas('enrollment_tutor', [
+            'enrollment_id' => $enrollment->id,
+            'tutor_id'      => $tutor1->id,
+        ]);
+        $this->assertDatabaseHas('enrollment_tutor', [
+            'enrollment_id' => $enrollment->id,
+            'tutor_id'      => $tutor2->id,
+        ]);
     }
 }
