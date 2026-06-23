@@ -425,11 +425,11 @@
                                 const d = cell.getData();
                                 const cn = d.class_name.replace(/'/g, "\\'");
                                 return `<div class="flex items-center justify-end gap-xs">
-                                    <button onclick="openEditModal(${d.id},'${d.status}','${cn}','${d.date_label}')"
+                                    <button type="button" onclick="openEditModal(${d.id},'${d.status}','${cn}','${d.date_label}')"
                                         class="btn btn-ghost btn-sm text-on-surface-variant hover:text-secondary" title="Edit">
                                         <span class="material-symbols-outlined text-[18px]">edit</span>
                                     </button>
-                                    <button onclick="openDeleteModal(${d.id},'${cn}','${d.date_label}')"
+                                    <button type="button" onclick="openDeleteModal(${d.id},'${cn}','${d.date_label}')"
                                         class="btn btn-ghost btn-sm text-error" title="Hapus">
                                         <span class="material-symbols-outlined text-[18px]">delete</span>
                                     </button>

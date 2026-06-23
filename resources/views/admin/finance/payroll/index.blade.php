@@ -8,7 +8,7 @@
             <h1 class="text-xl font-semibold text-on-surface">Payroll</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Generate dan approve pembayaran tutor per bulan</p>
         </div>
-        <button onclick="document.getElementById('modal-create').showModal()"
+        <button type="button" onclick="document.getElementById('modal-create').showModal()"
             class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
             <span class="material-symbols-outlined text-base">add</span>
             Buat Payroll Run

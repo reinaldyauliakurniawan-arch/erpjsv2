@@ -8,7 +8,7 @@
             <h1 class="text-xl font-semibold text-on-surface">Profit & Loss</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Pendapatan dan beban dalam periode tertentu</p>
         </div>
-        <button onclick="exportCSV()" class="btn btn-sm btn-ghost border border-surface-border">
+        <button type="button" onclick="exportCSV()" class="btn btn-sm btn-ghost border border-surface-border">
             <span class="material-symbols-outlined text-base">download</span>
             Export CSV
         </button>

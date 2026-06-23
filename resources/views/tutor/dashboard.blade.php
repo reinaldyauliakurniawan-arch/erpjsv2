@@ -92,9 +92,9 @@
         {{-- Sidebar --}}
         <div style="display:flex;flex-direction:column;gap:1rem;">
 
-            {{-- Rate Pending --}}
+            {{-- Rate Pending — brand-aligned amber tint (rgb(180,83,9) = --color-warning #b45309) --}}
             @if($pendingRateCount > 0)
-            <div class="border border-warning/30 rounded-lg p-lg" style="background:rgba(234,179,8,0.08);">
+            <div class="border border-warning/30 rounded-lg p-lg" style="background:rgba(180,83,9,0.08);">
                 <div class="flex items-center gap-sm">
                     <span class="material-symbols-outlined text-warning">warning</span>
                     <div>

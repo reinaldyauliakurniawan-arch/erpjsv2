@@ -8,7 +8,7 @@
             <h1 class="text-xl font-semibold text-on-surface">Availabilitas</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Atur slot waktu yang bisa dijadwalkan admin</p>
         </div>
-        <button onclick="document.getElementById('modal-add').showModal()"
+        <button type="button" onclick="document.getElementById('modal-add').showModal()"
             class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
             <span class="material-symbols-outlined text-base">add</span>
             Tambah Slot
@@ -84,7 +84,7 @@
                                 onsubmit="return confirm('Hapus slot ini?')">
                                 @csrf
                                 @method('DELETE')
-                                <button type="submit" class="btn btn-ghost btn-xs text-error p-0">
+                                <button aria-label="Tutup" type="submit" class="btn btn-ghost btn-xs text-error p-0">
                                     <span class="material-symbols-outlined text-base">close</span>
                                 </button>
                             </form>

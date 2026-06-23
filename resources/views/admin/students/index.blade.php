@@ -168,7 +168,7 @@
                 <div class="flex items-center justify-between px-lg py-md border-t border-surface-border bg-surface-container-low">
                     <span class="text-body-sm text-on-surface-variant" x-text="'Halaman ' + page + ' dari ' + lastPage"></span>
                     <div class="flex gap-sm">
-                        <button @click="prevPage" :disabled="page <= 1" class="btn btn-sm btn-ghost" :class="page <= 1 ?'opacity-40' : ''">
+                        <button aria-label="Sebelumnya" @click="prevPage" :disabled="page <= 1" class="btn btn-sm btn-ghost" :class="page <= 1 ?'opacity-40' : ''">
                             <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                         </button>
                         <button @click="nextPage" :disabled="page >= lastPage" class="btn btn-sm btn-ghost" :class="page >= lastPage ?'opacity-40' : ''">

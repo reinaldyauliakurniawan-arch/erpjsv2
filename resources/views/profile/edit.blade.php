@@ -88,7 +88,7 @@
             <h3 class="text-headline-md font-semibold text-error mb-sm">Hapus Akun</h3>
             <p class="text-body-md text-on-surface-variant mb-md">Aksi ini permanen dan tidak bisa dibatalkan.</p>
 
-            <button onclick="document.getElementById('modal-delete').showModal()"
+            <button type="button" onclick="document.getElementById('modal-delete').showModal()"
                 class="btn btn-error btn-soft">
                 Hapus Akun Saya
             </button>

@@ -223,7 +223,7 @@
                                         x-model="sch.custom_time"
                                         placeholder="cth: 07.00-08.30"
                                         class="input w-full" />
-                                    <button type="button" @click="sch.is_custom = false; sch.time_block = ''"
+                                    <button aria-label="Undo" type="button" @click="sch.is_custom = false; sch.time_block = ''"
                                         class="btn btn-ghost btn-sm">
                                         <span class="material-symbols-outlined text-[18px]">undo</span>
                                     </button>
@@ -241,7 +241,7 @@
                             </div>
 
                             <div class="flex items-end pb-xs">
-                                <button type="button" @click="removeSchedule(i)"
+                                <button aria-label="Hapus" type="button" @click="removeSchedule(i)"
                                     class="btn btn-ghost btn-sm text-error"
                                     :disabled="schedules.length === 1">
                                     <span class="material-symbols-outlined text-[18px]">delete</span>

@@ -25,7 +25,7 @@
                 <h3 class="text-headline-lg font-semibold text-on-surface">Classrooms</h3>
                 <p class="text-body-md text-on-surface-variant mt-xs">Kelola ruang kelas yang tersedia.</p>
             </div>
-            <button onclick="document.getElementById('modal-create').showModal()"
+            <button type="button" onclick="document.getElementById('modal-create').showModal()"
                 class="btn bg-secondary text-on-secondary border-none hover:opacity-90 gap-sm">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 Tambah Ruangan

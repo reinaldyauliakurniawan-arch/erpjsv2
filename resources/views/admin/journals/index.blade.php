@@ -31,7 +31,7 @@
                     <span class="material-symbols-outlined text-[16px]">download</span>
                     Export
                 </a>
-                <button onclick="document.getElementById('modal-import').showModal()"
+                <button type="button" onclick="document.getElementById('modal-import').showModal()"
                     class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">upload_file</span>
                     Import
@@ -52,10 +52,10 @@
                     class="input input-sm flex-1" />
                 <input type="date" id="date-from" class="input input-sm w-40" />
                 <input type="date" id="date-to" class="input input-sm w-40" />
-                <button onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">
+                <button type="button" onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">
                     Filter
                 </button>
-                <button onclick="clearFilter()" class="btn btn-sm btn-ghost">
+                <button type="button" onclick="clearFilter()" class="btn btn-sm btn-ghost">
                     Reset
                 </button>
             </div>

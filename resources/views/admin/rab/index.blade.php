@@ -20,11 +20,11 @@
                     @endforeach
                 </select>
             </form>
-            <button onclick="addRow()" class="btn btn-ghost btn-sm gap-xs">
+            <button type="button" onclick="addRow()" class="btn btn-ghost btn-sm gap-xs">
                 <span class="material-symbols-outlined text-[16px]">add</span>
                 Tambah Baris
             </button>
-            <button onclick="saveAll()" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
+            <button type="button" onclick="saveAll()" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
                 <span class="material-symbols-outlined text-[18px]">save</span>
                 Simpan Semua
             </button>
@@ -194,7 +194,7 @@ document.addEventListener('DOMContentLoaded', function () {
             },
             {
                 title: '', field: 'id', width: 50, hozAlign: 'center', headerSort: false,
-                formatter: () => `<button class="btn btn-ghost btn-xs text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>`,
+                formatter: () => `<button aria-label="Hapus" class="btn btn-ghost btn-xs text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>`,
                 cellClick: (e, cell) => { cell.getRow().delete(); updateCards(); },
             },
         ],

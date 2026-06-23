@@ -247,7 +247,7 @@
                                         <p class="text-body-md font-semibold text-on-surface" x-text="selectedStudent?.name"></p>
                                         <p class="text-body-sm text-on-surface-variant" x-text="selectedStudent?.email"></p>
                                     </div>
-                                    <button type="button" @click="selectedStudent = null; studentQuery = ''"
+                                    <button aria-label="Tutup" type="button" @click="selectedStudent = null; studentQuery = ''"
                                         class="text-on-surface-variant hover:text-error transition-colors">
                                         <span class="material-symbols-outlined text-[18px]">close</span>
                                     </button>
@@ -500,7 +500,7 @@
                                                 <option value="bank">Bank</option>
                                             </select>
                                         </div>
-                                        <button type="button" @click="removeInstallment(i)"
+                                        <button aria-label="Hapus" type="button" @click="removeInstallment(i)"
                                             class="btn btn-ghost btn-sm text-error mb-xs"
                                             :disabled="installments.length === 1">
                                             <span class="material-symbols-outlined text-[18px]">delete</span>

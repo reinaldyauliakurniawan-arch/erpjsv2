@@ -14,7 +14,7 @@
         {{-- Header --}}
         <div class="flex items-center justify-between">
             <h3 class="text-headline-lg font-semibold text-on-surface">Programs</h3>
-            <button onclick="document.getElementById('modal-add-program').showModal()"
+            <button type="button" onclick="document.getElementById('modal-add-program').showModal()"
                 class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 Tambah Program
@@ -50,13 +50,13 @@
                                 <td x-show="!editing" class="text-on-surface">{{ $program->min_quota ?? '-' }}</td>
                                 <td x-show="!editing" class="text-right">
                                     <div class="flex justify-end gap-xs">
-                                        <button @click="editing = true" class="btn btn-ghost btn-xs">
+                                        <button aria-label="Edit" @click="editing = true" class="btn btn-ghost btn-xs">
                                             <span class="material-symbols-outlined text-[14px]">edit</span>
                                         </button>
                                         <form method="POST" action="{{ route('admin.programs.destroy', $program) }}"
                                             onsubmit="return confirm('Hapus program {{ $program->name }}?')">
                                             @csrf @method('DELETE')
-                                            <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                            <button aria-label="Hapus" type="submit" class="btn btn-ghost btn-xs text-error">
                                                 <span class="material-symbols-outlined text-[14px]">delete</span>
                                             </button>
                                         </form>

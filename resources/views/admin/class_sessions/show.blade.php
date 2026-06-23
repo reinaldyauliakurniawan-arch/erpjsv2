@@ -46,7 +46,7 @@
             <div class="flex items-center justify-between">
                 <h4 class="text-headline-md font-semibold text-on-surface">Tutor</h4>
                 @if($availableTutors->isNotEmpty())
-                    <button onclick="document.getElementById('modal-assign-tutor').showModal()"
+                    <button type="button" onclick="document.getElementById('modal-assign-tutor').showModal()"
                         class="btn btn-ghost btn-sm gap-xs">
                         <span class="material-symbols-outlined text-[16px]">person_add</span>
                         Assign Tutor
@@ -110,7 +110,7 @@
                     </span>
                 </h4>
                 @if($availableEnrollments->isNotEmpty())
-                    <button onclick="document.getElementById('modal-assign-student').showModal()"
+                    <button type="button" onclick="document.getElementById('modal-assign-student').showModal()"
                         class="btn btn-ghost btn-sm gap-xs">
                         <span class="material-symbols-outlined text-[16px]">person_add</span>
                         Tambah Siswa
@@ -216,7 +216,7 @@
                 </div>
 
                 <div class="flex items-end pb-xs">
-                    <button type="submit"
+                    <button aria-label="Tambah" type="submit"
                         class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
                         <span class="material-symbols-outlined text-[18px]">add</span>
                     </button>
@@ -246,7 +246,7 @@
                                 <form method="POST"
                                     action="{{ route('admin.class-sessions.schedules.destroy', [$classSession->id, $schedule->id]) }}">
                                     @csrf @method('DELETE')
-                                    <button type="submit" class="btn btn-ghost btn-sm text-error"
+                                    <button aria-label="Hapus" type="submit" class="btn btn-ghost btn-sm text-error"
                                         onclick="return confirm('Hapus jadwal ini?')">
                                         <span class="material-symbols-outlined text-[16px]">delete</span>
                                     </button>

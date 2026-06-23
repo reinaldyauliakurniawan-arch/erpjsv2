@@ -11,7 +11,7 @@
                 {{ \Carbon\Carbon::parse($from)->translatedFormat('d M Y') }} – {{ \Carbon\Carbon::parse($to)->translatedFormat('d M Y') }}
             </p>
         </div>
-        <button onclick="window.print()" class="btn btn-sm btn-ghost border border-surface-border no-print">
+        <button type="button" onclick="window.print()" class="btn btn-sm btn-ghost border border-surface-border no-print">
             <span class="material-symbols-outlined text-base">print</span>
             Cetak
         </button>
@@ -39,7 +39,7 @@
                     <input type="date" id="filter-to" class="input input-sm" value="{{ $to }}">
                 </div>
             </div>
-            <button onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none">
+            <button type="button" onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none">
                 <span class="material-symbols-outlined text-base">filter_alt</span>
                 Filter
             </button>

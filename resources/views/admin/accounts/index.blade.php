@@ -24,7 +24,7 @@
                     <span class="material-symbols-outlined text-[16px]">download</span>
                     Export COA
                 </a>
-                <button onclick="document.getElementById('modal-add').showModal()"
+                <button type="button" onclick="document.getElementById('modal-add').showModal()"
                     class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
                     <span class="material-symbols-outlined text-[18px]">add</span>
                     Tambah Akun
@@ -99,13 +99,13 @@
                                         </td>
                                         <td x-show="!editing" class="text-right">
                                             <div class="flex justify-end gap-xs">
-                                                <button @click="editing = true" class="btn btn-ghost btn-xs gap-xs">
+                                                <button aria-label="Edit" @click="editing = true" class="btn btn-ghost btn-xs gap-xs">
                                                     <span class="material-symbols-outlined text-[14px]">edit</span>
                                                 </button>
                                                 <form method="POST" action="{{ route('finance.accounts.destroy', $account) }}"
                                                     onsubmit="return confirm('Hapus akun {{ $account->code }}?')">
                                                     @csrf @method('DELETE')
-                                                    <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                                    <button aria-label="Hapus" type="submit" class="btn btn-ghost btn-xs text-error">
                                                         <span class="material-symbols-outlined text-[14px]">delete</span>
                                                     </button>
                                                 </form>

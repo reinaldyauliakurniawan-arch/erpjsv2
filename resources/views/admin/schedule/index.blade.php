@@ -109,7 +109,7 @@
             <div class="bg-surface-container-lowest rounded-lg shadow-xl w-full max-w-md mx-md flex flex-col max-h-[80vh]">
                 <div class="flex items-center justify-between px-lg py-md border-b border-surface-border">
                     <h3 class="text-title-md font-semibold text-on-surface">Tutor Availability</h3>
-                    <button @click="occupancyModal = false" class="btn btn-ghost btn-sm btn-circle">
+                    <button aria-label="Tutup" @click="occupancyModal = false" class="btn btn-ghost btn-sm btn-circle">
                         <span class="material-symbols-outlined text-base">close</span>
                     </button>
                 </div>
@@ -121,7 +121,7 @@
                             <p class="text-body-sm font-semibold text-on-surface">{{ $t['name'] }}</p>
                             <p class="text-[10px] text-on-surface-variant">{{ $t['occupied'] }} occupied · {{ $t['free'] }} free · {{ $t['avail'] }} total</p>
                         </div>
-                        <p class="text-body-md font-bold {{ $t['ratio'] < 30 ? 'text-emerald-600' : ($t['ratio'] < 70 ? 'text-yellow-500' : 'text-red-500') }}">{{ $t['ratio'] }}%</p>
+                        <p class="text-body-md font-bold {{ $t['ratio'] < 30 ? 'text-green-600' : ($t['ratio'] < 70 ? 'text-yellow-500' : 'text-red-500') }}">{{ $t['ratio'] }}%</p>
                     </div>
                     @endforeach
                 </div>
@@ -223,10 +223,10 @@
                                                 selectedDate = '{{ $date }}';
                                                 selectedBookingId = '{{ $booking->id }}';
                                                 bookingNotes = {{ json_encode($booking->notes ?? '') }};"
-                                            class="bg-blue-50 border border-blue-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-blue-100 transition-colors"
+                                            class="bg-amber-50 border border-amber-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-amber-100 transition-colors"
                                             title="Temporary booking">
-                                            <span class="material-symbols-outlined text-blue-400 text-sm">event</span>
-                                            <span class="text-[9px] font-bold text-blue-400 text-center leading-tight truncate w-full">
+                                            <span class="material-symbols-outlined text-amber-500 text-sm">event</span>
+                                            <span class="text-[9px] font-bold text-amber-500 text-center leading-tight truncate w-full">
                                                 {{ $booking->tutor?->user->name ?? $booking->notes ?? 'Temp' }}
                                             </span>
                                         </button>
@@ -245,9 +245,9 @@
                                         {{-- Kosong --}}
                                         <button type="button"
                                             @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'temporary'; selectedRoom = '{{ $classroom->name }}'; selectedDay = '{{ $d }}'; selectedBlock = '{{ $block }}'; classroomId = '{{ $classroom->id }}'; selectedDate = '{{ $date }}'; })"
-                                            class="bg-emerald-50 border border-emerald-200 px-xs py-xs rounded-lg flex items-center justify-center hover:bg-emerald-100 transition-colors"
+                                            class="bg-green-50 border border-green-200 px-xs py-xs rounded-lg flex items-center justify-center hover:bg-green-100 transition-colors"
                                             title="Kosong — klik untuk booking">
-                                            <span class="material-symbols-outlined text-emerald-600 text-sm">add_circle</span>
+                                            <span class="material-symbols-outlined text-green-600 text-sm">add_circle</span>
                                         </button>
                                     @endif
                                 @endforeach
@@ -303,8 +303,8 @@
                 <div class="flex items-center gap-md mt-md flex-wrap">
                     <span class="flex items-center gap-xs text-[11px] text-on-surface-variant"><span class="w-3 h-3 rounded-sm inline-block" style="background:#fecaca"></span> Reguler aktif</span>
                     <span class="flex items-center gap-xs text-[11px] text-on-surface-variant"><span class="w-3 h-3 rounded-sm inline-block" style="background:#fef08a"></span> Skip (available)</span>
-                    <span class="flex items-center gap-xs text-[11px] text-on-surface-variant"><span class="w-3 h-3 rounded-sm inline-block" style="background:#bfdbfe"></span> Temporary booking</span>
-                    <span class="flex items-center gap-xs text-[11px] text-on-surface-variant"><span class="w-3 h-3 rounded-sm inline-block" style="background:#a7f3d0"></span> Kosong</span>
+                    <span class="flex items-center gap-xs text-[11px] text-on-surface-variant"><span class="w-3 h-3 rounded-sm inline-block" style="background:#fde68a"></span> Temporary booking</span>
+                    <span class="flex items-center gap-xs text-[11px] text-on-surface-variant"><span class="w-3 h-3 rounded-sm inline-block" style="background:#bbf7d0"></span> Kosong</span>
                 </div>
 
                 {{-- Modal --}}
@@ -318,7 +318,7 @@
                             <h4 class="text-body-lg font-semibold text-on-surface"
                                 x-text="modalType === 'skip' ? 'Skip Jadwal Reguler' : modalType === 'temporary' ? 'Temporary Booking' : 'Info Booking'">
                             </h4>
-                            <button @click="modal = false" class="btn btn-ghost btn-sm btn-circle">
+                            <button aria-label="Tutup" @click="modal = false" class="btn btn-ghost btn-sm btn-circle">
                                 <span class="material-symbols-outlined text-[18px]">close</span>
                             </button>
                         </div>
@@ -501,14 +501,14 @@
                                         </td>
                                         <td class="px-lg py-lg text-right">
                                             <div class="flex justify-end gap-xs opacity-0 group-hover:opacity-100 transition-opacity">
-                                                <button type="button" @click="editing = !editing"
+                                                <button aria-label="Edit" type="button" @click="editing = !editing"
                                                     class="p-sm hover:bg-surface-container-high rounded-full transition-colors">
                                                     <span class="material-symbols-outlined text-[18px]">edit</span>
                                                 </button>
                                                 <form method="POST" action="{{ route('admin.schedule.destroy', $schedule->id) }}"
                                                     onsubmit="return confirm('Hapus jadwal ini?')">
                                                     @csrf @method('DELETE')
-                                                    <button type="submit" class="p-sm hover:bg-red-50 rounded-full text-red-400 transition-colors">
+                                                    <button aria-label="Hapus" type="submit" class="p-sm hover:bg-red-50 rounded-full text-red-400 transition-colors">
                                                         <span class="material-symbols-outlined text-[18px]">delete</span>
                                                     </button>
                                                 </form>
@@ -550,11 +550,11 @@
                                                         @endforeach
                                                     </select>
                                                 </div>
-                                                <button type="submit"
+                                                <button aria-label="Simpan" type="submit"
                                                     class="btn bg-primary-container text-on-primary border-none hover:opacity-90 mb-xs">
                                                     <span class="material-symbols-outlined text-[18px]">save</span>
                                                 </button>
-                                                <button type="button" @click="editing = false" class="btn btn-ghost mb-xs">
+                                                <button aria-label="Tutup" type="button" @click="editing = false" class="btn btn-ghost mb-xs">
                                                     <span class="material-symbols-outlined text-[18px]">close</span>
                                                 </button>
                                             </form>

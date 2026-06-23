@@ -32,7 +32,7 @@
                     Generate Penyusutan Bulan Ini
                 </button>
             </form>
-            <button onclick="document.getElementById('modal-add').showModal()"
+            <button type="button" onclick="document.getElementById('modal-add').showModal()"
                 class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 Tambah Aset
@@ -342,10 +342,10 @@ document.addEventListener('DOMContentLoaded', function () {
                     const id = cell.getValue();
                     return `
                         <div class="flex gap-xs justify-center">
-                            <button onclick="openEdit(${id})" class="btn btn-ghost btn-xs">
+                            <button aria-label="Edit" type="button" onclick="openEdit(${id})" class="btn btn-ghost btn-xs">
                                 <span class="material-symbols-outlined text-[14px]">edit</span>
                             </button>
-                            <button onclick="confirmDelete(${id})" class="btn btn-ghost btn-xs text-error">
+                            <button aria-label="Hapus" type="button" onclick="confirmDelete(${id})" class="btn btn-ghost btn-xs text-error">
                                 <span class="material-symbols-outlined text-[14px]">delete</span>
                             </button>
                         </div>`;

@@ -8,7 +8,7 @@
             <h1 class="text-xl font-semibold text-on-surface">Trial Balance</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Saldo semua akun dari seluruh jurnal</p>
         </div>
-        <button onclick="exportCSV()" class="btn btn-sm btn-ghost border border-surface-border">
+        <button type="button" onclick="exportCSV()" class="btn btn-sm btn-ghost border border-surface-border">
             <span class="material-symbols-outlined text-base">download</span>
             Export CSV
         </button>
@@ -37,7 +37,7 @@
                     <input type="date" id="filter-to" class="input input-sm" value="{{ $to }}">
                 </div>
             </div>
-            <button onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none">
+            <button type="button" onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none">
                 <span class="material-symbols-outlined text-base">filter_alt</span>
                 Filter
             </button>

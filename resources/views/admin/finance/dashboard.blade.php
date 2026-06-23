@@ -122,7 +122,7 @@
                         <input type="date" id="revenueProgramFrom" class="input input-sm" />
                         <span class="text-on-surface-variant text-xs">s/d</span>
                         <input type="date" id="revenueProgramTo" class="input input-sm" />
-                        <button onclick="loadRevenueByProgram()" class="btn btn-sm bg-primary-container text-on-primary border-none">Tampilkan</button>
+                        <button type="button" onclick="loadRevenueByProgram()" class="btn btn-sm bg-primary-container text-on-primary border-none">Tampilkan</button>
                     </div>
                 </div>
             </div>
@@ -272,6 +272,28 @@
     <script>
 document.addEventListener('DOMContentLoaded', function () {
 
+    // ── Brand-aligned chart palette per BRAND_PERSONALITY_GUIDE.md Section 3 ──
+    // Brand rule: "Green is identity, not decoration. Never replace with blue or purple."
+    // Previously these charts used Tailwind green-500 (#22c55e), red-500 (#ef4444),
+    // indigo-500 (#6366f1), sky-500 (#0ea5e9), purple-500 (#a855f7) — all OFF-BRAND.
+    // Replaced with brand palette:
+    //   Brand green    rgb(5, 150, 105)  — secondary
+    //   Brand green dk rgb(4, 120, 87)   — success (AA-pass on white)
+    //   Brand green dk rgb(6, 95, 70)    — primary
+    //   Brand amber    rgb(180, 83, 9)   — tertiary (warmth)
+    //   Brand amber lt rgb(217, 119, 6)  — warning
+    //   Brand red      rgb(200, 30, 30)  — error (AA-pass on white)
+    //   Neutral slate  rgb(107, 114, 128) — outline
+    const BRAND = {
+        green:        'rgba(5, 150, 105, 0.7)',
+        greenDark:    'rgba(4, 120, 87, 0.75)',
+        greenDarker:  'rgba(6, 95, 70, 0.7)',
+        amber:        'rgba(180, 83, 9, 0.7)',
+        amberLight:   'rgba(217, 119, 6, 0.65)',
+        red:          'rgba(200, 30, 30, 0.7)',
+        neutral:      'rgba(107, 114, 128, 0.5)',
+    };
+
     const revenueExpenseCtx = document.getElementById('revenueExpenseChart').getContext('2d');
     new Chart(revenueExpenseCtx, {
         type: 'bar',
@@ -281,13 +303,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 {
                     label: 'Revenue',
                     data: @json($chartRevenue),
-                    backgroundColor: 'rgba(34, 197, 94, 0.7)',
+                    backgroundColor: BRAND.green,  // brand green for revenue (good = green)
                     borderRadius: 4,
                 },
                 {
                     label: 'Expense',
                     data: @json($chartExpense),
-                    backgroundColor: 'rgba(239, 68, 68, 0.7)',
+                    backgroundColor: BRAND.red,    // brand red for expense (danger = red)
                     borderRadius: 4,
                 }
             ]
@@ -320,12 +342,12 @@ document.addEventListener('DOMContentLoaded', function () {
             datasets: [{
                 data: @json($chartProgramData),
                 backgroundColor: [
-                    'rgba(99, 102, 241, 0.8)',
-                    'rgba(34, 197, 94, 0.8)',
-                    'rgba(251, 191, 36, 0.8)',
-                    'rgba(239, 68, 68, 0.8)',
-                    'rgba(14, 165, 233, 0.8)',
-                    'rgba(168, 85, 247, 0.8)',
+                    BRAND.green,        // program 1 — brand green
+                    BRAND.greenDark,    // program 2 — darker green
+                    BRAND.greenDarker,  // program 3 — primary dark green
+                    BRAND.amber,        // program 4 — tertiary amber
+                    BRAND.amberLight,   // program 5 — warning amber
+                    BRAND.neutral,      // program 6 (or others) — neutral
                 ],
                 borderWidth: 1,
             }]
@@ -374,7 +396,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const revenueProgramCtx = document.getElementById('revenueProgramChart').getContext('2d');
     let revenueProgramChart = new Chart(revenueProgramCtx, {
         type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Revenue', data: [], backgroundColor: 'rgba(99, 102, 241, 0.7)', borderRadius: 4 }] },
+        data: { labels: [], datasets: [{ label: 'Revenue', data: [], backgroundColor: BRAND.green, borderRadius: 4 }] },
         options: {
             indexAxis: 'y',
             responsive: true,

@@ -57,7 +57,7 @@
         <div class="app-card app-card--flush">
             <div class="app-card__header">
                 <h4 class="text-title-sm font-semibold text-on-surface">Manajemen User</h4>
-                <button onclick="document.getElementById('modal-create').showModal()"
+                <button type="button" onclick="document.getElementById('modal-create').showModal()"
                     class="btn bg-secondary text-on-secondary border-none hover:opacity-90 btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">person_add</span>
                     Tambah User

@@ -33,7 +33,7 @@
                     <input type="date" id="filter-to" class="input input-sm" value="{{ $to }}">
                 </div>
             </div>
-            <button onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none">
+            <button type="button" onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none">
                 <span class="material-symbols-outlined text-base">filter_alt</span>
                 Filter
             </button>

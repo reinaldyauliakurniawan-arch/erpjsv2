@@ -23,7 +23,7 @@
                 <div class="bg-surface-container-low p-xs rounded-lg flex items-center gap-xs border border-surface-border" x-data="{ open: false }">
                     <span class="text-label-sm font-bold text-on-surface-variant px-xs">Kelas:</span>
                     <div class="relative">
-                        <button @click="open = !open" class="px-sm py-xs rounded-lg text-label-sm font-semibold transition-all bg-surface-container-lowest shadow-sm flex items-center gap-xs text-on-surface">
+                        <button aria-label="Lihat lebih banyak" @click="open = !open" class="px-sm py-xs rounded-lg text-label-sm font-semibold transition-all bg-surface-container-lowest shadow-sm flex items-center gap-xs text-on-surface">
                             {{ $classFilter ? $sessions->firstWhere('id', $classFilter)?->name ?? 'Semua' : 'Semua' }}
                             <span class="material-symbols-outlined text-[16px]">expand_more</span>
                         </button>

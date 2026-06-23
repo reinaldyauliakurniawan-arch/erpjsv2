@@ -21,12 +21,12 @@
         <div class="flex items-center justify-between gap-md">
             <h3 class="text-headline-lg font-semibold text-on-surface">Akumulasi Jurnal Penyesuaian</h3>
             <div class="flex gap-sm">
-                <button onclick="document.getElementById('modal-generate').showModal()"
+                <button type="button" onclick="document.getElementById('modal-generate').showModal()"
                     class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">autorenew</span>
                     Generate Otomatis
                 </button>
-                <button onclick="document.getElementById('modal-manual').showModal()"
+                <button type="button" onclick="document.getElementById('modal-manual').showModal()"
                     class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm btn-sm">
                     <span class="material-symbols-outlined text-[18px]">add</span>
                     Tambah Manual
@@ -74,8 +74,8 @@
                 </select>
                 <input type="month" id="filter-period-from" class="input input-sm w-40" placeholder="Dari">
                 <input type="month" id="filter-period-to" class="input input-sm w-40" placeholder="Sampai">
-                <button onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">Filter</button>
-                <button onclick="clearFilter()" class="btn btn-sm btn-ghost">Reset</button>
+                <button type="button" onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">Filter</button>
+                <button type="button" onclick="clearFilter()" class="btn btn-sm btn-ghost">Reset</button>
             </div>
 
             <div id="ajp-table"></div>
@@ -157,7 +157,7 @@
                                         </td>
                                         <td><input type="number" name="items[0][debit]" class="input input-xs w-full text-right" value="0" min="0" step="0.01" oninput="updateTotals()"></td>
                                         <td><input type="number" name="items[0][credit]" class="input input-xs w-full text-right" value="0" min="0" step="0.01" oninput="updateTotals()"></td>
-                                        <td><button type="button" onclick="removeRow(this)" class="btn btn-ghost btn-xs text-error"><span class="material-symbols-outlined text-[14px]">delete</span></button></td>
+                                        <td><button aria-label="Hapus" type="button" onclick="removeRow(this)" class="btn btn-ghost btn-xs text-error"><span class="material-symbols-outlined text-[14px]">delete</span></button></td>
                                     </tr>
                                     <tr class="item-row">
                                         <td>
@@ -170,7 +170,7 @@
                                         </td>
                                         <td><input type="number" name="items[1][debit]" class="input input-xs w-full text-right" value="0" min="0" step="0.01" oninput="updateTotals()"></td>
                                         <td><input type="number" name="items[1][credit]" class="input input-xs w-full text-right" value="0" min="0" step="0.01" oninput="updateTotals()"></td>
-                                        <td><button type="button" onclick="removeRow(this)" class="btn btn-ghost btn-xs text-error"><span class="material-symbols-outlined text-[14px]">delete</span></button></td>
+                                        <td><button aria-label="Hapus" type="button" onclick="removeRow(this)" class="btn btn-ghost btn-xs text-error"><span class="material-symbols-outlined text-[14px]">delete</span></button></td>
                                     </tr>
                                 </tbody>
                                 <tfoot>
@@ -324,7 +324,7 @@
                             </a>`;
                         }
                         if (data.status === 'draft') {
-                            btns += `<button onclick="deleteAjp(${data.id})" class="btn btn-ghost btn-xs text-error" title="Hapus">
+                            btns += `<button type="button" onclick="deleteAjp(${data.id})" class="btn btn-ghost btn-xs text-error" title="Hapus">
                                 <span class="material-symbols-outlined text-[14px]">delete</span>
                             </button>`;
                         }
@@ -370,7 +370,7 @@
             </td>
             <td><input type="number" name="items[${rowIndex}][debit]" class="input input-xs w-full text-right" value="0" min="0" step="0.01" oninput="updateTotals()"></td>
             <td><input type="number" name="items[${rowIndex}][credit]" class="input input-xs w-full text-right" value="0" min="0" step="0.01" oninput="updateTotals()"></td>
-            <td><button type="button" onclick="removeRow(this)" class="btn btn-ghost btn-xs text-error"><span class="material-symbols-outlined text-[14px]">delete</span></button></td>
+            <td><button aria-label="Hapus" type="button" onclick="removeRow(this)" class="btn btn-ghost btn-xs text-error"><span class="material-symbols-outlined text-[14px]">delete</span></button></td>
         `;
         tbody.appendChild(tr);
         rowIndex++;

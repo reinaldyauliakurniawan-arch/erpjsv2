@@ -279,16 +279,16 @@ function guardSlot(dateStr, timeBlock, callback) {
                     @elseif($isMyTemp)
                         <button type="button"
                             @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'cancel'; selectedRoom = '{{ $classroom->name }}'; selectedBlock = '{{ $block }}'; selectedDate = '{{ $date }}'; bookingId = {{ $booking->id }}; bookingNotes = {{ json_encode($booking->notes ?? '') }}; })"
-                            class="bg-blue-50 border border-blue-300 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-blue-100 transition-colors"
+                            class="bg-amber-50 border border-blue-300 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-amber-100 transition-colors"
                             title="Booking saya — klik untuk cancel">
-                            <span class="material-symbols-outlined text-blue-500 text-sm">event_available</span>
-                            <span class="text-[9px] font-bold text-blue-500 text-center leading-tight">Saya</span>
+                            <span class="material-symbols-outlined text-amber-600 text-sm">event_available</span>
+                            <span class="text-[9px] font-bold text-amber-600 text-center leading-tight">Saya</span>
                         </button>
 
                     @elseif($isTemp)
-                        <div class="bg-blue-50 border border-blue-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs opacity-60">
-                            <span class="material-symbols-outlined text-blue-400 text-sm">event_busy</span>
-                            <span class="text-[9px] font-bold text-blue-400 text-center leading-tight">Penuh</span>
+                        <div class="bg-amber-50 border border-amber-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs opacity-60">
+                            <span class="material-symbols-outlined text-amber-500 text-sm">event_busy</span>
+                            <span class="text-[9px] font-bold text-amber-500 text-center leading-tight">Penuh</span>
                         </div>
 
                     @elseif($isSkipped || !$schedule)
@@ -299,9 +299,9 @@ function guardSlot(dateStr, timeBlock, callback) {
                         @else
                         <button type="button"
                             @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'book'; selectedRoom = '{{ $classroom->name }}'; selectedBlock = '{{ $block }}'; selectedDate = '{{ $date }}'; classroomId = '{{ $classroom->id }}'; })"
-                            class="{{ $isSkipped ?'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
-                            <span class="material-symbols-outlined {{ $isSkipped ?'text-yellow-500' : 'text-emerald-600' }} text-sm">add_circle</span>
-                            <span class="text-[9px] font-bold {{ $isSkipped ?'text-yellow-500' : 'text-emerald-600' }} text-center">
+                            class="{{ $isSkipped ?'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' : 'bg-green-50 border-green-200 hover:bg-green-100' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
+                            <span class="material-symbols-outlined {{ $isSkipped ?'text-yellow-500' : 'text-green-600' }} text-sm">add_circle</span>
+                            <span class="text-[9px] font-bold {{ $isSkipped ?'text-yellow-500' : 'text-green-600' }} text-center">
                                 {{ $isSkipped ? 'Skip' : 'Kosong' }}
                             </span>
                         </button>
@@ -369,13 +369,13 @@ function guardSlot(dateStr, timeBlock, callback) {
                 <span class="w-3 h-3 rounded-sm inline-block" style="background:#fef08a"></span> Skip (bisa booking)
             </span>
             <span class="flex items-center gap-xs text-[11px] text-on-surface-variant">
-                <span class="w-3 h-3 rounded-sm inline-block" style="background:#a7f3d0"></span> Kosong (bisa booking)
+                <span class="w-3 h-3 rounded-sm inline-block" style="background:#bbf7d0"></span> Kosong (bisa booking)
             </span>
             <span class="flex items-center gap-xs text-[11px] text-on-surface-variant">
-                <span class="w-3 h-3 rounded-sm inline-block" style="background:#bfdbfe; border:1px solid #93c5fd"></span> Booking saya
+                <span class="w-3 h-3 rounded-sm inline-block" style="background:#fde68a; border:1px solid #fbbf24"></span> Booking saya
             </span>
             <span class="flex items-center gap-xs text-[11px] text-on-surface-variant">
-                <span class="w-3 h-3 rounded-sm inline-block opacity-60" style="background:#bfdbfe"></span> Penuh
+                <span class="w-3 h-3 rounded-sm inline-block opacity-60" style="background:#fde68a"></span> Penuh
             </span>
         </div>
 
@@ -392,7 +392,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                 <h4 class="text-base font-semibold text-on-surface"
                     x-text="modalType === 'book' ? 'Book Slot' : modalType === 'skip' ? 'Skip Sesi' : 'Cancel Booking'">
                 </h4>
-                <button @click="modal = false" class="btn btn-ghost btn-sm btn-circle">
+                <button aria-label="Tutup" @click="modal = false" class="btn btn-ghost btn-sm btn-circle">
                     <span class="material-symbols-outlined text-[18px]">close</span>
                 </button>
             </div>

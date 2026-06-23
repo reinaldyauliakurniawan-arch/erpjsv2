@@ -63,7 +63,7 @@
                             <template x-for="id in checkedStudentIds.filter(id => allStudents.filter(s => selected.includes(s.class_id)).map(s => s.id).includes(id))" :key="id">
                                 <input type="hidden" name="student_ids[]" :value="id">
                             </template>
-                            <button type="button" @click="open = !open"
+                            <button aria-label="Lihat lebih banyak" type="button" @click="open = !open"
                                 class="input w-full flex items-center justify-between text-left">
                                 <span class="text-body-md" :class="selected.length ?'text-on-surface' : 'text-on-surface-variant'" x-text="label()"></span>
                                 <span class="material-symbols-outlined text-[18px] text-on-surface-variant"
@@ -72,7 +72,7 @@
                             <div x-show="open" x-transition
                                 class="absolute z-50 mt-xs bg-surface-container-lowest border border-surface-border rounded-lg shadow-lg w-full overflow-hidden">
                                 <template x-for="c in classes" :key="c.id">
-                                    <button type="button" @click="toggle(c.id)"
+                                    <button aria-label="Pilih" type="button" @click="toggle(c.id)"
                                         class="w-full flex items-center justify-between px-md py-sm hover:bg-surface-container transition-colors">
                                         <span class="text-body-md text-on-surface" x-text="c.name"></span>
                                         <span class="material-symbols-outlined text-[18px] text-primary"

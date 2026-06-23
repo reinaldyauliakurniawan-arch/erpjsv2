@@ -101,7 +101,7 @@
 <div class="app-card space-y-md">
     <div class="flex items-center justify-between">
         <h4 class="text-headline-md font-semibold text-on-surface">Tutor</h4>
-        <button onclick="document.getElementById('modal-assign-tutor').showModal()"
+        <button type="button" onclick="document.getElementById('modal-assign-tutor').showModal()"
             class="btn btn-ghost btn-sm gap-xs">
             <span class="material-symbols-outlined text-[16px]">person_add</span>
             Assign Tutor

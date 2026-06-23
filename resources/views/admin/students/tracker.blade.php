@@ -9,7 +9,7 @@
                 <h3 class="text-headline-md font-semibold text-on-surface">Student Tracker</h3>
                 <p class="text-body-md text-on-surface-variant">{{ $students->count() }} siswa terdaftar</p>
             </div>
-            <button onclick="document.getElementById('modal-add-column').showModal()"
+            <button type="button" onclick="document.getElementById('modal-add-column').showModal()"
                 class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
                 <span class="material-symbols-outlined text-[18px]">add_column_right</span>
                 Tambah Kolom
@@ -53,7 +53,7 @@
                                                 onsubmit="return confirm('Hapus kolom {{ addslashes($column->name) }}?')">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="text-error opacity-40 hover:opacity-100 transition-opacity">
+                                                <button aria-label="Tutup" type="submit" class="text-error opacity-40 hover:opacity-100 transition-opacity">
                                                     <span class="material-symbols-outlined text-[14px]">close</span>
                                                 </button>
                                             </form>
@@ -95,7 +95,7 @@
                                             $entry = $student->trackerEntries->where('tracker_column_id', $column->id)->first();
                                         @endphp
                                         <td class="text-center">
-                                            <button
+                                            <button type="button"
                                                 onclick="toggleEntry({{ $student->id }}, {{ $column->id }}, this)"
                                                 data-done="{{ $entry && $entry->is_done ? '1' : '0' }}"
                                                 class="transition-all">

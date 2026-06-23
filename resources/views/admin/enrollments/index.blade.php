@@ -46,10 +46,10 @@
                     <option value="full">Full</option>
                     <option value="partial">Partial</option>
                 </select>
-                <button onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">
+                <button type="button" onclick="applyFilter()" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">
                     Filter
                 </button>
-                <button onclick="clearFilter()" class="btn btn-sm btn-ghost">
+                <button type="button" onclick="clearFilter()" class="btn btn-sm btn-ghost">
                     Reset
                 </button>
             </div>
@@ -168,7 +168,7 @@
                     formatter: function(cell) {
                         var row = cell.getRow().getData();
         return '<a href="' + cell.getValue() + '" class="btn btn-ghost btn-sm"><span class="material-symbols-outlined text-[16px]">open_in_new</span></a>'
-             + '<button onclick="deleteEnrollment(\'' + row.delete_url + '\')" class="btn btn-ghost btn-sm text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>';
+             + '<button aria-label="Hapus" type="button" onclick="deleteEnrollment(\'' + row.delete_url + '\')" class="btn btn-ghost btn-sm text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>';
                     },
                 },
             ],

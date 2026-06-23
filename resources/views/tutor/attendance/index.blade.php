@@ -150,7 +150,7 @@
                     <span x-text="sessionModal.date"></span>
                 </p>
             </div>
-            <button @click="closeSessionModal()" class="btn btn-ghost btn-xs">
+            <button aria-label="Tutup" @click="closeSessionModal()" class="btn btn-ghost btn-xs">
                 <span class="material-symbols-outlined text-base">close</span>
             </button>
         </div>
@@ -193,7 +193,7 @@
         {{-- Modal Header --}}
         <div class="flex items-center justify-between p-lg border-b border-surface-border flex-shrink-0">
             <h2 class="text-base font-semibold text-on-surface">Input Absensi</h2>
-            <button @click="closeModal()" class="btn btn-ghost btn-xs">
+            <button aria-label="Tutup" @click="closeModal()" class="btn btn-ghost btn-xs">
                 <span class="material-symbols-outlined text-base">close</span>
             </button>
         </div>
@@ -349,7 +349,7 @@
         {{-- Modal Footer --}}
         <div class="flex justify-end gap-sm p-lg border-t border-surface-border flex-shrink-0">
             <button type="button" @click="closeModal()" class="btn btn-ghost">Batal</button>
-            <button type="button" @click="submitAttendance()"
+            <button aria-label="Progress_activity" type="button" @click="submitAttendance()"
                 :disabled="modal.submitting || !modal.selectedId"
                 class="btn bg-primary-container text-on-primary border-none hover:opacity-90 disabled:opacity-50">
                 <span x-show="modal.submitting" class="material-symbols-outlined text-base animate-spin">progress_activity</span>

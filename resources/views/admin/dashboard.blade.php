@@ -583,13 +583,22 @@
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px" class="text-sm text-on-surface">
                     @php
+                        // Brand-aligned palette per BRAND_PERSONALITY_GUIDE.md Section 3:
+                        // - Primary dark green #065f46 = rgb(6, 95, 70)
+                        // - Secondary bright green #059669 = rgb(5, 150, 105) — brand identity
+                        // - Tertiary amber #b45309 = rgb(180, 83, 9) — used sparingly
+                        // - Neutral slate #6b7280 = rgb(107, 114, 128) — for "no data"
+                        // Brand rule: "Never replace green with blue or purple."
+                        // Previously this map used Tailwind sky (#0ea5e9) and indigo
+                        // (#6366f1) — both violate the brand guide. Replaced with
+                        // brand-aligned variants.
                         $eduColorMap = [
-                            'SD'          => 'rgba(5,150,105,0.85)',
-                            'SMP'         => 'rgba(16,185,129,0.75)',
-                            'SMA'         => 'rgba(52,211,153,0.65)',
-                            'Kuliah'      => 'rgba(14,165,233,0.7)',
-                            'Umum'        => 'rgba(99,102,241,0.65)',
-                            'Tidak diisi' => 'rgba(148,163,184,0.5)',
+                            'SD'          => 'rgba(5,150,105,0.85)',   // secondary green (brand)
+                            'SMP'         => 'rgba(4,120,87,0.75)',    // success green (darker)
+                            'SMA'         => 'rgba(6,95,70,0.7)',      // primary dark green
+                            'Kuliah'      => 'rgba(180,83,9,0.7)',     // tertiary amber
+                            'Umum'        => 'rgba(217,119,6,0.65)',   // warning amber (lighter)
+                            'Tidak diisi' => 'rgba(107,114,128,0.5)', // neutral outline
                         ];
                     @endphp
                     @foreach($educationStats as $stat)
@@ -748,12 +757,12 @@ document.addEventListener('DOMContentLoaded', function () { setTimeout(function(
                 datasets: [{
                     data: @json($eduTotals),
                     backgroundColor: [
-                        'rgba(5,150,105,0.85)',
-                        'rgba(16,185,129,0.75)',
-                        'rgba(52,211,153,0.65)',
-                        'rgba(14,165,233,0.7)',
-                        'rgba(99,102,241,0.65)',
-                        'rgba(148,163,184,0.5)',
+                        'rgba(5,150,105,0.85)',   // secondary green
+                        'rgba(4,120,87,0.75)',    // success green
+                        'rgba(6,95,70,0.7)',      // primary dark green
+                        'rgba(180,83,9,0.7)',     // tertiary amber
+                        'rgba(217,119,6,0.65)',   // warning amber
+                        'rgba(107,114,128,0.5)',  // neutral
                     ],
                     borderWidth: 1,
                 }]

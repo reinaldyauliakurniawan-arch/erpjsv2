@@ -38,12 +38,12 @@
                 </div>
             </div>
             <div class="flex gap-sm">
-                <button onclick="document.getElementById('modal-edit-tutor').showModal()"
+                <button type="button" onclick="document.getElementById('modal-edit-tutor').showModal()"
                     class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">edit</span>
                     Edit
                 </button>
-                <button onclick="document.getElementById('modal-delete-tutor').showModal()"
+                <button type="button" onclick="document.getElementById('modal-delete-tutor').showModal()"
                     class="btn btn-ghost btn-sm text-error gap-xs">
                     <span class="material-symbols-outlined text-[16px]">delete</span>
                     Hapus
@@ -55,7 +55,7 @@
         <div class="app-card">
             <div class="flex items-center justify-between mb-md">
                 <h4 class="text-headline-md font-semibold text-on-surface">Rate per Program</h4>
-                <button onclick="document.getElementById('modal-add-rate').showModal()"
+                <button type="button" onclick="document.getElementById('modal-add-rate').showModal()"
                     class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">add</span>
                     Tambah Rate
@@ -210,7 +210,7 @@
                                             <form method="POST" action="{{ route('admin.tutors.availability.destroy', [$tutor->id, $slot->id]) }}">
                                                 @csrf
                                                 @method('DELETE')
-                                                <button type="submit" class="btn btn-ghost btn-xs text-error">
+                                                <button aria-label="Hapus" type="submit" class="btn btn-ghost btn-xs text-error">
                                                     <span class="material-symbols-outlined text-[16px]">delete</span>
                                                 </button>
                                             </form>

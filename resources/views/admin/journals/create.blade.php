@@ -132,7 +132,7 @@
                         </div>
 
                         <div class="flex justify-center">
-                            <button type="button" @click="removeRow(i)"
+                            <button aria-label="Hapus" type="button" @click="removeRow(i)"
                                 :disabled="rows.length <= 2"
                                 class="btn btn-ghost btn-xs text-error disabled:opacity-30">
                                 <span class="material-symbols-outlined text-base">remove</span>
