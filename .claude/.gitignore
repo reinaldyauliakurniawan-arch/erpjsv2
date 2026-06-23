@@ -1,0 +1,3 @@
+# Python bytecode cache (generated when the skill's search scripts run)
+__pycache__/
+*.pyc

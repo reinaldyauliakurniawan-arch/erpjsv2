@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Pengaturan Warna</x-slot>
 
-    <div class="p-lg space-y-lg" style="max-width: 40rem">
+    <div class="p-lg space-y-lg max-w-2xl">
 
         @if(session('success'))
             <div role="alert" class="alert alert-success alert-soft">

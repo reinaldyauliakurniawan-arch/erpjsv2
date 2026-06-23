@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <p style="color:rgba(255,255,255,0.8);font-size:0.875rem;margin-bottom:1.25rem;line-height:1.6;">
+    <p class="guest-info-text">
         Ini adalah area aman. Konfirmasi password kamu sebelum melanjutkan.
     </p>
 
@@ -11,7 +11,7 @@
                 required autocomplete="current-password" placeholder="••••••••"
                 class="input w-full glass-input @error('password') input-error @enderror" />
             @error('password')
-                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
         <button type="submit" class="btn btn-block glass-btn">Konfirmasi</button>

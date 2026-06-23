@@ -9,7 +9,7 @@
                 required autofocus autocomplete="username" placeholder="nama@email.com"
                 class="input w-full glass-input @error('email') input-error @enderror" />
             @error('email')
-                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
 
@@ -19,7 +19,7 @@
                 required autocomplete="new-password" placeholder="••••••••"
                 class="input w-full glass-input @error('password') input-error @enderror" />
             @error('password')
-                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
 
@@ -29,7 +29,7 @@
                 required autocomplete="new-password" placeholder="••••••••"
                 class="input w-full glass-input @error('password_confirmation') input-error @enderror" />
             @error('password_confirmation')
-                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
 

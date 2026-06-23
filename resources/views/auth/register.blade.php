@@ -8,7 +8,7 @@
                 required autofocus autocomplete="name" placeholder="Nama lengkap"
                 class="input w-full glass-input @error('name') input-error @enderror" />
             @error('name')
-                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
 
@@ -18,7 +18,7 @@
                 required autocomplete="username" placeholder="nama@email.com"
                 class="input w-full glass-input @error('email') input-error @enderror" />
             @error('email')
-                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
 
@@ -28,7 +28,7 @@
                 required autocomplete="new-password" placeholder="••••••••"
                 class="input w-full glass-input @error('password') input-error @enderror" />
             @error('password')
-                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
 
@@ -38,14 +38,14 @@
                 required autocomplete="new-password" placeholder="••••••••"
                 class="input w-full glass-input @error('password_confirmation') input-error @enderror" />
             @error('password_confirmation')
-                <p style="color:rgba(255,200,200,0.9);font-size:0.8rem;">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
 
         <button type="submit" class="btn btn-block glass-btn">Daftar</button>
 
         <div class="text-center">
-            <a href="{{ route('login') }}" style="color:rgba(255,255,255,0.7);font-size:0.875rem;" class="hover:underline">
+            <a href="{{ route('login') }}" class="guest-link">
                 Sudah punya akun? Masuk
             </a>
         </div>

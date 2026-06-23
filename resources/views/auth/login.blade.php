@@ -11,7 +11,7 @@
                 placeholder="nama@email.com"
                 class="input w-full glass-input @error('email') input-error @enderror" />
             @error('email')
-                <p class="label" style="color:rgba(255,200,200,0.9)">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
         {{-- Password --}}
@@ -22,7 +22,7 @@
                 placeholder="••••••••"
                 class="input w-full glass-input @error('password') input-error @enderror" />
             @error('password')
-                <p class="label" style="color:rgba(255,200,200,0.9)">{{ $message }}</p>
+                <p class="label guest-error-text">{{ $message }}</p>
             @enderror
         </div>
         {{-- Remember + Forgot --}}
@@ -32,8 +32,7 @@
                 <span class="glass-label">Ingat saya</span>
             </label>
             @if (Route::has('password.request'))
-                <a href="{{ route('password.request') }}"
-                   style="color:rgba(255,255,255,0.8);font-size:0.875rem;" class="hover:underline">
+                <a href="{{ route('password.request') }}" class="guest-forgot-link">
                     Lupa password?
                 </a>
             @endif
