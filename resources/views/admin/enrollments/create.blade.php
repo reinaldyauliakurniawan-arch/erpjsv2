@@ -2,6 +2,8 @@
     <x-slot name="title">Tambah Enrollment</x-slot>
 
     <div class="p-lg space-y-lg" x-data="{
+        // Submit state — prevents double-submit while server processes enrollment
+        submitting: false,
         // Student
         mode: 'new',
         studentQuery: '',
@@ -139,7 +141,8 @@
             </div>
         </div>
 
-        <form method="POST" action="{{ route('admin.enrollments.store') }}">
+        <form method="POST" action="{{ route('admin.enrollments.store') }}"
+            @submit="submitting = true">
             @csrf
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg items-start">
@@ -553,8 +556,11 @@
                                 </div>
                             </div>
                             <button type="submit"
-                                class="w-full py-md bg-secondary-container text-on-secondary-container rounded-lg font-bold hover:opacity-90 transition-all active:scale-95">
-                                Simpan Enrollment
+                                :disabled="submitting"
+                                :class="{ 'loading': submitting }"
+                                class="w-full py-md bg-secondary-container text-on-secondary-container rounded-lg font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
+                                <span x-show="!submitting">Simpan Enrollment</span>
+                                <span x-show="submitting" class="hidden">Menyimpan…</span>
                             </button>
                         </div>
                         <div class="absolute -right-6 -bottom-6 opacity-10">

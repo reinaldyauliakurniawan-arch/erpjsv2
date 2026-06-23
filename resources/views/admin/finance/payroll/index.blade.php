@@ -63,6 +63,8 @@
                     <td class="py-sm">
                         @if($run->status === 'approved')
                             <span class="badge badge-soft badge-success">Approved</span>
+                        @elseif($run->status === 'reversed')
+                            <span class="badge badge-soft badge-error">Reversed</span>
                         @else
                             <span class="badge badge-soft badge-warning">Pending</span>
                         @endif
@@ -76,11 +78,30 @@
                     <td class="py-sm text-right">
                         @if($run->status === 'pending')
                         <form method="POST" action="{{ route('finance.payroll.approve', $run->id) }}"
+                            x-data="{ submitting: false }"
+                            @submit="submitting = true"
                             onsubmit="return confirm('Approve payroll {{ \Carbon\Carbon::parse($run->month)->isoFormat('MMMM YYYY') }}? Jurnal akan digenerate otomatis.')">
                             @csrf
-                            <button type="submit" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90">
+                            <button type="submit" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90"
+                                :disabled="submitting"
+                                :class="{ 'loading': submitting }">
                                 <span class="material-symbols-outlined text-base">check_circle</span>
-                                Approve
+                                <span x-show="!submitting">Approve</span>
+                                <span x-show="submitting" class="hidden">Memproses…</span>
+                            </button>
+                        </form>
+                        @elseif($run->status === 'approved')
+                        <form method="POST" action="{{ route('finance.payroll.reverse', $run->id) }}"
+                            x-data="{ submitting: false }"
+                            @submit="submitting = true"
+                            onsubmit="return confirm('Reverse payroll {{ \Carbon\Carbon::parse($run->month)->isoFormat('MMMM YYYY') }}? Jurnal pembalik akan dibuat dan semua attendance tutor akan ditandai unpaid kembali.')">
+                            @csrf
+                            <button type="submit" class="btn btn-sm btn-ghost text-error border border-error/30 hover:bg-error/10"
+                                :disabled="submitting"
+                                :class="{ 'loading': submitting }">
+                                <span class="material-symbols-outlined text-base">undo</span>
+                                <span x-show="!submitting">Reverse</span>
+                                <span x-show="submitting" class="hidden">Memproses…</span>
                             </button>
                         </form>
                         @else
@@ -92,6 +113,13 @@
             </tbody>
         </table>
 </div>
+
+        {{-- Pagination --}}
+        @if($payrollRuns->hasPages())
+        <div class="flex justify-center mt-md">
+            {{ $payrollRuns->links() }}
+        </div>
+        @endif
         @endif
     </div>
 
@@ -103,23 +131,29 @@
     <div class="modal-box" style="max-width: 28rem;">
         <h3 class="text-base font-semibold text-on-surface mb-md">Buat Payroll Run</h3>
 
-        <form method="POST" action="{{ route('finance.payroll.store') }}">
+        <form method="POST" action="{{ route('finance.payroll.store') }}"
+            x-data="{ submitting: false }"
+            @submit="submitting = true">
             @csrf
             <div class="space-y-md">
                 <div class="fieldset">
                     <label class="fieldset-legend">Bulan <span class="text-error">*</span></label>
                     <input type="month" name="month" class="input w-full"
-                        value="{{ old('month', now()->format('Y-m')) }}" required>
+                        value="{{ old('month', now()->format('Y-m')) }}" required
+                        :disabled="submitting">
                     <p class="text-xs text-on-surface-variant mt-xs">Sistem akan menghitung semua sesi tutor yang belum dibayar di bulan ini</p>
                 </div>
             </div>
 
             <div class="modal-action mt-lg">
                 <button type="button" onclick="document.getElementById('modal-create').close()"
-                    class="btn btn-ghost">Batal</button>
-                <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
+                    class="btn btn-ghost" :disabled="submitting">Batal</button>
+                <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90"
+                    :disabled="submitting"
+                    :class="{ 'loading': submitting }">
                     <span class="material-symbols-outlined text-base">add</span>
-                    Buat Run
+                    <span x-show="!submitting">Buat Run</span>
+                    <span x-show="submitting" class="hidden">Memproses…</span>
                 </button>
             </div>
         </form>
@@ -128,6 +162,3 @@
 </dialog>
 
 </x-app-layout>
-
-
-

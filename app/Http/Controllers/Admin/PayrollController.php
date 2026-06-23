@@ -19,7 +19,12 @@ class PayrollController extends Controller
 
     public function index()
     {
-        $payrollRuns = PayrollRun::latest()->get();
+        // Paginated (was ->get()) — prevents memory blowup once payroll
+        // history grows past a few hundred runs.
+        $payrollRuns = PayrollRun::with(['approvedBy', 'reversedBy'])
+            ->latest()
+            ->paginate(20);
+
         return view('admin.finance.payroll.index', compact('payrollRuns'));
     }
 

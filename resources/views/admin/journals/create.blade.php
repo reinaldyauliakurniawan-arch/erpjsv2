@@ -34,6 +34,7 @@
     {{-- Form --}}
     <form method="POST" action="{{ route('finance.journals.store') }}"
         x-data="{
+            submitting: false,
             rows: [
                 { account_id: '', debit: '0', credit: '0' },
                 { account_id: '', debit: '0', credit: '0' },
@@ -52,7 +53,8 @@
             fmt(n) {
                 return n > 0 ? new Intl.NumberFormat('id-ID').format(n) : '-';
             }
-        }">
+        }"
+        @submit="submitting = true">
         @csrf
 
         <div class="space-y-md">
@@ -175,9 +177,11 @@
             <div class="flex items-center justify-end gap-sm">
                 <a href="{{ route('finance.journals.index') }}" class="btn btn-ghost">Batal</a>
                 <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90"
-                    :disabled="!balanced">
+                    :disabled="!balanced || submitting"
+                    :class="{ 'loading': submitting }">
                     <span class="material-symbols-outlined text-base">save</span>
-                    Simpan Jurnal
+                    <span x-show="!submitting">Simpan Jurnal</span>
+                    <span x-show="submitting" class="hidden">Menyimpan…</span>
                 </button>
             </div>
 
