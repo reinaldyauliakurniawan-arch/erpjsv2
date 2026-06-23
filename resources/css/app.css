@@ -14,22 +14,39 @@
     --color-base-200: oklch(95% 0.01 240);
     --color-base-300: oklch(92% 0.01 240);
     --color-base-content: oklch(20% 0.05 240);
+
+    /* DaisyUI theme tokens — kept in sync with the centralized @theme block
+       below so DaisyUI components (badge-secondary, btn-primary, alert-warning,
+       etc.) render with the same brand colors as our utility classes.
+
+       This is REQUIRED because DaisyUI's @plugin block emits its CSS
+       *after* our @theme block in the compiled output, so without these
+       overrides DaisyUI's defaults (e.g. oklch(70% .2 80) for warning —
+       FAILS WCAG AA) would win the cascade over our brand tokens.
+
+       Contrast verified against base-100 (≈ #f3f4f6):
+         primary #065f46 / white     → 7.68:1 ✓ AAA
+         secondary #059669 / white   → 3.77:1 (AA-large only — used for solid
+                                          buttons/badges where text is on green)
+         success #047857 / white     → 5.48:1 ✓ AA
+         warning #b45309 / white     → 5.02:1 ✓ AA
+         error #c81e1e / white       → 5.74:1 ✓ AA */
     --color-primary: #065f46;
     --color-primary-content: #ffffff;
-    --color-secondary: oklch(40% 0.1 160);
-    --color-secondary-content: oklch(98% 0.01 160);
-    --color-accent: oklch(30% 0.08 160);
-    --color-accent-content: oklch(98% 0.01 160);
+    --color-secondary: #059669;
+    --color-secondary-content: #ffffff;
+    --color-accent: #065f46;
+    --color-accent-content: #ffffff;
     --color-neutral: oklch(40% 0.04 220);
     --color-neutral-content: oklch(98% 0.01 220);
     --color-info: oklch(60% 0.15 220);
     --color-info-content: oklch(98% 0.01 220);
-    --color-success: oklch(55% 0.15 150);
-    --color-success-content: oklch(98% 0.01 150);
-    --color-warning: oklch(70% 0.2 80);
-    --color-warning-content: oklch(20% 0.05 80);
-    --color-error: oklch(45% 0.2 25);
-    --color-error-content: oklch(98% 0.01 25);
+    --color-success: #047857;
+    --color-success-content: #ffffff;
+    --color-warning: #b45309;
+    --color-warning-content: #ffffff;
+    --color-error: #c81e1e;
+    --color-error-content: #ffffff;
 }
 
 /* ════════════════════════════════════════════════════════════════════
@@ -164,12 +181,16 @@
     --color-surface-variant: #e5e7eb;
     --color-surface-border: #e5e7eb;
 
-    /* ── On-surface text ── */
+    /* ── On-surface text ──
+       on-surface-variant is the body-muted color used for secondary text,
+       table headers, captions. Must hit WCAG AA (4.5:1) on the main surface
+       (#f3f4f6) — old #6b7280 only hit 4.22:1 (FAIL). Darkened to #4b5563
+       which hits 6.80:1 (PASS AA, near AAA). */
     --color-on-surface: #111827;
-    --color-on-surface-variant: #6b7280;
+    --color-on-surface-variant: #4b5563;
     --color-inverse-surface: #1f2937;
     --color-inverse-on-surface: #f9fafb;
-    --color-outline: #9ca3af;
+    --color-outline: #6b7280;
     --color-outline-variant: #d1d5db;
 
     /* ── Brand / primary palette ── */
@@ -192,8 +213,17 @@
     --color-on-tertiary-container: #92400e;
     --color-tertiary-fixed: #fef9c3;
 
-    /* ── Status colors ── */
-    --color-error: #dc2626;
+    /* ── Status colors ──
+       Each status color is contrast-verified to pass WCAG AA (4.5:1)
+       on BOTH white cards (#ffffff) AND the main surface (#f3f4f6).
+
+       NOTE: --color-success is intentionally DIFFERENT from --color-secondary
+       (which stays at #059669 per Brand Guide). #059669 only hits 3.77:1 on
+       white (FAIL AA for normal text). We darken success to #047857 which
+       hits 5.48:1 on white / 4.98:1 on surface — both PASS AA. The brand
+       secondary remains sacred for avatar/branding use (where the text on
+       it is white ON the green, not green text on white). */
+    --color-error: #c81e1e;
     --color-on-error: #ffffff;
     --color-error-container: #fee2e2;
     --color-on-error-container: #991b1b;
@@ -201,8 +231,11 @@
     --color-background: #f3f4f6;
     --color-on-background: #111827;
 
-    --color-success: #059669;
-    --color-warning: #d97706;
+    --color-success: #047857;
+    /* Warning must hit WCAG AA (4.5:1) on the main surface (#f3f4f6) — old
+       #d97706 only hit 2.87:1 (FAIL). Darkened to #b45309 which hits 4.56:1
+       (PASS AA). Same amber hue, just deeper. */
+    --color-warning: #b45309;
 
     /* ── Sidebar (dark by default; auto-flips text via .sidebar--light) ──
        Accent is GREEN per Brand Guide Section 3 ("Green is our identity").
@@ -526,7 +559,9 @@
     letter-spacing: var(--text-label-lg--letter-spacing);
     text-transform: uppercase;
     color: var(--color-sidebar-text);
-    opacity: 0.7;
+    /* No opacity reduction — sidebar-text (#9ca3af) on sidebar-bg (#111827)
+       already hits 7.21:1 (AAA). Adding opacity 0.7 would drop effective
+       contrast to ~5.3:1 (borderline AA). Keep full opacity for clarity. */
 }
 
 .app-sidebar__footer {
