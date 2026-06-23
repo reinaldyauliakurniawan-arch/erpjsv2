@@ -99,10 +99,10 @@
     --text-headline-md--line-height: 1.4;
 
     --text-body-lg: 1rem;
-    --text-body-lg--line-height: 1.6;
+    --text-body-lg--line-height: 1.5;  /* 16px × 1.5 = 24px — WCAG-recommended minimum for body */
 
     --text-body-md: 0.75rem;
-    --text-body-md--line-height: 1.6;
+    --text-body-md--line-height: 1.5;  /* 12px × 1.5 = 18px */
 
     --text-label-lg: 0.6875rem;
     --text-label-lg--line-height: 1.2;
@@ -142,14 +142,18 @@
     --text-4xl:  6.854rem;   --text-4xl--line-height:  1.1;
     --text-5xl:  6.854rem;   --text-5xl--line-height:  1.1;
 
-    /* Spacing scale */
-    --spacing-xs: 4px;
-    --spacing-sm: 8px;
-    --spacing-md: 16px;
-    --spacing-lg: 24px;
-    --spacing-xl: 40px;
-    --spacing-xxl: 64px;
-    --spacing-gutter: 24px;
+    /* Spacing scale — standard 8pt system (multiples of 8, with 4 as half-step).
+       Values: 4, 8, 16, 24, 32, 48, 64 — matches Material Design & Apple HIG.
+       Using a strict 8pt grid ensures all spacing (margin, padding, gap) aligns
+       visually and rhythmically across the app. */
+    --spacing-xs: 4px;       /* half-step — for tight inline groupings */
+    --spacing-sm: 8px;       /* cozy — icon-to-text in buttons */
+    --spacing-md: 16px;      /* standard — form fields, card padding */
+    --spacing-lg: 24px;      /* breathing room — card padding default */
+    --spacing-xl: 32px;      /* section separation */
+    --spacing-2xl: 48px;     /* major section break */
+    --spacing-3xl: 64px;     /* max spacing — page-level separation */
+    --spacing-gutter: 24px;  /* content gutter (alias of lg) */
 
     /* Radius scale */
     --radius-sm: 0.25rem;
@@ -185,8 +189,13 @@
     --shadow-2xl: 0 16px 40px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
     --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 
-    /* Layout sizing */
-    --width-container-max: 1440px;
+    /* Layout sizing
+       --width-container-max: 1280px per user spec for optimal reading line
+       length (65-75 chars at body-lg). Wider containers cause text to be
+       hard to scan. For data-dense ERP tables that need more room, override
+       per-page via inline style="max-width: 80rem" etc. */
+    --width-container-max: 1280px;
+    --page-max-width: 1280px;
     --size-sidebar-width: 240px;
     --size-topbar-height: 64px;
 
@@ -311,7 +320,7 @@
 @utility p-md { padding: var(--spacing-md); }
 @utility p-lg { padding: var(--spacing-lg); }
 @utility p-xl { padding: var(--spacing-xl); }
-@utility p-xxl { padding: var(--spacing-xxl); }
+@utility p-xxl { padding: var(--spacing-3xl); } /* legacy alias for p-3xl */
 @utility p-gutter { padding: var(--spacing-gutter); }
 
 @utility px-xs { padding-inline: var(--spacing-xs); }
@@ -326,7 +335,7 @@
 @utility py-md { padding-block: var(--spacing-md); }
 @utility py-lg { padding-block: var(--spacing-lg); }
 @utility py-xl { padding-block: var(--spacing-xl); }
-@utility py-2xl { padding-block: var(--spacing-xxl); }
+@utility py-2xl { padding-block: var(--spacing-3xl); } /* legacy alias for py-3xl */
 
 @utility pt-xs { padding-top: var(--spacing-xs); }
 @utility pt-sm { padding-top: var(--spacing-sm); }
@@ -1049,6 +1058,48 @@
     font-size: var(--text-body-md);
     line-height: var(--text-body-md--line-height);
     color: var(--color-on-surface-variant);
+}
+
+/* ── Page Container — responsive content padding + max-width ─────────
+   Per user spec: mobile 16px L-R, tablet 24-32px, desktop 48-64px or
+   max-width ~1280px + auto margin.
+
+   Usage: wrap page content in <div class="app-page-container">...</div>
+   instead of inline `p-lg space-y-lg` classes. Provides:
+   - Responsive horizontal padding (16 → 24 → 32px across breakpoints)
+   - Vertical rhythm via space-y between sections
+   - Optional max-width via --page-max-width (default 1280px per spec)
+   - Auto horizontal centering when content < max-width */
+.app-page-container {
+    padding: var(--spacing-md) var(--spacing-md);  /* mobile: 16px L-R */
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-lg);  /* 24px between sections */
+    max-width: var(--page-max-width, 1280px);
+    margin-inline: auto;
+    width: 100%;
+}
+
+@media (min-width: 768px) {
+    /* Tablet: 24px L-R */
+    .app-page-container {
+        padding: var(--spacing-lg) var(--spacing-lg);
+    }
+}
+
+@media (min-width: 1024px) {
+    /* Desktop: 32px L-R (within max-width: 1280) */
+    .app-page-container {
+        padding: var(--spacing-xl) var(--spacing-xl);
+    }
+}
+
+@media (min-width: 1440px) {
+    /* Wide desktop: 48px L-R (max-width still caps at 1280px, so this
+       affects padding inside the centered container) */
+    .app-page-container {
+        padding: var(--spacing-2xl) var(--spacing-2xl);
+    }
 }
 
 /* ── Section Label (uppercase tracked-out small label) ──────────────
