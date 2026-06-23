@@ -43,7 +43,8 @@
             <p class="mt-sm text-sm">Belum ada payroll run</p>
         </div>
         @else
-        <table class="table table-sm w-full">
+        <div class="app-table-wrapper">
+<table class="table table-sm w-full">
             <thead>
                 <tr class="border-b border-surface-border text-on-surface-variant text-xs">
                     <th class="text-left font-semibold py-sm">Bulan</th>
@@ -90,6 +91,7 @@
                 @endforeach
             </tbody>
         </table>
+</div>
         @endif
     </div>
 

@@ -65,7 +65,8 @@
             </div>
 
             <div class="overflow-x-auto">
-                <table class="table table-sm w-full">
+                <div class="app-table-wrapper">
+<table class="table table-sm w-full">
                     <thead class="bg-surface-container-high">
                         <tr class="border-b border-surface-border">
                             <th class="px-lg py-md text-label-lg text-on-surface-variant uppercase tracking-widest text-left font-medium">Nama</th>
@@ -121,6 +122,7 @@
                         @endforeach
                     </tbody>
                 </table>
+</div>
             </div>
 
             <div class="app-card__footer">

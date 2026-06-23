@@ -96,7 +96,8 @@
 
             {{-- Tabel Transaksi --}}
             <div class="overflow-x-auto">
-                <table class="w-full text-sm">
+                <div class="app-table-wrapper">
+<table class="w-full text-sm">
                     <thead class="bg-surface-container text-xs text-on-surface-variant uppercase tracking-wide border-b border-surface-border">
                         <tr>
                             <th class="px-md py-sm text-left w-28">Tanggal</th>
@@ -152,6 +153,7 @@
 
                     </tbody>
                 </table>
+</div>
             </div>
         </div>
         @empty

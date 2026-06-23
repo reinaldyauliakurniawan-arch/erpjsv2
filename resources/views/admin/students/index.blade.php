@@ -76,7 +76,8 @@
                     <span class="font-semibold text-on-surface" x-text="filter === 'inactive' ? 'Inactive Students' : 'Tagihan Jatuh Tempo'"></span>
                     <button @click="setFilter('all')" class="ml-auto text-error hover:underline text-body-sm">Reset filter</button>
                 </div>
-                <table class="w-full text-left">
+                <div class="app-table-wrapper">
+<table class="w-full text-left">
                     <thead class="bg-surface-container-low border-b border-surface-border">
                         <tr>
                             <th class="px-lg py-md text-label-lg text-on-surface-variant uppercase tracking-widest font-semibold">Student</th>
@@ -159,6 +160,7 @@
                                                 </template>
                                             </tbody>
                                         </table>
+</div>
                                     </div>
                                 </td>
                             </tr>

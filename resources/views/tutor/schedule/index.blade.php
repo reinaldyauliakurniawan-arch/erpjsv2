@@ -120,7 +120,8 @@ function guardSlot(dateStr, timeBlock, callback) {
             @if($todaySchedules->isEmpty())
                 <p class="text-sm text-on-surface-variant">Tidak ada sesi hari ini.</p>
             @else
-                <table class="table table-sm w-full">
+                <div class="app-table-wrapper">
+<table class="table table-sm w-full">
                     <thead>
                         <tr class="border-b border-surface-border text-on-surface-variant text-xs">
                             <th class="text-left font-medium py-sm">Sesi</th>
@@ -173,6 +174,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                         @endforeach
                     </tbody>
                 </table>
+</div>
             @endif
         </div>
 

@@ -315,7 +315,8 @@
                     <span class="badge badge-soft badge-success text-body-sm"
                         Kehadiran Siswa (<span x-text="modal.students.length"></span> siswa)
                     </p>
-                    <table class="table table-sm w-full">
+                    <div class="app-table-wrapper">
+<table class="table table-sm w-full">
                         <thead>
                             <tr class="border-b border-surface-border text-on-surface-variant text-xs">
                                 <th class="text-left font-semibold py-sm">Nama</th>
@@ -341,6 +342,7 @@
                             </template>
                         </tbody>
                     </table>
+</div>
                 </div>
 
             </div>

@@ -50,7 +50,8 @@
                 </div>
             @else
                 <div class="overflow-x-auto">
-                    <table class="table table-sm">
+                    <div class="app-table-wrapper">
+<table class="table table-sm">
                         <thead>
                             <tr class="text-label-lg text-on-surface-variant border-b border-surface-border">
                                 <th>Nama Kelas</th>
@@ -85,6 +86,7 @@
                             @endforeach
                         </tbody>
                     </table>
+</div>
                 </div>
             @endif
         </div>

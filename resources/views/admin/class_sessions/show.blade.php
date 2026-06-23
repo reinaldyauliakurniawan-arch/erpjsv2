@@ -57,7 +57,8 @@
             @if($classSession->tutors->isEmpty())
                 <p class="text-body-md text-on-surface-variant">Belum ada tutor di kelas ini.</p>
             @else
-                <table class="table table-sm w-full">
+                <div class="app-table-wrapper">
+<table class="table table-sm w-full">
                     <thead>
                         <tr class="border-b border-surface-border text-on-surface-variant">
                             <th class="text-left font-medium">Nama</th>
@@ -97,6 +98,7 @@
                         @endforeach
                     </tbody>
                 </table>
+</div>
             @endif
         </div>
 
@@ -121,7 +123,8 @@
             @if($classSession->enrollments->isEmpty())
                 <p class="text-body-md text-on-surface-variant">Belum ada siswa di kelas ini.</p>
             @else
-                <table class="table table-sm w-full">
+                <div class="app-table-wrapper">
+<table class="table table-sm w-full">
                     <thead>
                         <tr class="border-b border-surface-border text-on-surface-variant">
                             <th class="text-left font-medium">Nama Siswa</th>
@@ -165,6 +168,7 @@
                         @endforeach
                     </tbody>
                 </table>
+</div>
             @endif
         </div>
 
@@ -227,7 +231,8 @@
             @if($classSession->schedules->isEmpty())
                 <p class="text-body-md text-on-surface-variant">Belum ada jadwal.</p>
             @else
-                <table class="table table-sm w-full">
+                <div class="app-table-wrapper">
+<table class="table table-sm w-full">
                     <thead>
                         <tr class="border-b border-surface-border text-on-surface-variant">
                             <th class="text-left font-medium">Hari</th>
@@ -256,6 +261,7 @@
                         @endforeach
                     </tbody>
                 </table>
+</div>
             @endif
         </div>
 

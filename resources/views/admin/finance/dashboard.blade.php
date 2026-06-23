@@ -143,7 +143,8 @@
                     <p class="text-body-sm text-on-surface-variant">Tidak ada tagihan jatuh tempo.</p>
                 @else
                     <div class="overflow-y-auto flex-1">
-                        <table class="table table-sm">
+                        <div class="app-table-wrapper">
+<table class="table table-sm">
                             <thead>
                                 <tr class="border-b border-surface-border text-on-surface-variant">
                                     <th>Student</th>
@@ -167,6 +168,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+</div>
                     </div>
                 @endif
             </div>
@@ -235,7 +237,8 @@
                 <p class="text-body-sm text-on-surface-variant">Belum ada jurnal bulan ini.</p>
             @else
                 <div class="overflow-y-auto flex-1">
-                    <table class="table table-sm">
+                    <div class="app-table-wrapper">
+<table class="table table-sm">
                         <thead>
                             <tr class="border-b border-surface-border text-on-surface-variant">
                                 <th>Date</th>
@@ -263,6 +266,7 @@
                             @endforeach
                         </tbody>
                     </table>
+</div>
                 </div>
             @endif
         </div>
@@ -304,13 +308,13 @@ document.addEventListener('DOMContentLoaded', function () {
                     label: 'Revenue',
                     data: @json($chartRevenue),
                     backgroundColor: BRAND.green,  // brand green for revenue (good = green)
-                    borderRadius: 4,
+                    borderRadius: 12,
                 },
                 {
                     label: 'Expense',
                     data: @json($chartExpense),
                     backgroundColor: BRAND.red,    // brand red for expense (danger = red)
-                    borderRadius: 4,
+                    borderRadius: 12,
                 }
             ]
         },
@@ -396,7 +400,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const revenueProgramCtx = document.getElementById('revenueProgramChart').getContext('2d');
     let revenueProgramChart = new Chart(revenueProgramCtx, {
         type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Revenue', data: [], backgroundColor: BRAND.green, borderRadius: 4 }] },
+        data: { labels: [], datasets: [{ label: 'Revenue', data: [], backgroundColor: BRAND.green, borderRadius: 12 }] },
         options: {
             indexAxis: 'y',
             responsive: true,

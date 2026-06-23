@@ -67,7 +67,8 @@
             @else
                 <div class="overflow-x-auto">
                     <div class="overflow-y-auto" style="max-height: 280px;">
-                        <table class="table table-sm">
+                        <div class="app-table-wrapper">
+<table class="table table-sm">
                             <thead class="sticky top-0 bg-surface-container-lowest z-10">
                                 <tr class="text-label-lg text-on-surface-variant border-b border-surface-border">
                                     <th>Program</th>
@@ -83,6 +84,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+</div>
                     </div>
                 </div>
             @endif
@@ -102,7 +104,8 @@
                 @endphp
 
                 <div class="overflow-x-auto">
-                    <table class="table table-sm text-center">
+                    <div class="app-table-wrapper">
+<table class="table table-sm text-center">
                         <thead>
                             <tr class="text-label-lg text-on-surface-variant border-b border-surface-border">
                                 <th class="text-left">Time Block</th>
@@ -135,6 +138,7 @@
                             @endforeach
                         </tbody>
                     </table>
+</div>
                 </div>
 
                 <div class="mt-md">
@@ -189,7 +193,8 @@
                 @else
                     <div class="overflow-x-auto">
                         <div class="overflow-y-auto" style="max-height: 200px;">
-                            <table class="table table-sm">
+                            <div class="app-table-wrapper">
+<table class="table table-sm">
                                 <thead class="sticky top-0 bg-surface-container-lowest z-10">
                                     <tr class="text-label-lg text-on-surface-variant border-b border-surface-border">
                                         <th>Hari</th>
@@ -219,6 +224,7 @@
                                     @endforeach
                                 </tbody>
                             </table>
+</div>
                         </div>
                     </div>
                 @endif

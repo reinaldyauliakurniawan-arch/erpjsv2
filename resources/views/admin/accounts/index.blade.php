@@ -66,7 +66,8 @@
                 <div class="app-card space-y-md">
                     <h4 class="text-headline-md font-semibold text-on-surface">{{ $type }}</h4>
                     <div class="overflow-x-auto">
-                        <table class="table table-sm">
+                        <div class="app-table-wrapper">
+<table class="table table-sm">
                             <thead>
                                 <tr class="border-b border-surface-border text-on-surface-variant">
                                     <th>Kode</th>
@@ -162,6 +163,7 @@
                                 @endforeach
                             </tbody>
                         </table>
+</div>
                     </div>
                 </div>
             @endif

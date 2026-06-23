@@ -228,7 +228,8 @@
             @else
             <div class="overflow-x-auto">
                 <div style="max-height:20rem;overflow-y:auto">
-                    <table class="table table-sm">
+                    <div class="app-table-wrapper">
+<table class="table table-sm">
                         <thead class="sticky top-0 bg-surface-container-lowest z-10">
                             <tr class="text-label-lg text-on-surface-variant">
                                 <th>Nama Siswa</th>
@@ -292,6 +293,7 @@
                             @endforeach
                         </tbody>
                     </table>
+</div>
                 </div>
             </div>
             @endif
@@ -307,7 +309,8 @@
             @else
             <div class="overflow-x-auto">
                 <div style="max-height:20rem;overflow-y:auto">
-                    <table class="table table-sm">
+                    <div class="app-table-wrapper">
+<table class="table table-sm">
                         <thead class="sticky top-0 bg-surface-container-lowest z-10">
                             <tr class="text-label-lg text-on-surface-variant">
                                 <th>Nama Siswa</th>
@@ -368,6 +371,7 @@
                             @endforeach
                         </tbody>
                     </table>
+</div>
                 </div>
             </div>
             @endif
@@ -383,7 +387,8 @@
             @else
             <div class="overflow-x-auto">
                 <div style="max-height:20rem;overflow-y:auto">
-                    <table class="table table-sm">
+                    <div class="app-table-wrapper">
+<table class="table table-sm">
                         <thead class="sticky top-0 bg-surface-container-lowest z-10">
                             <tr class="text-label-lg text-on-surface-variant">
                                 <th>Nama Siswa</th>
@@ -430,6 +435,7 @@
                             @endforeach
                         </tbody>
                     </table>
+</div>
                 </div>
             </div>
             @endif
@@ -464,7 +470,8 @@
             @else
             <div class="overflow-x-auto">
                 <div style="max-height:18rem;overflow-y:auto">
-                    <table class="table table-sm">
+                    <div class="app-table-wrapper">
+<table class="table table-sm">
                         <thead class="sticky top-0 bg-surface-container-lowest z-10">
                             <tr class="text-label-lg text-on-surface-variant">
                                 <th>Student</th>
@@ -498,6 +505,7 @@
                             @endforeach
                         </tbody>
                     </table>
+</div>
                 </div>
             </div>
             @endif
@@ -525,7 +533,8 @@
             @else
             <div class="overflow-x-auto">
                 <div style="max-height:18rem;overflow-y:auto">
-                    <table class="table table-sm">
+                    <div class="app-table-wrapper">
+<table class="table table-sm">
                         <thead class="sticky top-0 bg-surface-container-lowest z-10">
                             <tr class="text-label-lg text-on-surface-variant">
                                 <th>Student</th>
@@ -559,6 +568,7 @@
                             @endforeach
                         </tbody>
                     </table>
+</div>
                 </div>
             </div>
             @endif
@@ -655,7 +665,8 @@
         @else
         <div class="overflow-x-auto">
             <div style="max-height:18rem;overflow-y:auto">
-                <table class="table table-sm">
+                <div class="app-table-wrapper">
+<table class="table table-sm">
                     <thead class="sticky top-0 bg-surface-container-lowest z-10">
                         <tr class="text-label-lg text-on-surface-variant">
                             <th>Nama</th>
@@ -690,6 +701,7 @@
                         @endforeach
                     </tbody>
                 </table>
+</div>
             </div>
         </div>
         @endif

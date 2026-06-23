@@ -72,7 +72,8 @@
     <div class="app-card">
         <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-md">Entri Jurnal</h2>
 
-        <table class="table table-sm w-full">
+        <div class="app-table-wrapper">
+<table class="table table-sm w-full">
             <thead>
                 <tr class="border-b border-surface-border text-on-surface-variant text-xs">
                     <th class="text-left font-semibold py-sm">Kode</th>
@@ -115,6 +116,7 @@
                 </tr>
             </tfoot>
         </table>
+</div>
     </div>
 
     {{-- Meta --}}

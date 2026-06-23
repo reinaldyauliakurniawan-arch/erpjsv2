@@ -136,7 +136,8 @@
                             </button>
                         </div>
                         <div class="overflow-x-auto">
-                            <table class="table table-xs w-full">
+                            <div class="app-table-wrapper">
+<table class="table table-xs w-full">
                                 <thead>
                                     <tr class="text-on-surface-variant">
                                         <th>Akun</th>
@@ -182,6 +183,7 @@
                                     </tr>
                                 </tfoot>
                             </table>
+</div>
                         </div>
                         <p id="balance-warning" class="text-body-xs text-error mt-1 hidden">⚠ Total debit dan kredit harus sama.</p>
                     </div>

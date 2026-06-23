@@ -111,7 +111,8 @@
     @if($enrollment->tutors->isEmpty())
         <p class="text-body-md text-on-surface-variant">Belum ada tutor di-assign.</p>
     @else
-        <table class="table table-sm w-full">
+        <div class="app-table-wrapper">
+<table class="table table-sm w-full">
             <thead>
                 <tr class="border-b border-surface-border text-on-surface-variant">
                     <th class="text-left font-medium">Nama</th>
@@ -156,6 +157,7 @@
                 @endforeach
             </tbody>
         </table>
+</div>
     @endif
 </div>
 
@@ -163,7 +165,8 @@
         @if($enrollment->schedules->isNotEmpty())
         <div class="app-card space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Jadwal</h4>
-            <table class="table table-sm w-full">
+            <div class="app-table-wrapper">
+<table class="table table-sm w-full">
                 <thead>
                     <tr class="border-b border-surface-border text-on-surface-variant">
                         <th class="text-left font-medium">Hari</th>
@@ -181,6 +184,7 @@
                     @endforeach
                 </tbody>
             </table>
+</div>
         </div>
         @endif
 
@@ -212,7 +216,8 @@
             @if($enrollment->installments->isNotEmpty())
             <div class="space-y-sm pt-sm">
                 <p class="text-body-md font-medium text-on-surface">Cicilan</p>
-                <table class="table table-sm w-full">
+                <div class="app-table-wrapper">
+<table class="table table-sm w-full">
                     <thead>
                         <tr class="border-b border-surface-border text-on-surface-variant">
                             <th class="text-left font-medium">#</th>
@@ -252,6 +257,7 @@
                         @endforeach
                     </tbody>
                 </table>
+</div>
             </div>
             @endif
         </div>

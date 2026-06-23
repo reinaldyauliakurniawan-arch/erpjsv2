@@ -86,7 +86,8 @@
                     <span class="px-sm py-xs bg-primary-container text-on-primary rounded-full text-label-sm font-bold uppercase tracking-wider">Active Cycle</span>
                 </div>
                 <div class="overflow-x-auto">
-                    <table class="w-full text-left border-collapse">
+                    <div class="app-table-wrapper">
+<table class="w-full text-left border-collapse">
                         <thead class="bg-surface-container text-on-surface-variant text-label-sm uppercase tracking-wider">
                             <tr>
                                 <th class="px-lg py-sm font-semibold">Siswa</th>
@@ -197,6 +198,7 @@
                                                         @endforelse
                                                     </tbody>
                                                 </table>
+</div>
                                             </div>
                                         </div>
                                     </td>

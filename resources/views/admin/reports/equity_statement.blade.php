@@ -57,7 +57,8 @@
     {{-- Detail --}}
     <div class="app-card">
         <h2 class="text-sm font-semibold text-on-surface mb-md">Rincian Perubahan Ekuitas Tahun {{ $year }}</h2>
-        <table class="w-full text-sm">
+        <div class="app-table-wrapper">
+<table class="w-full text-sm">
             <tbody>
                 <tr class="border-b border-surface-border">
                     <td class="py-sm text-on-surface">Modal Awal (Per 31 Des {{ $year - 1 }})</td>
@@ -81,6 +82,7 @@
                 </tr>
             </tbody>
         </table>
+</div>
     </div>
 
 </div>

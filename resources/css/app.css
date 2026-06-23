@@ -1024,6 +1024,57 @@
     padding: var(--spacing-xl);
 }
 
+/* ── Table Wrapper ──────────────────────────────────────────────────
+   Per Brand Guide Section 2: personality is "Fun & energik" — sharp
+   90° corners feel sterile/government-portal. Tables are the worst
+   offender (HTML default = sharp). Wrap every <table> in this class
+   to clip its outer corners to match the rest of the UI.
+
+   Use: <div class="app-table-wrapper"><table>...</table></div>
+   The wrapper handles: rounded corners, border, overflow clipping,
+   and horizontal scroll on mobile. */
+.app-table-wrapper {
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    background-color: var(--color-surface-bright);
+}
+
+.app-table-wrapper > table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.app-table-wrapper > table > thead > tr > th,
+.app-table-wrapper > table > tbody > tr > td {
+    padding: var(--spacing-sm) var(--spacing-md);
+    text-align: left;
+    border-bottom: 1px solid var(--color-surface-border);
+}
+
+.app-table-wrapper > table > thead > tr > th {
+    background-color: var(--color-surface-container-low);
+    font-size: var(--text-label-lg);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: var(--text-label-lg--letter-spacing);
+    color: var(--color-on-surface-variant);
+}
+
+.app-table-wrapper > table > tbody > tr:last-child > td {
+    border-bottom: none;
+}
+
+.app-table-wrapper > table > tbody > tr:hover {
+    background-color: var(--color-surface-container-low);
+}
+
+/* Allow horizontal scroll on small screens without breaking the
+   rounded corners of the wrapper */
+.app-table-wrapper--scroll {
+    overflow-x: auto;
+}
+
 /* ── Status badge (for inline status pills) ───────────────────────── */
 .app-status-badge {
     display: inline-flex;
