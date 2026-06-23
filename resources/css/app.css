@@ -158,6 +158,33 @@
     --radius-xl: 1rem;
     --radius-full: 9999px;
 
+    /* ── Shadow scale — aesthetic layered shadows ─────────────────────
+       Per Material Design 3 / Apple HIG / Stripe / Vercel principles:
+       - 2 layers per elevation (ambient diffuse + key directional)
+       - Low opacity (4-12%) for premium feel — never harsh
+       - Y-offset only (light source = top, shadow falls down)
+       - Blur 2-4× the Y offset
+       - NO negative spread (renders fake on some browsers)
+
+       Elevation hierarchy:
+         xs   → restful (cards resting on surface, border-like)
+         sm   → card (default cards, stat cards)
+         md   → raised (dropdowns, popovers, autocomplete)
+         lg   → floating (sticky bars, command palettes)
+         xl   → overlay (modals, dialogs)
+         2xl  → max (large modals only — use sparingly)
+
+       Tailwind utilities shadow-sm/md/lg/xl/2xl are wired to these
+       tokens below (overrides Tailwind's defaults which used negative
+       spread and slightly high opacity). */
+    --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+    --shadow-md:  0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-lg:  0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-xl:  0 8px 24px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.05);
+    --shadow-2xl: 0 16px 40px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
+    --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.04);
+
     /* Layout sizing */
     --width-container-max: 1440px;
     --size-sidebar-width: 240px;
@@ -250,15 +277,17 @@
     /* ── Topbar ── */
     --color-topbar-bg: #ffffff;
     --color-topbar-border: #e5e7eb;
-    --color-topbar-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --color-topbar-shadow: var(--shadow-sm);
 
-    /* ── Guest (auth pages) ── */
+    /* ── Guest (auth pages) ──
+       Glass shadow was 0.2 opacity (harsh). Lowered to 0.12 (premium)
+       via --shadow-xl token. Authentic glassmorphism uses subtle depth. */
     --color-guest-gradient-from: #00a982;
     --color-guest-gradient-via: #007a60;
     --color-guest-gradient-to: #006b5a;
     --color-guest-glass-bg: rgba(255, 255, 255, 0.15);
     --color-guest-glass-border: rgba(255, 255, 255, 0.3);
-    --color-guest-glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+    --color-guest-glass-shadow: var(--shadow-xl);
     --color-guest-input-bg: rgba(255, 255, 255, 0.2);
     --color-guest-input-border: rgba(255, 255, 255, 0.4);
     --color-guest-input-text: #ffffff;
@@ -443,6 +472,22 @@
     select,
     textarea {
         border: none;
+    }
+
+    /* Force all shadow tokens to be emitted to :root.
+       Tailwind v4 tree-shakes @theme variables that aren't used by a
+       utility class. Our component classes (.app-card etc.) reference
+       them via var(--shadow-*) — without this anchor, unused tokens
+       (--shadow-xs, --shadow-lg, --shadow-2xl, --shadow-inner) would
+       not be available as CSS variables for custom components. */
+    :root {
+        --shadow-xs-anchor: var(--shadow-xs);
+        --shadow-sm-anchor: var(--shadow-sm);
+        --shadow-md-anchor: var(--shadow-md);
+        --shadow-lg-anchor: var(--shadow-lg);
+        --shadow-xl-anchor: var(--shadow-xl);
+        --shadow-2xl-anchor: var(--shadow-2xl);
+        --shadow-inner-anchor: var(--shadow-inner);
     }
 
     body {
@@ -769,11 +814,12 @@
                 transform var(--motion-base) var(--motion-easing);
     padding: 0.75rem !important;
     cursor: pointer;
+    box-shadow: var(--shadow-sm);
 }
 
 .glass-btn:hover {
     background: #fff !important;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15) !important;
+    box-shadow: var(--shadow-md) !important;
     transform: translateY(-1px);
 }
 
@@ -861,13 +907,14 @@
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── Card (Section 13 "Cards") ───────────────────────────────────────
-   bg-surface-bright on a #f3f4f6 background creates a subtle lifted effect. */
+   bg-surface-bright on a #f3f4f6 background creates a subtle lifted effect.
+   Shadow uses --shadow-sm (layered, low-opacity) per Material 3 principles. */
 .app-card {
     background-color: var(--color-surface-bright);
     border: 1px solid var(--color-surface-border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
 }
 
 /* Card without internal padding — for tables, lists, anything with its own padding */
@@ -900,7 +947,7 @@
     border: 1px solid var(--color-surface-border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    box-shadow: var(--shadow-sm);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
@@ -1136,9 +1183,7 @@
     font-family: var(--font-sans);
     font-size: var(--text-body-md);
     color: var(--color-on-surface);
-    box-shadow:
-        0 4px 12px rgba(0, 0, 0, 0.07),
-        0 2px 6px rgba(0, 0, 0, 0.04);
+    box-shadow: var(--shadow-md);
 }
 
 .tabulator .tabulator-header {
