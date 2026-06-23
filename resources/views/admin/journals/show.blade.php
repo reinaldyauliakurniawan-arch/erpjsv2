@@ -48,7 +48,7 @@
     @endif
 
     {{-- Info Jurnal --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-md">Informasi Jurnal</h2>
         <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
             <div>
@@ -69,7 +69,7 @@
     </div>
 
     {{-- Entri Jurnal --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-md">Entri Jurnal</h2>
 
         <table class="table table-sm w-full">

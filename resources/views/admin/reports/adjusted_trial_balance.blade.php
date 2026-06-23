@@ -11,7 +11,7 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <div class="flex items-end gap-md flex-wrap">
             <div class="fieldset">
                 <label class="fieldset-legend">Periode</label>
@@ -23,7 +23,7 @@
                     <option value="custom" {{ $from ? 'selected' : '' }}>Custom</option>
                 </select>
             </div>
-            <div id="custom-range" class="flex gap-sm items-end {{ $from ? '' : 'hidden' }}">
+            <div id="custom-range" class="flex gap-sm items-end {{ $from ?'' : 'hidden' }}">
                 <div class="fieldset">
                     <label class="fieldset-legend">Dari</label>
                     <input type="date" id="filter-from" class="input input-sm" value="{{ $from }}">
@@ -42,21 +42,21 @@
 
     {{-- Summary Cards --}}
     <div class="grid gap-md" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Saldo Pre-Adjustment</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalPreSaldo, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Adj Debit</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalAdjDebit, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Adj Kredit</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalAdjCredit, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Saldo Adjusted</p>
-            <p class="text-xl font-bold mt-xs {{ abs($totalAdjDebit - $totalAdjCredit) < 0.001 ? 'text-success' : 'text-error' }}">
+            <p class="text-xl font-bold mt-xs {{ abs($totalAdjDebit - $totalAdjCredit) < 0.001 ?'text-success' : 'text-error' }}">
                 Rp {{ number_format($totalAdjustedSaldo, 0, ',', '.') }}
             </p>
         </div>
@@ -70,7 +70,7 @@
         </span>
     </div>
 
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <div id="atb-table"></div>
     </div>
 

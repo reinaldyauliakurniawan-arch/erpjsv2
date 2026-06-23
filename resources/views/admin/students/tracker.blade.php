@@ -27,13 +27,13 @@
         {{-- Filter --}}
         <div class="flex items-center gap-sm">
             <span class="text-body-md text-on-surface-variant">Filter:</span>
-            <button @click="filter = 'all'" :class="filter === 'all' ? 'btn-primary' : 'btn-ghost'" class="btn btn-sm">Semua</button>
-            <button @click="filter = 'complete'" :class="filter === 'complete' ? 'btn-primary' : 'btn-ghost'" class="btn btn-sm">Complete</button>
-            <button @click="filter = 'incomplete'" :class="filter === 'incomplete' ? 'btn-primary' : 'btn-ghost'" class="btn btn-sm">Incomplete</button>
+            <button @click="filter = 'all'" :class="filter ==='all' ? 'btn-primary' : 'btn-ghost'" class="btn btn-sm">Semua</button>
+            <button @click="filter = 'complete'" :class="filter ==='complete' ? 'btn-primary' : 'btn-ghost'" class="btn btn-sm">Complete</button>
+            <button @click="filter = 'incomplete'" :class="filter ==='incomplete' ? 'btn-primary' : 'btn-ghost'" class="btn btn-sm">Incomplete</button>
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+        <div class="app-card app-card--flush">
             @if($columns->isEmpty())
                 <div class="flex flex-col items-center justify-center py-2xl gap-sm text-on-surface-variant">
                     <span class="material-symbols-outlined text-[48px]">checklist</span>
@@ -117,7 +117,7 @@
                                             </div>
                                             <div class="w-full bg-surface-container h-1.5 rounded-full overflow-hidden">
                                                 <div class="h-full rounded-full transition-all"
-                                                    :class="pct === 100 ? 'bg-secondary' : pct >= 50 ? 'bg-warning' : 'bg-error'"
+                                                    :class="pct === 100 ?'bg-secondary' : pct >= 50 ? 'bg-warning' : 'bg-error'"
                                                     :style="'width: ' + pct + '%'"></div>
                                             </div>
                                         </div>

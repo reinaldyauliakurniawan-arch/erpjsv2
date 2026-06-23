@@ -57,7 +57,7 @@
             @csrf
 
             {{-- Info Dasar --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <div class="flex items-center gap-sm pb-md border-b border-surface-border">
                     <span class="material-symbols-outlined text-secondary">info</span>
                     <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Info Dasar</h4>
@@ -115,7 +115,7 @@
             </div>
 
             {{-- Tutor --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <div class="flex items-center gap-sm pb-md border-b border-surface-border">
                     <span class="material-symbols-outlined text-secondary">person</span>
                     <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Tutor</h4>
@@ -137,7 +137,7 @@
             </div>
 
             {{-- Siswa --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <div class="flex items-center gap-sm pb-md border-b border-surface-border">
                     <span class="material-symbols-outlined text-secondary">group</span>
                     <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Siswa</h4>
@@ -178,7 +178,7 @@
             </div>
 
             {{-- Jadwal --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <div class="flex items-center justify-between pb-md border-b border-surface-border">
                     <div class="flex items-center gap-sm">
                         <span class="material-symbols-outlined text-secondary">calendar_month</span>

@@ -29,7 +29,7 @@
                 <div class="flex items-center gap-sm mt-xs">
                     <p class="text-body-md text-on-surface-variant">{{ $classSession->program->name }}</p>
                     <span class="badge badge-soft">{{ ucfirst($classSession->class_type) }}</span>
-                    <span class="badge badge-soft {{ $classSession->status === 'active' ? 'badge-success' : 'badge-error' }}">
+                    <span class="badge badge-soft {{ $classSession->status ==='active' ? 'badge-success' : 'badge-error' }}">
                         {{ $classSession->status }}
                     </span>
                 </div>
@@ -42,7 +42,7 @@
         </div>
 
         {{-- Tutor Section --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-center justify-between">
                 <h4 class="text-headline-md font-semibold text-on-surface">Tutor</h4>
                 @if($availableTutors->isNotEmpty())
@@ -101,7 +101,7 @@
         </div>
 
         {{-- Siswa Section --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-center justify-between">
                 <h4 class="text-headline-md font-semibold text-on-surface">
                     Siswa
@@ -135,8 +135,7 @@
                         <tr class="border-b border-surface-border last:border-0">
                             <td class="font-semibold text-on-surface">{{ $enrollment->student->user->name }}</td>
                             <td>
-                                <span class="badge badge-soft {{ match($enrollment->status) {
-                                    'active' => 'badge-success',
+                                <span class="badge badge-soft {{ match($enrollment->status) {'active' => 'badge-success',
                                     'waitlist' => 'badge-warning',
                                     'graduate' => 'badge-info',
                                     'expired' => 'badge-error',
@@ -170,7 +169,7 @@
         </div>
 
         {{-- Jadwal Section --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md"
+        <div class="app-card space-y-md"
             x-data="{ showCustomTime: false }">
             <div class="flex items-center justify-between">
                 <h4 class="text-headline-md font-semibold text-on-surface">Jadwal</h4>
@@ -261,7 +260,7 @@
         </div>
 
         {{-- Delete --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Hapus Kelas</h4>
             <p class="text-body-sm text-on-surface-variant">Kelas hanya bisa dihapus jika tidak ada siswa aktif.</p>
             <form method="POST" action="{{ route('admin.class-sessions.destroy', $classSession->id) }}">

@@ -15,7 +15,7 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <div class="flex items-end gap-md flex-wrap">
             <div class="fieldset">
                 <label class="fieldset-legend">Periode</label>
@@ -27,7 +27,7 @@
                     <option value="custom" {{ $from ? 'selected' : '' }}>Custom</option>
                 </select>
             </div>
-            <div id="custom-range" class="flex gap-sm items-end {{ $from ? '' : 'hidden' }}">
+            <div id="custom-range" class="flex gap-sm items-end {{ $from ?'' : 'hidden' }}">
                 <div class="fieldset">
                     <label class="fieldset-legend">Dari</label>
                     <input type="date" id="filter-from" class="input input-sm" value="{{ $from }}">
@@ -46,23 +46,23 @@
 
     {{-- Summary --}}
     <div class="grid gap-md" style="grid-template-columns:1fr 1fr 1fr;">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Debit</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalDebit,0,',','.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Kredit</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalCredit,0,',','.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Status</p>
-            <p class="text-xl font-bold mt-xs {{ abs($totalDebit-$totalCredit)<0.001 ? 'text-success' : 'text-error' }}">
+            <p class="text-xl font-bold mt-xs {{ abs($totalDebit-$totalCredit)<0.001 ?'text-success' : 'text-error' }}">
                 {{ abs($totalDebit-$totalCredit)<0.001 ? 'Balance ✓' : 'Tidak Balance ✗' }}
             </p>
         </div>
     </div>
 
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <div id="trial-balance-table"></div>
     </div>
 

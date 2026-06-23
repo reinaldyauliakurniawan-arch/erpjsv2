@@ -12,7 +12,7 @@
 
         <h3 class="text-headline-lg font-semibold text-on-surface">Pengaturan Warna</h3>
 
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <form method="POST" action="{{ route('admin.settings.colors.update') }}">
                 @csrf
                 <div class="space-y-lg">

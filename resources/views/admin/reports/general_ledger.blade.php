@@ -18,7 +18,7 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg no-print">
+    <div class="app-card no-print">
         <div class="flex items-end gap-md flex-wrap">
             <div class="fieldset">
                 <label class="fieldset-legend">Periode</label>
@@ -29,7 +29,7 @@
                     <option value="custom"  {{ $period === 'custom'  ? 'selected' : '' }}>Custom</option>
                 </select>
             </div>
-            <div id="custom-range" class="flex gap-sm items-end {{ $period === 'custom' ? '' : 'hidden' }}">
+            <div id="custom-range" class="flex gap-sm items-end {{ $period ==='custom' ? '' : 'hidden' }}">
                 <div class="fieldset">
                     <label class="fieldset-legend">Dari</label>
                     <input type="date" id="filter-from" class="input input-sm" value="{{ $from }}">
@@ -48,15 +48,15 @@
 
     {{-- Summary Cards --}}
     <div class="grid gap-md no-print" style="grid-template-columns:repeat(3,1fr)">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Debet</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalDebet,0,',','.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Kredit</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalKredit,0,',','.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Akun Aktif</p>
             <p class="text-xl font-bold text-on-surface mt-xs">{{ $activeAccounts }}</p>
         </div>
@@ -65,7 +65,7 @@
     {{-- Ledger per Akun --}}
     <div class="space-y-md">
         @forelse($ledger as $account)
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+        <div class="app-card app-card--flush">
 
             {{-- Account Header --}}
             <div class="flex items-center justify-between px-lg py-md bg-surface-container border-b border-surface-border flex-wrap gap-sm">
@@ -155,7 +155,7 @@
             </div>
         </div>
         @empty
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg text-center text-on-surface-variant">
+        <div class="app-card text-center text-on-surface-variant">
             Tidak ada data untuk periode ini.
         </div>
         @endforelse

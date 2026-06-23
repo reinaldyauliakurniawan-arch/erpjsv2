@@ -24,7 +24,7 @@
 
         <h3 class="text-headline-lg font-semibold text-on-surface">Edit Class Session</h3>
 
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <form method="POST" action="{{ route('admin.class-sessions.update', $classSession->id) }}" class="space-y-md">
                 @csrf
                 @method('PUT')

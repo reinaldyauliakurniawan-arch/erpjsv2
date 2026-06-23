@@ -15,7 +15,7 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <form method="GET" action="{{ route('finance.reports.profit-loss') }}" class="flex items-end gap-md flex-wrap">
             <div class="fieldset">
                 <label class="fieldset-legend">Periode</label>
@@ -45,24 +45,24 @@
 
     {{-- Summary Cards --}}
     <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Pendapatan</p>
             <p class="text-xl font-bold text-success mt-xs">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Beban</p>
             <p class="text-xl font-bold text-error mt-xs">Rp {{ number_format($totalExpense, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Net Profit</p>
-            <p class="text-xl font-bold mt-xs {{ $netProfit >= 0 ? 'text-success' : 'text-error' }}">
+            <p class="text-xl font-bold mt-xs {{ $netProfit >= 0 ?'text-success' : 'text-error' }}">
                 Rp {{ number_format($netProfit, 0, ',', '.') }}
             </p>
         </div>
     </div>
 
     {{-- Tabulator --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <div id="pl-table"></div>
     </div>
 

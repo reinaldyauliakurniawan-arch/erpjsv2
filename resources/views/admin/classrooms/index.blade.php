@@ -34,8 +34,8 @@
 
         {{-- Summary Cards --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-md">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
-                <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            <div class="app-card flex flex-col gap-md">
+                <div class="app-icon-badge">
                     <span class="material-symbols-outlined text-secondary">meeting_room</span>
                 </div>
                 <div>
@@ -43,8 +43,8 @@
                     <p class="text-headline-lg font-bold text-on-surface mt-xs">{{ $classrooms->count() }}</p>
                 </div>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
-                <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            <div class="app-card flex flex-col gap-md">
+                <div class="app-icon-badge">
                     <span class="material-symbols-outlined text-secondary">group</span>
                 </div>
                 <div>
@@ -55,8 +55,8 @@
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
-            <div class="px-lg py-md border-b border-surface-border flex justify-between items-center bg-surface-container-low">
+        <div class="app-card app-card--flush">
+            <div class="app-card__header">
                 <h4 class="text-title-sm font-semibold text-on-surface">Daftar Ruangan</h4>
                 <span class="badge badge-soft">{{ $classrooms->count() }} ruangan</span>
             </div>
@@ -93,7 +93,7 @@
                                     @else
                                         <span class="text-on-surface-variant">—</span>
                                     @endif
-                                    <span class="badge badge-soft text-xs mt-xs {{ $classroom->is_at_just_speak ? 'badge-success' : 'badge-ghost' }}">
+                                    <span class="badge badge-soft text-xs mt-xs {{ $classroom->is_at_just_speak ?'badge-success' : 'badge-ghost' }}">
                                         {{ $classroom->is_at_just_speak ? 'Just Speak' : 'Eksternal' }}
                                     </span>
                                 </td>

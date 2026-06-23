@@ -12,7 +12,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-md">
 
         {{-- Weekly Goal --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col justify-between gap-md">
+        <div class="app-card flex flex-col justify-between gap-md">
             <div class="flex justify-between items-start">
                 <div>
                     <span class="badge badge-soft text-primary mb-sm inline-block">Weekly Goal</span>
@@ -37,7 +37,7 @@
         </div>
 
         {{-- Total Completed --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col justify-between gap-md">
+        <div class="app-card flex flex-col justify-between gap-md">
             <div class="flex justify-between items-start">
                 <div>
                     <span class="badge badge-soft text-tertiary mb-sm inline-block">Total Selesai</span>
@@ -58,7 +58,7 @@
     </div>
 
     {{-- Practice Breakdown --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+    <div class="app-card app-card--flush">
         <div class="p-lg border-b border-surface-border">
             <h3 class="text-title-lg font-semibold text-on-surface">Practice Breakdown</h3>
         </div>

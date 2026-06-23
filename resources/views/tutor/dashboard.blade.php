@@ -56,7 +56,7 @@
     <div style="display:grid;grid-template-columns:3fr 2fr;gap:1rem;align-items:start;">
 
         {{-- Kelas Aktif --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-md">Kelas Aktif</h2>
             @if($classes->isEmpty())
             <div class="flex flex-col items-center justify-center py-lg text-center">
@@ -78,7 +78,7 @@
                         <td class="py-sm text-sm text-on-surface">{{ $class->program_name }}</td>
                         <td class="py-sm text-sm text-on-surface">{{ $class->student_name }}</td>
                         <td class="py-sm">
-                            <span class="badge badge-soft {{ $class->status === 'active' ? 'badge-success' : 'badge-ghost' }} text-xs">
+                            <span class="badge badge-soft {{ $class->status ==='active' ? 'badge-success' : 'badge-ghost' }} text-xs">
                                 {{ ucfirst($class->status) }}
                             </span>
                         </td>
@@ -106,7 +106,7 @@
             @endif
 
             {{-- Sesi Terakhir --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <div class="flex items-center justify-between mb-md">
                     <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">Sesi Terakhir</h2>
                     <a href="{{ route('tutor.attendance.index') }}" class="text-xs text-primary hover:underline">Semua</a>
@@ -132,7 +132,7 @@
     </div>
 
     {{-- Row 3: Riwayat Di-Replace --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <div class="flex items-center gap-sm mb-md">
             <span class="material-symbols-outlined text-on-surface-variant">swap_horiz</span>
             <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">Riwayat Di-Replace</h2>

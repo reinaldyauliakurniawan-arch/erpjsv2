@@ -45,7 +45,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             {{-- Toolbar --}}
             <div class="flex flex-col sm:flex-row gap-sm">
                 <input type="text" id="search-journal" placeholder="Cari deskripsi atau referensi..."

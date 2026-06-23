@@ -1,27 +1,142 @@
-*.log
-.DS_Store
+# ════════════════════════════════════════════════════════════════════
+# Just Speak .gitignore — comprehensive leak prevention
+# Anything that should NEVER end up in the remote repo belongs here.
+# ════════════════════════════════════════════════════════════════════
+
+# ── Environment & secrets ────────────────────────────────────────────
 .env
+.env.*
+!.env.example
+!.env.testing
 .env.backup
 .env.production
-.phpactor.json
-.phpunit.result.cache
-/.codex
-/.cursor/
+.env.local
+auth.json
+*.pem
+*.key
+*.p12
+*.crt
+storage/*.key
+
+# ── OS-generated junk ────────────────────────────────────────────────
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+desktop.ini
+
+# ── Editor / IDE workspace files ─────────────────────────────────────
 /.idea
-/.nova
-/.phpunit.cache
 /.vscode
+/.nova
 /.zed
-/auth.json
+/.fleet
+/.cursor
+/.codex
+/.github/copilot
+/.aider*
+/.windsurf
+/.claude
+/.codeium
+/.tabnine
+/.continue
+/.factory
+/.kilo
+/.roo
+/.qoder
+/.trae
+/.augment
+/.droid
+/.opencode
+/.codebuddy
+/.warp
+/.phpactor.json
+_ide_helper.php
+_ide_helper_models.php
+.phpstorm.meta.php
+*.swp
+*.swo
+*~
+\#*\#
+.\#*
+
+# ── AI tooling caches & skill installers ─────────────────────────────
+# (These are local dev scaffolding; the project does not depend on them.)
+.claude/
+.cursor/
+.windsurf/
+.aider*
+.continue/
+.factory/
+.kilo/
+.roo/
+.qoder/
+.trae/
+.augment/
+.droid/
+.opencode/
+.codebuddy/
+.warp/
+.codex/
+
+# ── PHP / Laravel ────────────────────────────────────────────────────
+/vendor
 /node_modules
+composer.phar
+.phpunit.result.cache
+.phpunit.cache/
+.phpactor.json
+bootstrap/cache/services.php
+bootstrap/cache/packages.php
+bootstrap/cache/config.php
+bootstrap/cache/routes.php
+bootstrap/cache/events.php
+
+# ── Frontend build artifacts ─────────────────────────────────────────
 /public/build
-/public/fonts-manifest.dev.json
 /public/hot
 /public/storage
-/storage/*.key
-/storage/pail
-/vendor
-_ide_helper.php
+/public/fonts-manifest.dev.json
+npm-debug.log
+yarn-error.log
+pnpm-debug.log
+.eslintcache
+.stylelintcache
+
+# ── Logs & runtime data ──────────────────────────────────────────────
+*.log
+storage/logs/
+storage/pail
+storage/framework/cache/data/*
+storage/framework/sessions/*
+storage/framework/views/*
+storage/framework/testing/*
+!storage/framework/cache/data/.gitkeep
+!storage/framework/sessions/.gitkeep
+!storage/framework/views/.gitkeep
+!storage/framework/testing/.gitkeep
+
+# ── Test artifacts ───────────────────────────────────────────────────
+.phpunit.cache/
+.phpunit.result.cache
+coverage/
+coverage.xml
+clover.xml
+.pytest_cache/
+__pycache__/
+*.pyc
+
+# ── Local Laravel-specific configs ───────────────────────────────────
 Homestead.json
 Homestead.yaml
-Thumbs.db
+vapor.yml
+server.php
+
+# ── Misc / one-offs ──────────────────────────────────────────────────
+.floo
+.flooignore
+tags
+.tags

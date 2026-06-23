@@ -33,7 +33,7 @@
         </div>
 
         {{-- Import COA --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Import COA</h4>
@@ -63,7 +63,7 @@
         {{-- Accounts grouped by type --}}
         @foreach(['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'] as $type)
             @if(isset($accounts[$type]) && $accounts[$type]->count())
-                <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+                <div class="app-card space-y-md">
                     <h4 class="text-headline-md font-semibold text-on-surface">{{ $type }}</h4>
                     <div class="overflow-x-auto">
                         <table class="table table-sm">

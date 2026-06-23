@@ -21,7 +21,7 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <form method="GET" action="{{ route('finance.reports.balance-sheet') }}" class="flex items-end gap-md flex-wrap">
             <div class="fieldset">
                 <label class="fieldset-legend">Per Tanggal</label>
@@ -37,21 +37,21 @@
     {{-- Summary Cards --}}
     @php $isBalance = abs($totalAsset - ($totalLiability + $totalEquity)) < 1; @endphp
     <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Aset</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalAsset, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Liabilitas</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalLiability, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Ekuitas</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalEquity, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Status</p>
-            <p class="text-xl font-bold mt-xs {{ $isBalance ? 'text-success' : 'text-error' }}">
+            <p class="text-xl font-bold mt-xs {{ $isBalance ?'text-success' : 'text-error' }}">
                 {{ $isBalance ? 'Balance ✓' : 'Tidak Balance ✗' }}
             </p>
             @if(!$isBalance)
@@ -60,7 +60,7 @@
         </div>
     </div>
 
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <div id="bs-table"></div>
     </div>
 

@@ -58,7 +58,7 @@
         <div class="space-y-md">
 
             {{-- Info Jurnal --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">Informasi Jurnal</h2>
 
                 <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
@@ -85,7 +85,7 @@
             </div>
 
             {{-- Entri Jurnal --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-sm">
+            <div class="app-card space-y-sm">
                 <div class="flex items-center justify-between">
                     <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">Entri Jurnal</h2>
                     <button type="button" @click="addRow()"
@@ -146,10 +146,10 @@
                     style="grid-template-columns: 2fr 1fr 1fr 2rem;">
                     <div class="text-sm font-semibold text-on-surface">Total</div>
                     <div class="text-right text-sm font-semibold"
-                        :class="balanced ? 'text-success' : 'text-error'"
+                        :class="balanced ?'text-success' : 'text-error'"
                         x-text="'Rp ' + fmt(totalDebit)"></div>
                     <div class="text-right text-sm font-semibold"
-                        :class="balanced ? 'text-success' : 'text-error'"
+                        :class="balanced ?'text-success' : 'text-error'"
                         x-text="'Rp ' + fmt(totalCredit)"></div>
                     <div></div>
                 </div>

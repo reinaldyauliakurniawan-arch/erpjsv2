@@ -36,7 +36,7 @@
 
         {{-- Stats --}}
         <div class="grid grid-cols-2 gap-md" style="max-width: 28rem">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-md flex items-center gap-md">
+            <div class="app-card p-md flex items-center gap-md">
                 <div class="p-xs bg-warning/10 rounded-md">
                     <span class="material-symbols-outlined text-warning text-[20px]">pending_actions</span>
                 </div>
@@ -45,7 +45,7 @@
                     <p class="text-headline-sm font-semibold text-on-surface">{{ $stats['draft'] }}</p>
                 </div>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-md flex items-center gap-md">
+            <div class="app-card p-md flex items-center gap-md">
                 <div class="p-xs bg-success/10 rounded-md">
                     <span class="material-symbols-outlined text-success text-[20px]">done_all</span>
                 </div>
@@ -57,7 +57,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             {{-- Toolbar --}}
             <div class="flex flex-col sm:flex-row gap-sm flex-wrap">
                 <select id="filter-type" class="select select-sm w-40">
@@ -271,7 +271,7 @@
                             deferred_revenue: 'badge-secondary',
                             manual:           'badge-ghost',
                         };
-                        return `<span class="badge badge-soft ${colors[type] || ''} badge-sm">${cell.getValue()}</span>`;
+                        return `<span class="badge badge-soft ${colors[type] ||''} badge-sm">${cell.getValue()}</span>`;
                     },
                 },
                 {

@@ -40,7 +40,7 @@
         <div class="relative" style="min-width:20rem" x-data="{ open: false }" @click.outside="open = false">
 
             <button @click="open = !open"
-                class="w-full flex items-center justify-between gap-sm px-md py-sm bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm hover:bg-surface-container-low transition-colors">
+                class="w-full flex items-center justify-between gap-sm px-md py-sm app-card hover:bg-surface-container-low transition-colors">
                 <div class="flex items-center gap-sm">
                     <span class="material-symbols-outlined text-error text-sm">notifications_active</span>
                     <span class="text-label-lg font-bold text-error">{{ $totalAlerts }} peringatan aktif</span>
@@ -96,7 +96,7 @@
                     @php $daysLeft = (int) \Carbon\Carbon::today()->diffInDays($enrollment->expiry_date, false); @endphp
                     <a href="{{ route('admin.enrollments.show', $enrollment->id) }}"
                         class="flex items-start gap-sm px-md py-sm hover:bg-surface-container-low transition-colors block">
-                        <span class="material-symbols-outlined {{ $daysLeft <= 3 ? 'text-error' : 'text-warning' }} shrink-0 text-sm mt-xs">schedule</span>
+                        <span class="material-symbols-outlined {{ $daysLeft <= 3 ?'text-error' : 'text-warning' }} shrink-0 text-sm mt-xs">schedule</span>
                         <div class="min-w-0">
                             <p class="text-body-md font-bold text-on-surface truncate">{{ $enrollment->student->user->name }}</p>
                             <p class="text-label-lg text-on-surface-variant whitespace-nowrap">Berakhir {{ $daysLeft }} hari lagi · {{ $enrollment->program->name }}</p>
@@ -125,8 +125,8 @@
 
         {{-- Siswa Aktif --}}
         <a href="{{ route('admin.students.index') }}"
-            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md hover:bg-surface-container-low transition-colors">
-            <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            class="app-card flex flex-col gap-md hover:bg-surface-container-low transition-colors">
+            <div class="app-icon-badge">
                 <span class="material-symbols-outlined text-secondary">school</span>
             </div>
             <div>
@@ -137,8 +137,8 @@
 
         {{-- Room Occupancy --}}
         <a href="{{ route('admin.schedule.index') }}"
-            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md hover:bg-surface-container-low transition-colors">
-            <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            class="app-card flex flex-col gap-md hover:bg-surface-container-low transition-colors">
+            <div class="app-icon-badge">
                 <span class="material-symbols-outlined text-secondary">meeting_room</span>
             </div>
             <div>
@@ -155,8 +155,8 @@
 
         {{-- Waiting Reguler --}}
         <button @click="waitingTab = 'reguler'"
-            :class="waitingTab === 'reguler' ? 'ring-2 ring-secondary' : ''"
-            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md text-left hover:bg-surface-container-low transition-all">
+            :class="waitingTab ==='reguler' ? 'ring-2 ring-secondary' : ''"
+            class="app-card flex flex-col gap-md text-left hover:bg-surface-container-low transition-all">
             <div class="flex items-center justify-between w-full">
                 <div class="w-10 h-10 rounded-lg bg-warning/10 flex items-center justify-center">
                     <span class="material-symbols-outlined text-warning">groups</span>
@@ -171,8 +171,8 @@
 
         {{-- Waiting Private + Semi --}}
         <button @click="waitingTab = 'private'"
-            :class="waitingTab === 'private' || waitingTab === 'semi' ? 'ring-2 ring-error' : ''"
-            class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md text-left hover:bg-surface-container-low transition-all">
+            :class="waitingTab ==='private' || waitingTab === 'semi' ? 'ring-2 ring-error' : ''"
+            class="app-card flex flex-col gap-md text-left hover:bg-surface-container-low transition-all">
             <div class="flex items-center justify-between w-full">
                 <div class="w-10 h-10 rounded-lg bg-error/10 flex items-center justify-center">
                     <span class="material-symbols-outlined text-error">person_search</span>
@@ -190,7 +190,7 @@
     {{-- ═══════════════════════════════════════════
          3. WAITING LIST TABLE
     ════════════════════════════════════════════ --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+    <div class="app-card app-card--flush">
 
         {{-- Header + Tab sejajar --}}
         <div class="px-lg py-md border-b border-surface-border flex items-center justify-between">
@@ -202,13 +202,13 @@
             </div>
             <div class="flex items-center gap-xs">
                 <button @click="waitingTab = 'reguler'"
-                    :class="waitingTab === 'reguler' ? 'btn-primary' : 'btn-ghost'"
+                    :class="waitingTab ==='reguler' ? 'btn-primary' : 'btn-ghost'"
                     class="btn btn-xs">Reguler</button>
                 <button @click="waitingTab = 'private'"
-                    :class="waitingTab === 'private' ? 'btn-primary' : 'btn-ghost'"
+                    :class="waitingTab ==='private' ? 'btn-primary' : 'btn-ghost'"
                     class="btn btn-xs">Private</button>
                 <button @click="waitingTab = 'semi'"
-                    :class="waitingTab === 'semi' ? 'btn-primary' : 'btn-ghost'"
+                    :class="waitingTab ==='semi' ? 'btn-primary' : 'btn-ghost'"
                     class="btn btn-xs">Semi</button>
                 <div class="relative ml-xs">
                     <span class="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant text-sm pointer-events-none">search</span>
@@ -253,7 +253,7 @@
                                 x-show="waitSearch === '' || '{{ strtolower($studentName) }}'.includes(waitSearch.toLowerCase())">
                                 <td>
                                     <div class="flex items-center gap-sm">
-                                        <div class="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-secondary text-xs shrink-0">
+                                        <div class="app-avatar app-avatar--sm">
                                             {{ strtoupper(substr($studentName, 0, 2)) }}
                                         </div>
                                         <a href="{{ route('admin.enrollments.show', $e->id) }}"
@@ -263,7 +263,7 @@
                                 <td class="text-body-md">{{ $e->program->name }}</td>
                                 <td class="text-body-md">{{ \Carbon\Carbon::parse($e->created_at)->format('d M Y') }}</td>
                                 <td>
-                                    <span class="badge badge-soft {{ $waitDays > 7 ? 'badge-error' : 'badge-warning' }} whitespace-nowrap">
+                                    <span class="badge badge-soft {{ $waitDays > 7 ?'badge-error' : 'badge-warning' }} whitespace-nowrap">
                                         {{ $waitDays }} hari
                                     </span>
                                 </td>
@@ -340,7 +340,7 @@
                                 <td class="text-body-md">{{ $e->program->name }}</td>
                                 <td class="text-body-md">{{ \Carbon\Carbon::parse($e->created_at)->format('d M Y') }}</td>
                                 <td>
-                                    <span class="badge badge-soft {{ $waitDays > 7 ? 'badge-error' : 'badge-warning' }} whitespace-nowrap">
+                                    <span class="badge badge-soft {{ $waitDays > 7 ?'badge-error' : 'badge-warning' }} whitespace-nowrap">
                                         {{ $waitDays }} hari
                                     </span>
                                 </td>
@@ -413,7 +413,7 @@
                                 <td class="text-body-md">{{ $e->program->name }}</td>
                                 <td class="text-body-md">{{ \Carbon\Carbon::parse($e->created_at)->format('d M Y') }}</td>
                                 <td>
-                                    <span class="badge badge-soft {{ $waitDays > 7 ? 'badge-error' : 'badge-warning' }} whitespace-nowrap">
+                                    <span class="badge badge-soft {{ $waitDays > 7 ?'badge-error' : 'badge-warning' }} whitespace-nowrap">
                                         {{ $waitDays }} hari
                                     </span>
                                 </td>
@@ -443,7 +443,7 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-lg)">
 
         {{-- Expiring Enrollments --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden" style="display:flex;flex-direction:column">
+        <div class="app-card app-card--flush" style="display:flex;flex-direction:column">
             <div class="px-lg py-md border-b border-surface-border flex items-center justify-between gap-sm">
                 <div class="flex items-center gap-sm">
                     <span class="material-symbols-outlined text-warning">schedule</span>
@@ -489,7 +489,7 @@
                                 <td class="text-body-md">{{ $enrollment->program->name }}</td>
                                 <td class="text-body-md whitespace-nowrap">{{ \Carbon\Carbon::parse($enrollment->expiry_date)->format('d M Y') }}</td>
                                 <td>
-                                    <span class="badge {{ $daysLeft <= 3 ? 'badge-error' : 'badge-warning' }} badge-soft whitespace-nowrap">
+                                    <span class="badge {{ $daysLeft <= 3 ?'badge-error' : 'badge-warning' }} badge-soft whitespace-nowrap">
                                         {{ $daysLeft }} hari
                                     </span>
                                 </td>
@@ -504,7 +504,7 @@
         </div>
 
         {{-- Installments Belum Lunas --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden" style="display:flex;flex-direction:column">
+        <div class="app-card app-card--flush" style="display:flex;flex-direction:column">
             <div class="px-lg py-md border-b border-surface-border flex items-center justify-between gap-sm">
                 <div class="flex items-center gap-sm">
                     <span class="material-symbols-outlined text-error">credit_card_off</span>
@@ -551,7 +551,7 @@
                                 <td class="text-body-md whitespace-nowrap">IDR {{ number_format($inst->amount) }}</td>
                                 <td class="text-body-md whitespace-nowrap">{{ \Carbon\Carbon::parse($inst->due_date)->format('d M Y') }}</td>
                                 <td>
-                                    <span class="badge {{ $isOverdue ? 'badge-error' : 'badge-warning' }} badge-soft whitespace-nowrap">
+                                    <span class="badge {{ $isOverdue ?'badge-error' : 'badge-warning' }} badge-soft whitespace-nowrap">
                                         {{ $isOverdue ? 'Overdue' : 'Upcoming' }}
                                     </span>
                                 </td>
@@ -572,7 +572,7 @@
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--spacing-lg)">
 
         {{-- Donut: Distribusi Jenjang --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+        <div class="app-card app-card--flush">
             <div class="px-lg py-md border-b border-surface-border">
                 <h3 class="text-headline-md font-semibold text-on-surface">Distribusi Jenjang</h3>
                 <p class="text-label-lg text-on-surface-variant mt-xs">Keseluruhan siswa terdaftar</p>
@@ -605,7 +605,7 @@
         </div>
 
         {{-- Bar: Distribusi Waiting List --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden" style="display:flex;flex-direction:column">
+        <div class="app-card app-card--flush" style="display:flex;flex-direction:column">
             <div class="px-lg py-md border-b border-surface-border flex items-center justify-between">
                 <div>
                     <h3 class="text-headline-md font-semibold text-on-surface">Distribusi Siswa Aktif</h3>
@@ -625,7 +625,7 @@
     {{-- ═══════════════════════════════════════════
          6. NEW STUDENTS — full width
     ════════════════════════════════════════════ --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+    <div class="app-card app-card--flush">
         <div class="px-lg py-md border-b border-surface-border flex flex-col sm:flex-row sm:items-center sm:justify-between gap-sm">
             <div class="flex items-center gap-sm">
                 <span class="material-symbols-outlined text-on-surface-variant">person_add</span>
@@ -661,7 +661,7 @@
                             x-show="newStudentSearch === '' || '{{ strtolower($studentName) }}'.includes(newStudentSearch.toLowerCase())">
                             <td>
                                 <div class="flex items-center gap-sm">
-                                    <div class="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-secondary text-xs shrink-0">
+                                    <div class="app-avatar app-avatar--sm">
                                         {{ strtoupper(substr($studentName, 0, 2)) }}
                                     </div>
                                     <span class="font-semibold text-body-md text-on-surface">{{ $studentName }}</span>

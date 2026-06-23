@@ -26,7 +26,7 @@
         <h3 class="text-headline-lg font-semibold text-on-surface">Imports & Exports</h3>
 
         {{-- Classrooms --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Classrooms</h4>
@@ -55,7 +55,7 @@
         </div>
 
         {{-- Programs --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Programs</h4>
@@ -84,7 +84,7 @@
         </div>
 
         {{-- Tutors --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Tutors</h4>
@@ -113,7 +113,7 @@
         </div>
 
         {{-- Students --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Students</h4>
@@ -141,7 +141,7 @@
             </form>
         </div>
         {{-- Enrollments --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Enrollments</h4>
@@ -164,7 +164,7 @@
 </div>
 
 {{-- Installments --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Installments</h4>
@@ -187,7 +187,7 @@
 </div>
 
 {{-- Schedules --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Schedules</h4>
@@ -210,7 +210,7 @@
 </div>
 
 {{-- Tutor Availability --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Tutor Availability</h4>
@@ -233,7 +233,7 @@
 </div>
 
 {{-- Class Sessions --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Class Sessions</h4>
@@ -256,7 +256,7 @@
 </div>
 
 {{-- RAB --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">RAB</h4>
@@ -279,7 +279,7 @@
 </div>
 
 {{-- Fixed Assets --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Fixed Assets</h4>
@@ -302,7 +302,7 @@
 </div>
 
 {{-- Tracker Columns --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-start justify-between gap-md">
         <div>
             <h4 class="text-headline-md font-semibold text-on-surface">Tracker Columns</h4>
@@ -324,7 +324,7 @@
     </form>
 </div>
         {{-- Exports --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Exports</h4>
             <div class="flex flex-wrap gap-sm">
                 <a href="{{ route('admin.exports.attendance') }}"

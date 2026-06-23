@@ -19,7 +19,7 @@
         <h3 class="text-headline-lg font-semibold text-on-surface">Finance Imports</h3>
 
         {{-- Import COA --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Chart of Accounts (COA)</h4>
@@ -47,7 +47,7 @@
         </div>
 
         {{-- Import Journals --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Journals</h4>

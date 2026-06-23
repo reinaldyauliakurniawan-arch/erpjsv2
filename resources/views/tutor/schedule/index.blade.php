@@ -83,14 +83,14 @@ function guardSlot(dateStr, timeBlock, callback) {
     <div class="inline-flex rounded-lg overflow-hidden border border-primary-container">
         <button type="button"
             @click="view = 'mine'"
-            :class="view === 'mine' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
+            :class="view ==='mine' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
             class="flex items-center gap-xs px-md py-sm text-sm font-semibold transition-all">
             <span class="material-symbols-outlined text-[18px]">person</span>
             Jadwal Saya
         </button>
         <button type="button"
             @click="view = 'room'"
-            :class="view === 'room' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
+            :class="view ==='room' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
             class="flex items-center gap-xs px-md py-sm text-sm font-semibold border-l border-primary-container transition-all">
             <span class="material-symbols-outlined text-[18px]">meeting_room</span>
             Ruangan
@@ -105,7 +105,7 @@ function guardSlot(dateStr, timeBlock, callback) {
             $todaySchedules = $myByDay->get($todayDay, collect());
         @endphp
 
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <div class="flex items-center justify-between mb-md">
                 <h4 class="text-sm font-semibold text-on-surface">
                     Sesi Hari Ini
@@ -176,7 +176,7 @@ function guardSlot(dateStr, timeBlock, callback) {
             @endif
         </div>
 
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <h4 class="text-sm font-semibold text-on-surface mb-md">Jadwal Mingguan</h4>
             @if($myByDay->isEmpty())
                 <p class="text-sm text-on-surface-variant">Belum ada jadwal tetap.</p>
@@ -214,8 +214,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                 <template x-for="d in days" :key="d">
                     <button type="button"
                         @click="day = d"
-                        :class="day === d
-                            ? 'border-b-2 border-primary-container text-primary-container font-semibold'
+                        :class="day === d ?'border-b-2 border-primary-container text-primary-container font-semibold'
                             : 'text-on-surface-variant hover:text-on-surface'"
                         class="px-md py-sm text-sm whitespace-nowrap transition-colors"
                         x-text="d">
@@ -267,12 +266,12 @@ function guardSlot(dateStr, timeBlock, callback) {
                     @endphp
 
                     @if($schedule && !$isSkipped && !$isTemp)
-                        <div class="{{ $isMySlot ? 'bg-primary-container/20 border-primary-container' : 'bg-red-50 border-red-200' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs"
+                        <div class="{{ $isMySlot ?'bg-primary-container/20 border-primary-container' : 'bg-red-50 border-red-200' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs"
                             title="{{ $isMySlot ? 'Jadwal saya' : 'Reguler' }}">
-                            <span class="material-symbols-outlined {{ $isMySlot ? 'text-primary-container' : 'text-red-400' }} text-sm">
+                            <span class="material-symbols-outlined {{ $isMySlot ?'text-primary-container' : 'text-red-400' }} text-sm">
                                 {{ $isMySlot ? 'star' : 'lock' }}
                             </span>
-                            <span class="text-[9px] font-bold {{ $isMySlot ? 'text-primary-container' : 'text-red-400' }} text-center leading-tight truncate w-full">
+                            <span class="text-[9px] font-bold {{ $isMySlot ?'text-primary-container' : 'text-red-400' }} text-center leading-tight truncate w-full">
                                 {{ $schedule->classSession?->name ?? '—' }}
                             </span>
                         </div>
@@ -300,9 +299,9 @@ function guardSlot(dateStr, timeBlock, callback) {
                         @else
                         <button type="button"
                             @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'book'; selectedRoom = '{{ $classroom->name }}'; selectedBlock = '{{ $block }}'; selectedDate = '{{ $date }}'; classroomId = '{{ $classroom->id }}'; })"
-                            class="{{ $isSkipped ? 'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
-                            <span class="material-symbols-outlined {{ $isSkipped ? 'text-yellow-500' : 'text-emerald-600' }} text-sm">add_circle</span>
-                            <span class="text-[9px] font-bold {{ $isSkipped ? 'text-yellow-500' : 'text-emerald-600' }} text-center">
+                            class="{{ $isSkipped ?'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' : 'bg-emerald-50 border-emerald-200 hover:bg-emerald-100' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
+                            <span class="material-symbols-outlined {{ $isSkipped ?'text-yellow-500' : 'text-emerald-600' }} text-sm">add_circle</span>
+                            <span class="text-[9px] font-bold {{ $isSkipped ?'text-yellow-500' : 'text-emerald-600' }} text-center">
                                 {{ $isSkipped ? 'Skip' : 'Kosong' }}
                             </span>
                         </button>

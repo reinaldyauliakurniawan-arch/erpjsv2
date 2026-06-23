@@ -34,11 +34,11 @@
 
     {{-- Summary Cards --}}
     <div class="grid gap-md" style="grid-template-columns: repeat(4, 1fr)">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Anggaran {{ $year }}</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalBudget, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Realisasi Saat Ini</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalReal, 0, ',', '.') }}</p>
             <div class="mt-sm space-y-xs">
@@ -47,12 +47,12 @@
                     <span>{{ $pctOverall }}%</span>
                 </div>
                 <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
-                    <div class="h-full rounded-full {{ $pctOverall >= 95 ? 'bg-error' : ($pctOverall >= 80 ? 'bg-warning' : 'bg-success') }}"
+                    <div class="h-full rounded-full {{ $pctOverall >= 95 ?'bg-error' : ($pctOverall >= 80 ? 'bg-warning' : 'bg-success') }}"
                          style="width: {{ min($pctOverall, 100) }}%"></div>
                 </div>
             </div>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Realisasi Q{{ $currentQuarter }} (Berjalan)</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($realQCurrent, 0, ',', '.') }}</p>
             <div class="mt-sm space-y-xs">
@@ -61,12 +61,12 @@
                     <span>{{ $pctQCurrent }}%</span>
                 </div>
                 <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden">
-                    <div class="h-full rounded-full {{ $pctQCurrent >= 95 ? 'bg-error' : ($pctQCurrent >= 80 ? 'bg-warning' : 'bg-success') }}"
+                    <div class="h-full rounded-full {{ $pctQCurrent >= 95 ?'bg-error' : ($pctQCurrent >= 80 ? 'bg-warning' : 'bg-success') }}"
                          style="width: {{ min($pctQCurrent, 100) }}%"></div>
                 </div>
             </div>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Status Akun <span id="filter-reset" class="text-xs font-normal normal-case hidden cursor-pointer text-primary underline ml-1" onclick="resetStatusFilter()">(reset filter)</span><span id="filter-hint" class="text-xs font-normal normal-case">(klik untuk filter)</span></p>
             <div class="flex gap-md mt-xs">
                 <div onclick="filterByStatus('Aman')" class="cursor-pointer hover:opacity-70 transition-opacity">
@@ -86,7 +86,7 @@
     </div>
 
     {{-- Table --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+    <div class="app-card space-y-md">
         @if($rows->isEmpty())
             <div class="py-12 flex flex-col items-center justify-center text-on-surface-variant">
                 <span class="material-symbols-outlined text-5xl opacity-20 mb-sm">monitoring</span>
@@ -113,7 +113,7 @@ function statusBadge(status) {
         'Waspada': 'badge badge-soft badge-warning text-xs',
         'Kritis':  'badge badge-soft badge-error text-xs',
     };
-    return `<span class="${map[status] || 'badge badge-soft text-xs'}">${status}</span>`;
+    return `<span class="${map[status] ||'badge badge-soft text-xs'}">${status}</span>`;
 }
 
 function progressBar(pct) {

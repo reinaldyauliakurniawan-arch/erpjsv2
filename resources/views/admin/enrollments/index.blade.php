@@ -28,7 +28,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             {{-- Toolbar --}}
             <div class="flex flex-col sm:flex-row gap-sm flex-wrap">
                 <input type="text" id="search-enrollment" placeholder="Cari student atau program..."
@@ -135,7 +135,7 @@
                     formatter: function(cell) {
                         var val = cell.getValue();
                         var cls = payColors[val] || '';
-                        return '<span class="badge badge-soft ' + cls + '">' + val + '</span>';
+                        return '<span class="badge badge-soft' + cls + '">' + val + '</span>';
                     },
                 },
                 {
@@ -146,7 +146,7 @@
                     formatter: function(cell) {
                         var val = cell.getValue();
                         var cls = statusColors[val] || '';
-                        return '<span class="badge badge-soft ' + cls + '">' + val + '</span>';
+                        return '<span class="badge badge-soft' + cls + '">' + val + '</span>';
                     },
                 },
                 {

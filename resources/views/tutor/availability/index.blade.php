@@ -43,7 +43,7 @@
     </div>
 
     @if($availability->isEmpty())
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg text-center py-xl text-on-surface-variant">
+    <div class="app-card text-center py-xl text-on-surface-variant">
         <span class="material-symbols-outlined text-4xl">event_available</span>
         <p class="mt-sm text-sm font-medium text-on-surface">Belum ada slot availabilitas</p>
         <p class="mt-xs text-xs">Klik "Tambah Slot" untuk menambahkan waktu yang kamu tersedia</p>
@@ -57,12 +57,11 @@
     <div class="space-y-md">
         @foreach($dayOrder as $day)
         @if($grouped->has($day))
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-sm font-semibold text-on-surface mb-sm">{{ $dayLabel[$day] }}</p>
             <div class="grid gap-xs" style="grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));">
                 @foreach($grouped[$day]->sortBy('time_block') as $slot)
-                <div class="flex items-center justify-between px-md py-sm rounded-lg border
-                    {{ $slot->status === 'occupied' ? 'border-warning bg-warning/10' :
+                <div class="flex items-center justify-between px-md py-sm rounded-lg border {{ $slot->status ==='occupied' ? 'border-warning bg-warning/10' :
                        ($slot->status === 'available' ? 'border-success bg-success/10' : 'border-surface-border bg-surface') }}">
                     <span class="text-sm text-on-surface">{{ $slot->time_block }}</span>
                     <div class="flex items-center gap-xs">
@@ -76,7 +75,7 @@
                                 <input type="hidden" name="status"
                                     value="{{ $slot->status === 'available' ? 'not_available' : 'available' }}">
                                 <button type="submit"
-                                    class="badge badge-soft text-xs {{ $slot->status === 'available' ? 'badge-success' : 'badge-ghost' }}">
+                                    class="badge badge-soft text-xs {{ $slot->status ==='available' ? 'badge-success' : 'badge-ghost' }}">
                                     {{ $slot->status === 'available' ? 'Tersedia' : 'Tidak' }}
                                 </button>
                             </form>

@@ -17,7 +17,7 @@
 
     {{-- Flash --}}
     <div x-show="flash.show" x-transition
-        :class="flash.type === 'success' ? 'alert alert-success alert-soft' : 'alert alert-error alert-soft'"
+        :class="flash.type ==='success' ? 'alert alert-success alert-soft' : 'alert alert-error alert-soft'"
         style="display:none;">
         <span class="material-symbols-outlined" x-text="flash.type === 'success' ? 'check_circle' : 'error'"></span>
         <span x-text="flash.message"></span>
@@ -25,28 +25,28 @@
 
     {{-- Summary Cards --}}
     <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Belum Dibayar</p>
             <p class="text-xl font-bold text-error mt-xs">
                 Rp <span x-text="formatRp(summary.unpaid)">{{ number_format($unpaidTotal,0,',','.') }}</span>
             </p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Dibayar Bulan Ini</p>
             <p class="text-xl font-bold text-success mt-xs">
                 Rp <span x-text="formatRp(summary.paidMonth)">{{ number_format($paidThisMonth,0,',','.') }}</span>
             </p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Rate Pending</p>
-            <p class="text-xl font-bold mt-xs" :class="summary.pendingRate > 0 ? 'text-warning' : 'text-on-surface'">
+            <p class="text-xl font-bold mt-xs" :class="summary.pendingRate > 0 ?'text-warning' : 'text-on-surface'">
                 <span x-text="summary.pendingRate">{{ $pendingRateCount }}</span> sesi
             </p>
         </div>
     </div>
 
     {{-- Filter Bar --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-md flex flex-wrap gap-sm items-end">
+    <div class="app-card p-md flex flex-wrap gap-sm items-end">
         <div class="flex-1 min-w-[200px]">
             <label class="text-xs text-on-surface-variant mb-xs block">Cari Program / Sesi</label>
             <input type="text" x-model="filters.search" @input.debounce.400ms="fetchData()"
@@ -69,7 +69,7 @@
     {{-- Card List --}}
     <div class="space-y-md">
         <template x-for="cls in groupedClasses" :key="cls.class_session_id">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+            <div class="app-card app-card--flush">
                 {{-- Card Header --}}
                 <div class="p-lg flex items-center justify-between cursor-pointer hover:bg-surface-container transition-colors"
                      @click="toggleClassExpand(cls.class_session_id)">
@@ -82,10 +82,10 @@
                     </div>
                     <div class="flex items-center gap-sm">
                         <span class="badge badge-soft text-body-sm"
-                              :class="cls.avgAttendance >= 80 ? 'badge-success' : cls.avgAttendance >= 60 ? 'badge-warning' : 'badge-error'"
+                              :class="cls.avgAttendance >= 80 ?'badge-success' : cls.avgAttendance >= 60 ? 'badge-warning' : 'badge-error'"
                               x-text="cls.avgAttendance + '% hadir'"></span>
                         <span class="material-symbols-outlined text-on-surface-variant transition-transform"
-                              :class="expandedClasses.includes(cls.class_session_id) ? 'rotate-180' : ''">expand_more</span>
+                              :class="expandedClasses.includes(cls.class_session_id) ?'rotate-180' : ''">expand_more</span>
                     </div>
                 </div>
 
@@ -104,7 +104,7 @@
                                     <span class="text-body-sm text-secondary" x-text="session.time_block"></span>
                                 </div>
                                 <span class="badge badge-soft text-body-sm"
-                                      :class="session.mode === 'replacement' ? 'badge-warning' : session.mode === 'team_teaching' ? 'badge-info' : ''"
+                                      :class="session.mode ==='replacement' ? 'badge-warning' : session.mode === 'team_teaching' ? 'badge-info' : ''"
                                       x-text="session.mode === 'replacement' ? 'Replacement' : session.mode === 'team_teaching' ? 'Team' : 'Own'"></span>
                             </div>
                             <div class="flex items-center justify-between">
@@ -158,7 +158,7 @@
         <div class="overflow-y-auto flex-1 p-lg space-y-md">
             <div class="flex items-center gap-sm">
                 <span class="badge badge-soft text-body-sm"
-                      :class="sessionModal.mode === 'replacement' ? 'badge-warning' : sessionModal.mode === 'team_teaching' ? 'badge-info' : ''"
+                      :class="sessionModal.mode ==='replacement' ? 'badge-warning' : sessionModal.mode === 'team_teaching' ? 'badge-info' : ''"
                       x-text="sessionModal.modeLabel"></span>
                 <span class="text-body-sm text-on-surface-variant" x-text="sessionModal.modeLabel"></span>
             </div>
@@ -208,8 +208,7 @@
                     <template x-for="m in modes" :key="m.value">
                         <button type="button"
                             @click="setMode(m.value)"
-                            :class="modal.mode === m.value
-                                ? 'btn btn-sm bg-secondary text-on-secondary border-none rounded-lg'
+                            :class="modal.mode === m.value ?'btn btn-sm bg-secondary text-on-secondary border-none rounded-lg'
                                 : 'btn btn-sm btn-ghost text-on-surface-variant border-none rounded-lg'"
                             x-text="m.label">
                         </button>
@@ -327,7 +326,7 @@
                         <tbody>
                             <template x-for="(student, i) in modal.students" :key="student.enrollment_id">
                                 <tr class="border-b border-surface-border transition-colors"
-                                    :class="student.is_present ? '' : 'bg-error/5'">
+                                    :class="student.is_present ?'' : 'bg-error/5'">
                                     <td class="py-sm text-sm text-on-surface" x-text="student.name"></td>
                                     <td class="py-sm text-center">
                                         <input type="checkbox" class="checkbox"

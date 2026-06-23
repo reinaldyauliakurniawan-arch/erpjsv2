@@ -36,7 +36,7 @@
     @endif
 
     {{-- Table --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         @if($payrollRuns->isEmpty())
         <div class="text-center py-xl text-on-surface-variant">
             <span class="material-symbols-outlined text-4xl">payments</span>

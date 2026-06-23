@@ -22,7 +22,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             @if($programs->isEmpty())
                 <p class="text-body-md text-on-surface-variant">Belum ada program.</p>
             @else

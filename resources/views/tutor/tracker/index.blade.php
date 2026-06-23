@@ -12,11 +12,11 @@
             <div class="flex flex-col gap-sm items-end">
                 <div class="bg-surface-container-low p-xs rounded-lg flex border border-surface-border">
                     <a href="{{ request()->fullUrlWithQuery(['period' => 'week']) }}"
-                        class="px-md py-xs rounded-lg text-label-md font-semibold transition-all {{ $period === 'week' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface' }}">
+                        class="px-md py-xs rounded-lg text-label-md font-semibold transition-all {{ $period ==='week' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface' }}">
                         Minggu Ini
                     </a>
                     <a href="{{ request()->fullUrlWithQuery(['period' => 'all']) }}"
-                        class="px-md py-xs rounded-lg text-label-md font-semibold transition-all {{ $period === 'all' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface' }}">
+                        class="px-md py-xs rounded-lg text-label-md font-semibold transition-all {{ $period ==='all' ? 'bg-surface-container-lowest shadow-sm text-primary' : 'text-on-surface-variant hover:text-on-surface' }}">
                         Semua Waktu
                     </a>
                 </div>
@@ -30,12 +30,12 @@
                         <div x-show="open" @click.outside="open = false" x-transition
                             class="absolute right-0 mt-xs bg-surface-container-lowest border border-surface-border rounded-lg shadow-md z-10 min-w-[140px] py-xs">
                             <a href="{{ request()->fullUrlWithQuery(['class' => null]) }}"
-                                class="block px-md py-xs text-label-sm font-semibold transition-all {{ !$classFilter ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low' }}">
+                                class="block px-md py-xs text-label-sm font-semibold transition-all {{ !$classFilter ?'text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low' }}">
                                 Semua
                             </a>
                             @foreach($sessions as $session)
                             <a href="{{ request()->fullUrlWithQuery(['class' => $session->id]) }}"
-                                class="block px-md py-xs text-label-sm font-semibold transition-all {{ $classFilter == $session->id ? 'text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low' }}">
+                                class="block px-md py-xs text-label-sm font-semibold transition-all {{ $classFilter == $session->id ?'text-primary' : 'text-on-surface-variant hover:text-on-surface hover:bg-surface-container-low' }}">
                                 {{ $session->name }}
                             </a>
                             @endforeach
@@ -68,7 +68,7 @@
             </div>
             <div class="bg-surface-container-lowest border border-surface-border rounded-lg p-lg">
                 <p class="text-label-sm text-on-surface-variant uppercase tracking-wider mb-xs">Di Bawah Target</p>
-                <p class="text-headline-md font-bold {{ $belowTarget > 0 ? 'text-error' : 'text-tertiary' }}">{{ $belowTarget }}</p>
+                <p class="text-headline-md font-bold {{ $belowTarget > 0 ?'text-error' : 'text-tertiary' }}">{{ $belowTarget }}</p>
             </div>
         </div>
 
@@ -76,7 +76,7 @@
         <div class="grid grid-cols-12 gap-lg items-start">
 
             {{-- Weekly Progress Table (col 8) --}}
-            <section class="col-span-12 lg:col-span-8 bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden"
+            <section class="col-span-12 lg:col-span-8 app-card app-card--flush"
                 x-data="{ expanded: null }">
                 <div class="p-lg border-b border-surface-border flex justify-between items-center">
                     <div class="flex items-center gap-sm">
@@ -220,7 +220,7 @@
             <div class="col-span-12 lg:col-span-4 space-y-lg">
 
                 {{-- Overall Progress --}}
-                <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+                <section class="app-card app-card--flush">
                     <div class="p-lg border-b border-surface-border flex items-center gap-sm">
                         <span class="material-symbols-outlined text-primary">analytics</span>
                         <h3 class="text-title-lg font-semibold text-on-surface">Overall Progress</h3>

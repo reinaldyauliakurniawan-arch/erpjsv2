@@ -11,7 +11,7 @@
         <div class="alert alert-success alert-soft"><span class="material-symbols-outlined">check_circle</span> {{ session('success') }}</div>
     @endif
     @forelse($practices as $practice)
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex items-center justify-between">
+    <div class="app-card flex items-center justify-between">
         <div>
             <p class="font-semibold text-on-surface">{{ $practice->title }}</p>
             <p class="text-xs text-on-surface-variant mt-xs">
@@ -19,7 +19,7 @@
             </p>
         </div>
         <div class="flex items-center gap-sm">
-            <span class="badge badge-soft {{ $practice->status === 'published' ? 'badge-success' : 'badge-ghost' }} text-xs">
+            <span class="badge badge-soft {{ $practice->status ==='published' ? 'badge-success' : 'badge-ghost' }} text-xs">
                 {{ ucfirst($practice->status) }}
             </span>
             @if($practice->status === 'draft')

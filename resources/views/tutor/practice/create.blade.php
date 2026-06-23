@@ -31,7 +31,7 @@
                 {{-- LEFT COLUMN --}}
                 <div class="lg:col-span-8 space-y-lg">
                     {{--  DISTRIBUSI --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg relative"
+                    <section class="app-card relative"
                         x-data="{
                             open: false,
                             selected: [],
@@ -65,7 +65,7 @@
                             </template>
                             <button type="button" @click="open = !open"
                                 class="input w-full flex items-center justify-between text-left">
-                                <span class="text-body-md" :class="selected.length ? 'text-on-surface' : 'text-on-surface-variant'" x-text="label()"></span>
+                                <span class="text-body-md" :class="selected.length ?'text-on-surface' : 'text-on-surface-variant'" x-text="label()"></span>
                                 <span class="material-symbols-outlined text-[18px] text-on-surface-variant"
                                     :style="open ? 'transform:rotate(180deg)' : ''" style="transition:transform .2s">expand_more</span>
                             </button>
@@ -113,7 +113,7 @@
                         </div>
                     </section>
                     {{--  PRACTICE DETAILS --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                    <section class="app-card">
                         <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
                             <span class="material-symbols-outlined text-secondary">edit_note</span>
                             <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Detail Materi</h4>
@@ -136,7 +136,7 @@
                     </section>
 
                     {{--  RESOURCES & WAKTU --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                    <section class="app-card">
                         <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
                             <span class="material-symbols-outlined text-secondary">link</span>
                             <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Resources & Waktu</h4>

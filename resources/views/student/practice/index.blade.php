@@ -18,7 +18,7 @@
             $opened = $pivot?->opened_at;
         @endphp
 
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+        <div class="app-card app-card--flush">
             {{-- Header kartu --}}
             <div class="p-lg flex items-center justify-between border-b border-surface-border bg-surface-container-lowest">
                 <div class="flex items-center gap-md">
@@ -134,7 +134,7 @@
             </div>
         </div>
     @empty
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg text-center text-on-surface-variant">
+        <div class="app-card text-center text-on-surface-variant">
             <span class="material-symbols-outlined text-4xl mb-md block">inbox</span>
             Belum ada practice yang di-assign ke kamu.
         </div>

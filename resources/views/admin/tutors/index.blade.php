@@ -25,7 +25,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm">
+        <div class="app-card">
             @if($tutors->isEmpty())
                 <div class="flex flex-col items-center justify-center py-2xl gap-sm text-on-surface-variant">
                     <span class="material-symbols-outlined text-[48px]">person_search</span>
@@ -57,7 +57,7 @@
                                         onmouseleave="hideTooltip()">{{ $tutor->persona }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge badge-soft {{ $tutor->status === 'active' ? 'badge-success' : 'badge-error' }}">
+                                    <span class="badge badge-soft {{ $tutor->status ==='active' ? 'badge-success' : 'badge-error' }}">
                                         {{ $tutor->status ?? 'active' }}
                                     </span>
                                 </td>

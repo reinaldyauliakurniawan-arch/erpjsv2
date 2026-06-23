@@ -27,8 +27,7 @@
                 <template x-for="tab in tabs" :key="tab.value">
                     <button
                         @click="setTab(tab.value)"
-                        :class="activeTab === tab.value
-                            ? 'bg-secondary text-on-secondary shadow-sm'
+                        :class="activeTab === tab.value ?'bg-secondary text-on-secondary shadow-sm'
                             : 'text-on-surface-variant hover:bg-surface-container-high'"
                         class="px-lg py-2 rounded-lg text-sm font-bold transition-all"
                         x-text="tab.label">
@@ -39,8 +38,8 @@
 
         {{-- Summary Cards --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-md">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
-                <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            <div class="app-card flex flex-col gap-md">
+                <div class="app-icon-badge">
                     <span class="material-symbols-outlined text-secondary">assignment_turned_in</span>
                 </div>
                 <div>
@@ -48,8 +47,8 @@
                     <p class="text-headline-lg font-bold text-on-surface mt-xs" x-text="loading ? '...' : summary.total_sessions"></p>
                 </div>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
-                <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            <div class="app-card flex flex-col gap-md">
+                <div class="app-icon-badge">
                     <span class="material-symbols-outlined text-secondary">today</span>
                 </div>
                 <div>
@@ -57,8 +56,8 @@
                     <p class="text-headline-lg font-bold text-on-surface mt-xs" x-text="loading ? '...' : summary.active_today"></p>
                 </div>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
-                <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            <div class="app-card flex flex-col gap-md">
+                <div class="app-icon-badge">
                     <span class="material-symbols-outlined text-secondary">group</span>
                 </div>
                 <div>
@@ -66,8 +65,8 @@
                     <p class="text-headline-lg font-bold text-on-surface mt-xs" x-text="loading ? '...' : summary.avg_attendance + '%'"></p>
                 </div>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
-                <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            <div class="app-card flex flex-col gap-md">
+                <div class="app-icon-badge">
                     <span class="material-symbols-outlined text-secondary">calendar_month</span>
                 </div>
                 <div>
@@ -78,7 +77,7 @@
         </div>
 
         {{-- Filter Bar --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-md flex flex-wrap gap-sm items-end">
+        <div class="app-card p-md flex flex-wrap gap-sm items-end">
 
             {{-- Periode preset --}}
             <div class="flex flex-col gap-xs">
@@ -137,8 +136,8 @@
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
-            <div class="px-lg py-md border-b border-surface-border flex justify-between items-center bg-surface-container-low">
+        <div class="app-card app-card--flush">
+            <div class="app-card__header">
                 <h4 class="text-title-sm font-semibold text-primary" x-text="tableTitle"></h4>
                 <template x-if="summary">
                     <span x-show="summary.duplicate_count > 0" class="badge badge-soft badge-error gap-xs">

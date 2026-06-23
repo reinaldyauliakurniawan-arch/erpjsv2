@@ -4,7 +4,7 @@
     <div class="p-lg max-w-2xl space-y-lg">
 
         {{-- Update Profile --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <h3 class="text-headline-md font-semibold text-on-surface mb-md">Informasi Profil</h3>
 
             @if(session('status') === 'profile-updated')
@@ -40,7 +40,7 @@
         </div>
 
         {{-- Update Password --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <h3 class="text-headline-md font-semibold text-on-surface mb-md">Ubah Password</h3>
 
             @if(session('status') === 'password-updated')

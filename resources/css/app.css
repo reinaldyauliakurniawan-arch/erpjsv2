@@ -70,6 +70,12 @@
     --text-label-lg--line-height: 1.2;
     --text-label-lg--letter-spacing: 0.05em;
 
+    /* Compact label — used in dense tables & inline badges.
+       One step smaller than label-lg, still tokenized. */
+    --text-label-sm: 10px;
+    --text-label-sm--line-height: 1.2;
+    --text-label-sm--letter-spacing: 0.04em;
+
     /* Spacing scale */
     --spacing-xs: 4px;
     --spacing-sm: 8px;
@@ -149,11 +155,13 @@
     --color-success: #059669;
     --color-warning: #d97706;
 
-    /* ── Sidebar (dark by default; auto-flips text via .sidebar--light) ── */
+    /* ── Sidebar (dark by default; auto-flips text via .sidebar--light) ──
+       Accent is GREEN per Brand Guide Section 3 ("Green is our identity").
+       Never use blue here — that would dilute the brand. */
     --color-sidebar-bg: #111827;
     --color-sidebar-text: #9ca3af;
     --color-sidebar-text-active: #ffffff;
-    --color-sidebar-accent: #3b82f6;
+    --color-sidebar-accent: #059669;
     --color-sidebar-border: rgba(255, 255, 255, 0.08);
     --color-sidebar-hover: rgba(255, 255, 255, 0.05);
 
@@ -292,13 +300,21 @@
    COLOR UTILITIES — token-driven, so changing --color-* cascades.
    ════════════════════════════════════════════════════════════════════ */
 @utility bg-surface { background-color: var(--color-surface); }
+@utility bg-surface-bright { background-color: var(--color-surface-bright); }
+@utility bg-surface-dim { background-color: var(--color-surface-dim); }
 @utility bg-surface-container-lowest { background-color: var(--color-surface-container-lowest); }
 @utility bg-surface-container-low { background-color: var(--color-surface-container-low); }
 @utility bg-surface-container { background-color: var(--color-surface-container); }
+@utility bg-surface-container-high { background-color: var(--color-surface-container-high); }
+@utility bg-surface-container-highest { background-color: var(--color-surface-container-highest); }
+@utility bg-surface-variant { background-color: var(--color-surface-variant); }
 @utility bg-primary-container { background-color: var(--color-primary-container); }
 @utility bg-secondary-container { background-color: var(--color-secondary-container); }
 @utility bg-error-container { background-color: var(--color-error-container); }
+@utility bg-tertiary-container { background-color: var(--color-tertiary-container); }
 @utility bg-tertiary-fixed { background-color: var(--color-tertiary-fixed); }
+@utility bg-inverse-surface { background-color: var(--color-inverse-surface); }
+@utility bg-background { background-color: var(--color-background); }
 
 @utility text-on-surface { color: var(--color-on-surface); }
 @utility text-on-surface-variant { color: var(--color-on-surface-variant); }
@@ -306,21 +322,35 @@
 @utility text-on-primary-container { color: var(--color-on-primary-container); }
 @utility text-on-secondary-container { color: var(--color-on-secondary-container); }
 @utility text-on-error-container { color: var(--color-on-error-container); }
+@utility text-on-tertiary-container { color: var(--color-on-tertiary-container); }
+@utility text-on-background { color: var(--color-on-background); }
+@utility text-inverse-on-surface { color: var(--color-inverse-on-surface); }
 @utility text-primary-container { color: var(--color-primary-container); }
+@utility text-primary { color: var(--color-primary); }
 @utility text-secondary { color: var(--color-secondary); }
+@utility text-tertiary { color: var(--color-tertiary); }
 @utility text-error { color: var(--color-error); }
 @utility text-success { color: var(--color-success); }
 @utility text-warning { color: var(--color-warning); }
+@utility text-outline { color: var(--color-outline); }
+@utility text-outline-variant { color: var(--color-outline-variant); }
 
 @utility border-surface-border { border-color: var(--color-surface-border); }
 @utility border-primary-container { border-color: var(--color-primary-container); }
+@utility border-primary { border-color: var(--color-primary); }
 @utility border-secondary { border-color: var(--color-secondary); }
+@utility border-secondary-container { border-color: var(--color-secondary-container); }
+@utility border-tertiary { border-color: var(--color-tertiary); }
 @utility border-error { border-color: var(--color-error); }
 @utility border-warning { border-color: var(--color-warning); }
+@utility border-outline { border-color: var(--color-outline); }
+@utility border-outline-variant { border-color: var(--color-outline-variant); }
 
 @utility ring-secondary { --tw-ring-color: var(--color-secondary); }
 @utility ring-error { --tw-ring-color: var(--color-error); }
+@utility ring-primary { --tw-ring-color: var(--color-primary); }
 @utility ring-primary-container { --tw-ring-color: var(--color-primary-container); }
+@utility ring-warning { --tw-ring-color: var(--color-warning); }
 
 /* ════════════════════════════════════════════════════════════════════
    BASE LAYER
@@ -738,6 +768,209 @@
 .guest-ghost-btn:hover {
     background: rgba(255, 255, 255, 0.1);
     color: #fff;
+}
+
+/* ════════════════════════════════════════════════════════════════════
+   CENTRALIZED COMPONENT CLASSES — per Brand Personality Guide Section 13.
+   These are the single source of truth for the card / stat-card / icon-badge
+   / page-header / empty-state patterns. Update once, applies everywhere.
+   ════════════════════════════════════════════════════════════════════ */
+
+/* ── Card (Section 13 "Cards") ───────────────────────────────────────
+   bg-surface-bright on a #f3f4f6 background creates a subtle lifted effect. */
+.app-card {
+    background-color: var(--color-surface-bright);
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+/* Card without internal padding — for tables, lists, anything with its own padding */
+.app-card--flush {
+    padding: 0;
+    overflow: hidden;
+}
+
+/* Card header bar — sits at the top of a card, separates title row from body */
+.app-card__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: var(--spacing-md);
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--color-surface-container-low);
+    border-bottom: 1px solid var(--color-surface-border);
+}
+
+/* Card footer bar — sits at the bottom of a card */
+.app-card__footer {
+    padding: var(--spacing-md) var(--spacing-lg);
+    background-color: var(--color-surface-container-low);
+    border-top: 1px solid var(--color-surface-border);
+}
+
+/* ── Stat Card (Section 13 "Stat Cards") ──────────────────────────── */
+.app-stat-card {
+    background-color: var(--color-surface-bright);
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-lg);
+    padding: var(--spacing-lg);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+}
+
+.app-stat-card__label {
+    font-size: var(--text-label-lg);
+    line-height: var(--text-label-lg--line-height);
+    letter-spacing: var(--text-label-lg--letter-spacing);
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+}
+
+.app-stat-card__value {
+    font-size: var(--text-headline-lg);
+    line-height: var(--text-headline-lg--line-height);
+    font-weight: 700;
+    color: var(--color-on-surface);
+    margin-top: var(--spacing-xs);
+}
+
+.app-stat-card__value--warning { color: var(--color-warning); }
+.app-stat-card__value--error   { color: var(--color-error); }
+.app-stat-card__value--success { color: var(--color-success); }
+
+/* ── Icon Badge (replaces decorative `bg-secondary/10` patterns) ────
+   Per Brand Guide Section 3: "Green is identity, not decoration."
+   Default variant is NEUTRAL. Use --brand only for success/progress contexts. */
+.app-icon-badge {
+    width: 40px;
+    height: 40px;
+    border-radius: var(--radius-lg);
+    background-color: var(--color-surface-container);
+    color: var(--color-on-surface-variant);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.app-icon-badge--sm { width: 32px; height: 32px; }
+.app-icon-badge--lg { width: 48px; height: 48px; }
+.app-icon-badge--xl { width: 56px; height: 56px; }
+
+.app-icon-badge--brand {
+    background-color: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+}
+
+.app-icon-badge--warning {
+    background-color: var(--color-tertiary-container);
+    color: var(--color-on-tertiary-container);
+}
+
+.app-icon-badge--error {
+    background-color: var(--color-error-container);
+    color: var(--color-on-error-container);
+}
+
+.app-icon-badge--success {
+    background-color: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+}
+
+/* ── Avatar (user / student / tutor circles) ────────────────────────
+   Brand use of green on a person avatar is OK (Section 3: "brand"). */
+.app-avatar {
+    border-radius: var(--radius-full);
+    background-color: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.app-avatar--xs { width: 20px; height: 20px; font-size: 10px; }
+.app-avatar--sm { width: 32px; height: 32px; font-size: 12px; }
+.app-avatar--md { width: 36px; height: 36px; font-size: 14px; }
+.app-avatar--lg { width: 48px; height: 48px; font-size: 18px; }
+
+/* ── Page Header (title + subtitle) ───────────────────────────────── */
+.app-page-header {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+}
+
+.app-page-header__title {
+    font-size: var(--text-headline-lg);
+    line-height: var(--text-headline-lg--line-height);
+    font-weight: 700;
+    color: var(--color-on-surface);
+}
+
+.app-page-header__subtitle {
+    font-size: var(--text-body-md);
+    line-height: var(--text-body-md--line-height);
+    color: var(--color-on-surface-variant);
+}
+
+/* ── Section Label (uppercase tracked-out small label) ──────────────
+   Per Brand Guide Section 8 — used in body content (table headers,
+   card subheadings). For sidebar section labels, use .app-sidebar__section-label. */
+.app-section-label {
+    font-size: var(--text-label-lg);
+    line-height: var(--text-label-lg--line-height);
+    letter-spacing: var(--text-label-lg--letter-spacing);
+    text-transform: uppercase;
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+}
+
+/* ── Empty State ──────────────────────────────────────────────────── */
+.app-empty-state {
+    text-align: center;
+    color: var(--color-on-surface-variant);
+    font-style: italic;
+    padding: var(--spacing-xl);
+}
+
+/* ── Status badge (for inline status pills) ───────────────────────── */
+.app-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    padding: 2px var(--spacing-sm);
+    border-radius: var(--radius-full);
+    font-size: var(--text-label-sm);
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: var(--text-label-sm--letter-spacing);
+}
+
+.app-status-badge--neutral {
+    background-color: var(--color-surface-container);
+    color: var(--color-on-surface-variant);
+}
+
+.app-status-badge--success {
+    background-color: var(--color-secondary-container);
+    color: var(--color-on-secondary-container);
+}
+
+.app-status-badge--warning {
+    background-color: var(--color-tertiary-container);
+    color: var(--color-on-tertiary-container);
+}
+
+.app-status-badge--error {
+    background-color: var(--color-error-container);
+    color: var(--color-on-error-container);
 }
 
 /* ════════════════════════════════════════════════════════════════════

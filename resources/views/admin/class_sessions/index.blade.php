@@ -33,7 +33,7 @@
             @foreach(['all' => 'Semua', 'private' => 'Private', 'semi-private' => 'Semi-Private', 'group' => 'Group'] as $val => $label)
                 <button type="button"
                     @click="filter = '{{ $val }}'"
-                    :class="filter === '{{ $val }}'
+                    :class="filter ==='{{ $val }}'
                         ? 'bg-primary-container text-on-primary'
                         : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface'"
                     class="px-md py-sm text-body-md font-semibold transition-all border-r border-surface-border last:border-r-0">
@@ -42,7 +42,7 @@
             @endforeach
         </div>
 
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm">
+        <div class="app-card">
             @if($classSessions->isEmpty())
                 <div class="flex flex-col items-center justify-center py-2xl gap-sm text-on-surface-variant">
                     <span class="material-symbols-outlined text-[48px]">class</span>
@@ -70,7 +70,7 @@
                                 <td><span class="badge badge-soft">{{ ucfirst($cs->class_type) }}</span></td>
                                 <td class="text-on-surface">{{ $cs->enrollments_count }}</td>
                                 <td>
-                                    <span class="badge badge-soft {{ $cs->status === 'active' ? 'badge-success' : 'badge-error' }}">
+                                    <span class="badge badge-soft {{ $cs->status ==='active' ? 'badge-success' : 'badge-error' }}">
                                         {{ $cs->status }}
                                     </span>
                                 </td>

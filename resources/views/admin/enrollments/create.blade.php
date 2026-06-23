@@ -148,7 +148,7 @@
                 <div class="lg:col-span-8 space-y-lg">
 
                     {{-- 1. INFORMASI SISWA --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                    <section class="app-card">
                         <div class="flex items-center justify-between mb-lg pb-md border-b border-surface-border">
                             <div class="flex items-center gap-sm">
                                 <span class="material-symbols-outlined text-secondary">person</span>
@@ -157,13 +157,13 @@
                             <div class="inline-flex rounded-lg overflow-hidden border border-primary-container">
                                 <button type="button"
                                     @click="mode = 'new'; selectedStudent = null"
-                                    :class="mode === 'new' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
+                                    :class="mode ==='new' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
                                     class="px-md py-sm text-body-md font-semibold transition-all">
                                     Murid Baru
                                 </button>
                                 <button type="button"
                                     @click="mode = 'existing'"
-                                    :class="mode === 'existing' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
+                                    :class="mode ==='existing' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
                                     class="px-md py-sm text-body-md font-semibold border-l border-primary-container transition-all">
                                     Murid Lama
                                 </button>
@@ -258,7 +258,7 @@
                     </section>
 
                     {{-- 2. PROGRAM --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                    <section class="app-card">
                         <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
                             <span class="material-symbols-outlined text-secondary">auto_awesome</span>
                             <h4 class="text-headline-md font-semibold text-on-surface uppercase tracking-wider">Pilihan Program</h4>
@@ -271,7 +271,7 @@
                                 @foreach(['private','semi-private','group'] as $t)
                                 <button type="button"
                                     @click="selectedType = '{{ $t }}'; selectedProgramId = ''; selectedSessionId = ''; selectedSession = null"
-                                    :class="selectedType === '{{ $t }}' ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface-container-lowest text-on-surface border-surface-border hover:border-primary'"
+                                    :class="selectedType ==='{{ $t }}' ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface-container-lowest text-on-surface border-surface-border hover:border-primary'"
                                     class="px-md py-sm rounded-lg border text-body-md font-semibold capitalize transition-all">
                                     {{ $t }}
                                 </button>
@@ -331,7 +331,7 @@
                     </section>
 
                     {{-- 3. SESI & JADWAL --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg"
+                    <section class="app-card"
                         x-show="selectedProgramId" x-transition>
                         <div class="flex items-center gap-sm mb-lg pb-md border-b border-surface-border">
                             <span class="material-symbols-outlined text-secondary">calendar_month</span>
@@ -398,8 +398,7 @@
                                 <template x-for="sess in eligibleSessions" :key="sess.id">
                                     <button type="button"
                                         @click="selectedSessionId = sess.id; selectedSession = sess; selectedTutorIds = sess.tutors.map(t => t.id)"
-                                        :class="selectedSessionId == sess.id
-                                            ? 'border-primary-container ring-2 ring-primary-container bg-surface-container-low'
+                                        :class="selectedSessionId == sess.id ?'border-primary-container ring-2 ring-primary-container bg-surface-container-low'
                                             : 'border-surface-border hover:border-primary'"
                                         class="w-full text-left p-md rounded-lg border transition-all">
                                         <div class="flex items-start justify-between gap-sm">
@@ -414,7 +413,7 @@
                                                 </div>
                                             </div>
                                             <span class="text-body-sm font-semibold shrink-0"
-                                                :class="sess.enrolled_count >= sess.capacity ? 'text-error' : 'text-secondary'"
+                                                :class="sess.enrolled_count >= sess.capacity ?'text-error' : 'text-secondary'"
                                                 x-text="sess.enrolled_count + '/' + sess.capacity + ' siswa'"></span>
                                         </div>
                                     </button>
@@ -431,8 +430,7 @@
                                     <template x-for="tutor in (showAllTutors ? availableTutors : availableTutors.slice(0, 5))" :key="tutor.id">
                                         <button type="button"
                                             @click="selectedTutorIds.includes(tutor.id) ? selectedTutorIds = selectedTutorIds.filter(id => id !== tutor.id) : selectedTutorIds.push(tutor.id)"
-                                            :class="selectedTutorIds.includes(tutor.id)
-                                                ? 'bg-primary-container text-on-primary border-primary-container'
+                                            :class="selectedTutorIds.includes(tutor.id) ?'bg-primary-container text-on-primary border-primary-container'
                                                 : 'bg-surface-container-lowest text-on-surface border-surface-border hover:border-primary'"
                                             class="px-md py-sm rounded-lg border text-body-md font-semibold transition-all"
                                             x-text="tutor.name"></button>
@@ -452,7 +450,7 @@
                     <input type="hidden" name="schedules[0][time_block]" :value="selectedTimeBlock">
                     <input type="hidden" name="schedules[0][classroom_id]" :value="selectedType === 'private' ? privateClassroomId : (selectedSession?.classroom_id ?? '')">
                     {{-- 4. PEMBAYARAN --}}
-                    <section class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+                    <section class="app-card">
                         <div class="flex items-center justify-between mb-lg pb-md border-b border-surface-border">
                             <div class="flex items-center gap-sm">
                                 <span class="material-symbols-outlined text-secondary">payments</span>

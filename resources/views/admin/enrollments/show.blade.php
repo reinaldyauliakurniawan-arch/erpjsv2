@@ -44,7 +44,7 @@
         </div>
 
         {{-- Info Student --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Data Student</h4>
             <div class="grid grid-cols-1 gap-md sm:grid-cols-2">
                 <div>
@@ -71,7 +71,7 @@
         </div>
 
         {{-- Info Enrollment --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Detail Enrollment</h4>
             <div class="grid grid-cols-1 gap-md sm:grid-cols-2">
                 <div>
@@ -98,7 +98,7 @@
         </div>
 
         {{-- Tutor (Private) --}}
-<div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+<div class="app-card space-y-md">
     <div class="flex items-center justify-between">
         <h4 class="text-headline-md font-semibold text-on-surface">Tutor</h4>
         <button onclick="document.getElementById('modal-assign-tutor').showModal()"
@@ -161,7 +161,7 @@
 
         {{-- Jadwal --}}
         @if($enrollment->schedules->isNotEmpty())
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Jadwal</h4>
             <table class="table table-sm w-full">
                 <thead>
@@ -185,7 +185,7 @@
         @endif
 
         {{-- Pembayaran --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Pembayaran</h4>
             <div class="grid grid-cols-1 gap-md sm:grid-cols-3">
                 <div>
@@ -258,7 +258,7 @@
 
         {{-- Aksi --}}
         @if($enrollment->status === 'active')
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <h4 class="text-headline-md font-semibold text-on-surface">Aksi</h4>
             <p class="text-body-sm text-on-surface-variant">Perubahan status enrollment bersifat permanen dan akan mempengaruhi pencatatan akuntansi.</p>
             <div class="flex gap-sm">

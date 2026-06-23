@@ -27,14 +27,14 @@
 
         {{-- Summary Cards --}}
         <div class="grid grid-cols-1 md:grid-cols-4 gap-md">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <div class="flex items-center justify-between">
                     <span class="text-label-lg text-on-surface-variant uppercase tracking-widest">Total Students</span>
                     <span class="material-symbols-outlined text-secondary">group</span>
                 </div>
                 <div class="text-headline-lg font-bold text-on-surface" x-text="loading ? '...' : summary.total"></div>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <div class="flex items-center justify-between">
                     <span class="text-label-lg text-on-surface-variant uppercase tracking-widest">Active Enrollment</span>
                     <span class="material-symbols-outlined text-secondary">check_circle</span>
@@ -42,8 +42,8 @@
                 <div class="text-headline-lg font-bold text-on-surface" x-text="loading ? '...' : summary.active"></div>
             </div>
             <button @click="setFilter('inactive')"
-                :class="filter === 'inactive' ? 'ring-2 ring-warning' : ''"
-                class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md text-left w-full hover:bg-surface-container-low transition-all">
+                :class="filter ==='inactive' ? 'ring-2 ring-warning' : ''"
+                class="app-card space-y-md text-left w-full hover:bg-surface-container-low transition-all">
                 <div class="flex items-center justify-between">
                     <span class="text-label-lg text-on-surface-variant uppercase tracking-widest">Inactive Students</span>
                     <span class="material-symbols-outlined text-warning">person_off</span>
@@ -51,8 +51,8 @@
                 <div class="text-headline-lg font-bold text-warning" x-text="loading ? '...' : summary.inactive"></div>
             </button>
             <button @click="setFilter('overdue')"
-                :class="filter === 'overdue' ? 'ring-2 ring-error' : ''"
-                class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md text-left w-full hover:bg-surface-container-low transition-all">
+                :class="filter ==='overdue' ? 'ring-2 ring-error' : ''"
+                class="app-card space-y-md text-left w-full hover:bg-surface-container-low transition-all">
                 <div class="flex items-center justify-between">
                     <span class="text-label-lg text-on-surface-variant uppercase tracking-widest">Tagihan Jatuh Tempo</span>
                     <span class="material-symbols-outlined text-error">event_busy</span>
@@ -62,7 +62,7 @@
         </div>
 
         {{-- Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+        <div class="app-card app-card--flush">
             <div class="px-lg py-md border-b border-surface-border flex items-center justify-between bg-surface-container-low">
                 <h2 class="text-headline-md font-semibold text-on-surface">Master Directory</h2>
             </div>
@@ -94,12 +94,12 @@
                             <tr class="hover:bg-surface-container-low transition-all">
                                 <td class="px-lg py-md align-top">
                                     <div class="flex items-center gap-md cursor-pointer" @click="s._open = !s._open">
-                                        <div class="w-9 h-9 rounded-full bg-secondary/20 flex items-center justify-center font-bold text-secondary text-xs shrink-0" x-text="s.initials"></div>
+                                        <div class="app-avatar app-avatar--sm" x-text="s.initials"></div>
                                         <div class="flex flex-col">
                                             <span class="text-body-md font-semibold text-on-surface" x-text="s.name"></span>
                                             <span class="text-label-lg text-on-surface-variant" x-text="s.email"></span>
                                         </div>
-                                        <span class="material-symbols-outlined text-on-surface-variant text-[18px] ml-sm transition-transform" :class="s._open ? 'rotate-180' : ''" x-text="'expand_more'"></span>
+                                        <span class="material-symbols-outlined text-on-surface-variant text-[18px] ml-sm transition-transform" :class="s._open ?'rotate-180' : ''" x-text="'expand_more'"></span>
                                     </div>
                                 </td>
                                 <td class="px-lg py-md align-top">
@@ -168,10 +168,10 @@
                 <div class="flex items-center justify-between px-lg py-md border-t border-surface-border bg-surface-container-low">
                     <span class="text-body-sm text-on-surface-variant" x-text="'Halaman ' + page + ' dari ' + lastPage"></span>
                     <div class="flex gap-sm">
-                        <button @click="prevPage" :disabled="page <= 1" class="btn btn-sm btn-ghost" :class="page <= 1 ? 'opacity-40' : ''">
+                        <button @click="prevPage" :disabled="page <= 1" class="btn btn-sm btn-ghost" :class="page <= 1 ?'opacity-40' : ''">
                             <span class="material-symbols-outlined text-[18px]">chevron_left</span>
                         </button>
-                        <button @click="nextPage" :disabled="page >= lastPage" class="btn btn-sm btn-ghost" :class="page >= lastPage ? 'opacity-40' : ''">
+                        <button @click="nextPage" :disabled="page >= lastPage" class="btn btn-sm btn-ghost" :class="page >= lastPage ?'opacity-40' : ''">
                             <span class="material-symbols-outlined text-[18px]">chevron_right</span>
                         </button>
                     </div>
@@ -251,7 +251,7 @@
             cancelled: 'bg-surface-container text-on-surface-variant',
         };
         const cls = map[s] ?? 'bg-surface-container text-on-surface-variant';
-        return '<span class="inline-flex items-center px-sm py-[2px] rounded-full text-[11px] font-bold uppercase ' + cls + '">' + s + '</span>';
+        return '<span class="inline-flex items-center px-sm py-[2px] rounded-full text-[11px] font-bold uppercase' + cls + '">' + s + '</span>';
     }
 
     function paymentBadge(s) {

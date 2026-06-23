@@ -26,7 +26,7 @@
         </a>
 
         {{-- Header --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex items-start justify-between gap-md">
+        <div class="app-card flex items-start justify-between gap-md">
             <div class="flex items-center gap-md">
                 <div class="w-12 h-12 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container font-bold text-lg">
                     {{ strtoupper(substr($tutor->user->name, 0, 1)) }}
@@ -52,7 +52,7 @@
         </div>
 
         {{-- Rates --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <div class="flex items-center justify-between mb-md">
                 <h4 class="text-headline-md font-semibold text-on-surface">Rate per Program</h4>
                 <button onclick="document.getElementById('modal-add-rate').showModal()"
@@ -89,7 +89,7 @@
         </div>
 
         {{-- Availability --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <h4 class="text-headline-md font-semibold text-on-surface mb-md">Availability</h4>
 
             <form method="POST" action="{{ route('admin.tutors.availability.store', $tutor->id) }}">

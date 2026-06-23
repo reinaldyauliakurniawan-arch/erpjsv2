@@ -15,7 +15,7 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <form method="GET" action="{{ route('finance.reports.deferred-revenue') }}" class="flex items-end gap-md flex-wrap">
             <div class="fieldset">
                 <label class="fieldset-legend">Dari</label>
@@ -44,21 +44,21 @@
 
     {{-- Summary --}}
     <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Deferred Revenue</p>
             <p class="text-2xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalDeferred, 0, ',', '.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Jumlah Enrollment</p>
             <p class="text-2xl font-bold text-on-surface mt-xs">{{ $enrollments->count() }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Sudah Diakui</p>
             <p class="text-2xl font-bold text-success mt-xs">Rp {{ number_format($enrollments->sum('recognized_amount'), 0, ',', '.') }}</p>
         </div>
     </div>
 
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+    <div class="app-card">
         <div id="dr-table"></div>
     </div>
 

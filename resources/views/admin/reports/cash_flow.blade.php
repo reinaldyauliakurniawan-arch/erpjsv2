@@ -18,7 +18,7 @@
     </div>
 
     {{-- Filter --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg no-print">
+    <div class="app-card no-print">
         <div class="flex items-end gap-md flex-wrap">
             <div class="fieldset">
                 <label class="fieldset-legend">Periode</label>
@@ -29,7 +29,7 @@
                     <option value="custom"  {{ $period === 'custom'  ? 'selected' : '' }}>Custom</option>
                 </select>
             </div>
-            <div id="custom-range" class="flex gap-sm items-end {{ $period === 'custom' ? '' : 'hidden' }}">
+            <div id="custom-range" class="flex gap-sm items-end {{ $period ==='custom' ? '' : 'hidden' }}">
                 <div class="fieldset">
                     <label class="fieldset-legend">Dari</label>
                     <input type="date" id="filter-from" class="input input-sm" value="{{ $from }}">
@@ -48,26 +48,26 @@
 
     {{-- Summary Cards --}}
     <div class="grid gap-md no-print" style="grid-template-columns:repeat(3,1fr)">
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Arus Kas Bersih</p>
-            <p class="text-xl font-bold mt-xs {{ $netChange >= 0 ? 'text-success' : 'text-error' }}">
+            <p class="text-xl font-bold mt-xs {{ $netChange >= 0 ?'text-success' : 'text-error' }}">
                 {{ $netChange >= 0 ? '' : '-' }}Rp {{ number_format(abs($netChange),0,',','.') }}
             </p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Kas Akhir Periode</p>
             <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($cashEnding,0,',','.') }}</p>
         </div>
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+        <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Aktivitas Operasi</p>
-            <p class="text-xl font-bold mt-xs {{ $netOperating >= 0 ? 'text-on-surface' : 'text-error' }}">
+            <p class="text-xl font-bold mt-xs {{ $netOperating >= 0 ?'text-on-surface' : 'text-error' }}">
                 {{ $netOperating >= 0 ? '' : '-' }}Rp {{ number_format(abs($netOperating),0,',','.') }}
             </p>
         </div>
     </div>
 
     {{-- Tabel Formal --}}
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+    <div class="app-card app-card--flush">
 
         <div class="px-lg py-md bg-surface-container border-b border-surface-border">
             <p class="font-semibold text-on-surface">Laporan Arus Kas (Metode Langsung)</p>
@@ -88,7 +88,7 @@
                 @forelse($operating as $row)
                 <tr class="hover:bg-surface-container/50 transition-colors">
                     <td class="px-lg py-sm text-on-surface pl-10">{{ $row->name }}</td>
-                    <td class="px-lg py-sm text-right font-mono {{ $row->net < 0 ? 'text-error' : 'text-on-surface' }}">
+                    <td class="px-lg py-sm text-right font-mono {{ $row->net < 0 ?'text-error' : 'text-on-surface' }}">
                         {{ $row->net < 0 ? '(' : '' }}Rp {{ number_format(abs($row->net),0,',','.') }}{{ $row->net < 0 ? ')' : '' }}
                     </td>
                 </tr>
@@ -99,7 +99,7 @@
                 @endforelse
                 <tr class="bg-surface-container font-semibold border-t border-surface-border">
                     <td class="px-lg py-sm text-on-surface">Arus Kas Bersih dari Aktivitas Operasi</td>
-                    <td class="px-lg py-sm text-right font-mono {{ $netOperating < 0 ? 'text-error' : 'text-on-surface' }}">
+                    <td class="px-lg py-sm text-right font-mono {{ $netOperating < 0 ?'text-error' : 'text-on-surface' }}">
                         {{ $netOperating < 0 ? '(' : '' }}Rp {{ number_format(abs($netOperating),0,',','.') }}{{ $netOperating < 0 ? ')' : '' }}
                     </td>
                 </tr>
@@ -117,7 +117,7 @@
                 @forelse($investing as $row)
                 <tr class="hover:bg-surface-container/50 transition-colors">
                     <td class="px-lg py-sm text-on-surface pl-10">{{ $row->name }}</td>
-                    <td class="px-lg py-sm text-right font-mono {{ $row->net < 0 ? 'text-error' : 'text-on-surface' }}">
+                    <td class="px-lg py-sm text-right font-mono {{ $row->net < 0 ?'text-error' : 'text-on-surface' }}">
                         {{ $row->net < 0 ? '(' : '' }}Rp {{ number_format(abs($row->net),0,',','.') }}{{ $row->net < 0 ? ')' : '' }}
                     </td>
                 </tr>
@@ -128,7 +128,7 @@
                 @endforelse
                 <tr class="bg-surface-container font-semibold border-t border-surface-border">
                     <td class="px-lg py-sm text-on-surface">Arus Kas Bersih dari Aktivitas Investasi</td>
-                    <td class="px-lg py-sm text-right font-mono {{ $netInvesting < 0 ? 'text-error' : 'text-on-surface' }}">
+                    <td class="px-lg py-sm text-right font-mono {{ $netInvesting < 0 ?'text-error' : 'text-on-surface' }}">
                         {{ $netInvesting < 0 ? '(' : '' }}Rp {{ number_format(abs($netInvesting),0,',','.') }}{{ $netInvesting < 0 ? ')' : '' }}
                     </td>
                 </tr>
@@ -146,7 +146,7 @@
                 @forelse($financing as $row)
                 <tr class="hover:bg-surface-container/50 transition-colors">
                     <td class="px-lg py-sm text-on-surface pl-10">{{ $row->name }}</td>
-                    <td class="px-lg py-sm text-right font-mono {{ $row->net < 0 ? 'text-error' : 'text-on-surface' }}">
+                    <td class="px-lg py-sm text-right font-mono {{ $row->net < 0 ?'text-error' : 'text-on-surface' }}">
                         {{ $row->net < 0 ? '(' : '' }}Rp {{ number_format(abs($row->net),0,',','.') }}{{ $row->net < 0 ? ')' : '' }}
                     </td>
                 </tr>
@@ -157,7 +157,7 @@
                 @endforelse
                 <tr class="bg-surface-container font-semibold border-t border-surface-border">
                     <td class="px-lg py-sm text-on-surface">Arus Kas Bersih dari Aktivitas Pendanaan</td>
-                    <td class="px-lg py-sm text-right font-mono {{ $netFinancing < 0 ? 'text-error' : 'text-on-surface' }}">
+                    <td class="px-lg py-sm text-right font-mono {{ $netFinancing < 0 ?'text-error' : 'text-on-surface' }}">
                         {{ $netFinancing < 0 ? '(' : '' }}Rp {{ number_format(abs($netFinancing),0,',','.') }}{{ $netFinancing < 0 ? ')' : '' }}
                     </td>
                 </tr>

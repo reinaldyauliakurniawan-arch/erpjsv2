@@ -33,24 +33,24 @@
 
         {{-- Row 1: Posisi Kas --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-sm text-on-surface-variant">Cash Balance</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($cashBalance, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Saldo kas & bank saat ini</p>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-sm text-on-surface-variant">Total Revenue</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($revenue, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan dari sesi yang sudah selesai</p>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-sm text-on-surface-variant">Total Expense</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($expense, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Biaya yang sudah dikeluarkan bulan ini</p>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-sm text-on-surface-variant">Net Profit</p>
-                <p class="text-headline-lg font-bold mt-xs {{ $netProfit >= 0 ? 'text-success' : 'text-error' }}">
+                <p class="text-headline-lg font-bold mt-xs {{ $netProfit >= 0 ?'text-success' : 'text-error' }}">
                     Rp {{ number_format($netProfit, 0, ',', '.') }}
                 </p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Revenue dikurangi expense bulan ini</p>
@@ -59,44 +59,44 @@
 
         {{-- Row 2: Kewajiban & Risiko --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-sm text-on-surface-variant">Deferred Revenue</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan diterima di muka</p>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-sm text-on-surface-variant">Tutor Payable</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($tutorPayable, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Belum dibayar ke tutor</p>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-sm text-on-surface-variant">Collection Rate</p>
-                <p class="text-headline-lg font-bold mt-xs {{ $collectionRate >= 80 ? 'text-success' : ($collectionRate >= 50 ? 'text-warning' : 'text-error') }}">
+                <p class="text-headline-lg font-bold mt-xs {{ $collectionRate >= 80 ?'text-success' : ($collectionRate >= 50 ? 'text-warning' : 'text-error') }}">
                     {{ $collectionRate }}%
                 </p>
                 <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-xs">
-                    <div class="h-full rounded-full {{ $collectionRate >= 80 ? 'bg-success' : ($collectionRate >= 50 ? 'bg-warning' : 'bg-error') }}"
+                    <div class="h-full rounded-full {{ $collectionRate >= 80 ?'bg-success' : ($collectionRate >= 50 ? 'bg-warning' : 'bg-error') }}"
                          style="width: {{ min($collectionRate, 100) }}%"></div>
                 </div>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Persentase cicilan siswa yang sudah masuk bulan ini</p>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-sm text-on-surface-variant">Burn Rate</p>
                 <p class="text-headline-lg font-bold text-on-surface mt-xs">Rp {{ number_format($burnRate, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Rata-rata pengeluaran per bulan (6 bulan terakhir)</p>
                 @if($runwayMonths !== null)
-                    <p class="text-body-sm mt-xs">Tanpa pemasukan baru, bertahan: <span class="{{ $runwayMonths <= 3 ? 'text-error' : ($runwayMonths <= 6 ? 'text-warning' : 'text-success') }} font-medium">{{ $runwayMonths }} bulan lagi</span></p>
+                    <p class="text-body-sm mt-xs">Tanpa pemasukan baru, bertahan: <span class="{{ $runwayMonths <= 3 ?'text-error' : ($runwayMonths <= 6 ? 'text-warning' : 'text-success') }} font-medium">{{ $runwayMonths }} bulan lagi</span></p>
                 @endif
             </div>
         </div>
 
         {{-- Charts Row 1 --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))">
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <h4 class="text-headline-md font-semibold text-on-surface">Revenue vs Expense (12 Bulan)</h4>
                 <canvas id="revenueExpenseChart" height="120"></canvas>
             </div>
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+            <div class="app-card space-y-md">
                 <h4 class="text-headline-md font-semibold text-on-surface">Enrollment per Program</h4>
                 <div class="flex items-center gap-md">
                     <div style="position: relative; height: 260px; width: 260px; flex-shrink: 0;">
@@ -108,7 +108,7 @@
         </div>
 
         {{-- Charts Row 2 --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+        <div class="app-card space-y-md">
             <div class="flex items-center justify-between flex-wrap gap-sm">
                 <h4 class="text-headline-md font-semibold text-on-surface">Revenue per Program</h4>
                 <div class="flex gap-xs items-center flex-wrap">
@@ -132,7 +132,7 @@
         {{-- Overdue + Pending Rates --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))">
 
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md flex flex-col" style="max-height: 400px;">
+            <div class="app-card space-y-md flex flex-col" style="max-height: 400px;">
                 <div class="flex items-center justify-between flex-shrink-0">
                     <h4 class="text-headline-md font-semibold text-on-surface">Overdue Installments</h4>
                     @if($overdueInstallments->count())
@@ -171,7 +171,7 @@
                 @endif
             </div>
 
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md"
+            <div class="app-card space-y-md"
                 x-data="{ open: null }"
                 x-init="{{ $errors->any() ? 'open = ' . (old('attendance_tutor_id') ?? 'null') : '' }}">
 
@@ -223,7 +223,7 @@
         </div>
 
         {{-- Recent Journals --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md flex flex-col" style="max-height: 400px;">
+        <div class="app-card space-y-md flex flex-col" style="max-height: 400px;">
             <div class="flex items-center justify-between flex-shrink-0">
                 <h4 class="text-headline-md font-semibold text-on-surface">Recent Journals</h4>
                 <a href="{{ route('finance.journals.index') }}" class="btn btn-ghost btn-sm gap-xs">

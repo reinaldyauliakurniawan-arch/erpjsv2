@@ -69,14 +69,14 @@
             </div>
             <div class="flex flex-wrap items-center gap-md">
                 <div class="flex gap-sm">
-                    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm px-md py-sm flex items-center gap-sm">
+                    <div class="app-card px-md py-sm flex items-center gap-sm">
                         <span class="material-symbols-outlined text-primary-container text-lg">meeting_room</span>
                         <div>
                             <p class="text-[9px] font-bold uppercase text-on-surface-variant leading-none mb-xs">Room Occupancy</p>
                             <p class="text-body-md font-bold text-on-surface leading-none">{{ $occupancyRate }}% <span class="text-[10px] font-normal text-on-surface-variant">{{ $occupiedCount }}/{{ $totalSlots }} slot</span></p>
                         </div>
                     </div>
-                    <div @click="occupancyModal = true" class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm px-md py-sm flex items-center gap-sm cursor-pointer hover:bg-surface-container transition-colors">
+                    <div @click="occupancyModal = true" class="app-card px-md py-sm flex items-center gap-sm cursor-pointer hover:bg-surface-container transition-colors">
                         <span class="material-symbols-outlined text-primary-container text-lg">person</span>
                         <div>
                             <p class="text-[9px] font-bold uppercase text-on-surface-variant leading-none mb-xs">Tutor Occupancy</p>
@@ -87,14 +87,14 @@
                 <div class="inline-flex rounded-lg overflow-hidden border border-primary-container">
                 <button type="button"
                     @click="view = 'room'"
-                    :class="view === 'room' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
+                    :class="view ==='room' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
                     class="flex items-center gap-xs px-md py-sm text-body-md font-semibold transition-all">
                     <span class="material-symbols-outlined text-[18px]">meeting_room</span>
                     Per Ruangan
                 </button>
                 <button type="button"
                     @click="view = 'tutor'"
-                    :class="view === 'tutor' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
+                    :class="view ==='tutor' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container hover:bg-surface'"
                     class="flex items-center gap-xs px-md py-sm text-body-md font-semibold border-l border-primary-container transition-all">
                     <span class="material-symbols-outlined text-[18px]">person_search</span>
                     Per Tutor
@@ -133,8 +133,7 @@
                 <template x-for="d in days" :key="d">
                     <button type="button"
                         @click="day = d"
-                        :class="day === d
-                            ? 'border-b-2 border-primary-container text-primary-container font-semibold'
+                        :class="day === d ?'border-b-2 border-primary-container text-primary-container font-semibold'
                             : 'text-on-surface-variant hover:text-on-surface'"
                         class="px-md py-sm text-body-md whitespace-nowrap transition-colors"
                         x-text="d">
@@ -147,7 +146,7 @@
         <div x-show="view === 'room'" x-cloak class="space-y-lg">
 
             {{-- Matrix Ketersediaan --}}
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg"
+            <div class="app-card"
                 x-data="{
                     modal: false,
                     modalType: '',
@@ -461,7 +460,7 @@
                 </div>
 
                 <div class="col-span-12 lg:col-span-9">
-                    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+                    <div class="app-card app-card--flush">
                         @foreach($days as $d)
                         <div x-show="day === '{{ $d }}'" x-cloak>
                             @if(isset($dayGroups[$d]) && $dayGroups[$d]->count())
@@ -576,7 +575,7 @@
             @endforeach
 
             @if($byRoom->isEmpty())
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-md text-on-surface-variant text-center py-lg">Belum ada jadwal.</p>
             </div>
             @endif
@@ -606,7 +605,7 @@
                 </div>
 
                 <div class="col-span-12 lg:col-span-9">
-                    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
+                    <div class="app-card app-card--flush">
                         @foreach($days as $d)
                         <div x-show="day === '{{ $d }}'" x-cloak>
                             @if(isset($dayGroups[$d]) && $dayGroups[$d]->count())
@@ -657,7 +656,7 @@
             @endforeach
 
             @if($byTutor->isEmpty())
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg">
+            <div class="app-card">
                 <p class="text-body-md text-on-surface-variant text-center py-lg">Belum ada jadwal.</p>
             </div>
             @endif

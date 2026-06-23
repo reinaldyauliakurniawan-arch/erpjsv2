@@ -18,29 +18,29 @@
         @endif
 
         {{-- Header --}}
-        <div>
-            <h3 class="text-headline-lg font-semibold text-on-surface">Settings</h3>
-            <p class="text-body-md text-on-surface-variant mt-xs">Kelola user dan konfigurasi sistem.</p>
+        <div class="app-page-header">
+            <h3 class="app-page-header__title">Settings</h3>
+            <p class="app-page-header__subtitle">Kelola user dan konfigurasi sistem.</p>
         </div>
 
         {{-- Summary Cards --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-md">
             @foreach([['admin','Admin','manage_accounts'],['cfo','CFO','account_balance'],['tutor','Tutor','person_search'],['student','Student','school']] as [$role, $label, $icon])
-            <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg flex flex-col gap-md">
-                <div class="w-10 h-10 rounded-lg bg-secondary/10 flex items-center justify-center">
+            <div class="app-stat-card">
+                <div class="app-icon-badge">
                     <span class="material-symbols-outlined text-secondary">{{ $icon }}</span>
                 </div>
                 <div>
-                    <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">{{ $label }}</p>
-                    <p class="text-headline-lg font-bold text-on-surface mt-xs">{{ $users->where('role', $role)->count() }}</p>
+                    <p class="app-stat-card__label">{{ $label }}</p>
+                    <p class="app-stat-card__value">{{ $users->where('role', $role)->count() }}</p>
                 </div>
             </div>
             @endforeach
         </div>
 
         {{-- Appearance Card --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
-            <div class="px-lg py-md border-b border-surface-border flex justify-between items-center bg-surface-container-low">
+        <div class="app-card app-card--flush">
+            <div class="app-card__header">
                 <div>
                     <h4 class="text-title-sm font-semibold text-on-surface">Appearance</h4>
                     <p class="text-body-sm text-on-surface-variant mt-xs">Kustomisasi warna tampilan aplikasi.</p>
@@ -54,8 +54,8 @@
         </div>
 
         {{-- User Table --}}
-        <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm overflow-hidden">
-            <div class="px-lg py-md border-b border-surface-border flex justify-between items-center bg-surface-container-low">
+        <div class="app-card app-card--flush">
+            <div class="app-card__header">
                 <h4 class="text-title-sm font-semibold text-on-surface">Manajemen User</h4>
                 <button onclick="document.getElementById('modal-create').showModal()"
                     class="btn bg-secondary text-on-secondary border-none hover:opacity-90 btn-sm gap-xs">
@@ -101,7 +101,7 @@
                                         'student' => 'badge-soft',
                                     ];
                                 @endphp
-                                <span class="badge {{ $roleStyles[$user->role] ?? 'badge-soft' }} capitalize">{{ $user->role }}</span>
+                                <span class="badge {{ $roleStyles[$user->role] ??'badge-soft' }} capitalize">{{ $user->role }}</span>
                             </td>
                             <td class="px-lg py-md text-right">
                                 <div class="flex items-center justify-end gap-xs">
@@ -123,7 +123,7 @@
                 </table>
             </div>
 
-            <div class="px-lg py-md bg-surface-container-low border-t border-surface-border">
+            <div class="app-card__footer">
                 <p class="text-body-sm text-on-surface-variant">{{ $users->count() }} users terdaftar</p>
             </div>
         </div>

@@ -32,7 +32,7 @@
         };
     @endphp
 
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg space-y-md">
+    <div class="app-card space-y-md">
 
         {{-- Header --}}
         <div class="flex items-start justify-between gap-md">
@@ -55,8 +55,7 @@
 
         {{-- Next Session --}}
         @if($next && $enrollment->status === 'active')
-        <div class="flex items-center gap-sm px-md py-sm rounded-lg
-            {{ $next['is_today'] ? 'bg-primary-container/20 border border-primary-container/40' : 'bg-surface border border-surface-border' }}">
+        <div class="flex items-center gap-sm px-md py-sm rounded-lg {{ $next['is_today'] ? 'bg-primary-container/20 border border-primary-container/40' : 'bg-surface border border-surface-border' }}">
             <span class="material-symbols-outlined {{ $next['is_today'] ? 'text-primary-container' : 'text-on-surface-variant' }} text-base">
                 {{ $next['is_today'] ? 'today' : 'event' }}
             </span>
@@ -129,7 +128,7 @@
 
     </div>
     @empty
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-xl text-center">
+    <div class="app-card p-xl text-center">
         <span class="material-symbols-outlined text-[48px] text-on-surface-variant">school</span>
         <p class="text-sm text-on-surface-variant mt-sm">Belum ada enrollment aktif.</p>
     </div>
@@ -137,7 +136,7 @@
 
     {{-- Riwayat Kehadiran --}}
     @if($attendanceHistory->count())
-    <div class="bg-surface-container-lowest border border-surface-border rounded-lg shadow-sm p-lg"
+    <div class="app-card"
         x-data="{ activeEnrollment: {{ $enrollments->first()?->id ?? 'null' }} }">
 
         <p class="text-sm font-semibold text-on-surface mb-md">Riwayat Kehadiran</p>
@@ -148,8 +147,7 @@
             @foreach($enrollments as $enrollment)
             <button type="button"
                 @click="activeEnrollment = {{ $enrollment->id }}"
-                :class="activeEnrollment === {{ $enrollment->id }}
-                    ? 'bg-primary-container text-on-primary'
+                :class="activeEnrollment === {{ $enrollment->id }} ?'bg-primary-container text-on-primary'
                     : 'bg-surface text-on-surface-variant hover:bg-surface-container-low'"
                 class="px-md py-xs rounded-lg text-xs font-semibold border border-surface-border transition-colors">
                 {{ $enrollment->program->name }}
@@ -169,8 +167,7 @@
             @else
             <div class="space-y-sm">
                 @foreach($history as $rec)
-                <div class="border border-surface-border rounded-lg p-md
-                    {{ $rec->is_present ? 'border-l-4 border-l-success' : 'border-l-4 border-l-error' }}">
+                <div class="border border-surface-border rounded-lg p-md {{ $rec->is_present ?'border-l-4 border-l-success' : 'border-l-4 border-l-error' }}">
                     <div class="flex items-start justify-between gap-md">
                         <div>
                             <p class="text-sm font-semibold text-on-surface">
