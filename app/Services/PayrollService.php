@@ -45,6 +45,11 @@ class PayrollService
         return DB::transaction(function () use ($payrollRun, $approvedBy) {
             $tutors = Tutor::with('user')->get();
             $date   = now()->toDateString();
+            // Consistency fix: previously `now()` was called per-tutor inside
+            // the loop, so each tutor's attendances got a slightly different
+            // `paid_at` timestamp (millisecond drift). For audit purposes all
+            // payments in a payroll run should have the same timestamp.
+            $paidAt = now();
 
             foreach ($tutors as $tutor) {
                 $unpaidAttendances = DB::table('attendance_tutor')
@@ -78,7 +83,7 @@ class PayrollService
 
                 DB::table('attendance_tutor')
                     ->whereIn('id', $unpaidAttendances->pluck('id'))
-                    ->update(['paid_at' => now()]);
+                    ->update(['paid_at' => $paidAt]);
             }
 
             $payrollRun->update([

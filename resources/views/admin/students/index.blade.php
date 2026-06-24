@@ -86,9 +86,8 @@
                             <th class="px-lg py-md text-label-lg text-on-surface-variant uppercase tracking-widest font-semibold w-28"></th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-surface-border">
-<tbody x-show="rows.length === 0">
-                        <tr><td colspan="3" class="px-lg py-xl text-center text-on-surface-variant italic">Tidak ada data.</td></tr>
+                    <tbody x-show="rows.length === 0">
+                        <tr><td colspan="4" class="px-lg py-xl text-center text-on-surface-variant italic">Tidak ada data.</td></tr>
                     </tbody>
                     <template x-for="s in rows" :key="s.id">
                         <tbody class="border-b border-surface-border">

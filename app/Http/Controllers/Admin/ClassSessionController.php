@@ -14,6 +14,7 @@ use App\Enums\DayOfWeek;
 use App\Enums\ClassType;
 use App\Services\AttendanceService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ClassSessionController extends Controller
 {
@@ -54,37 +55,45 @@ class ClassSessionController extends Controller
         'schedules.*.classroom_id'  => 'required_with:schedules|exists:classrooms,id',
     ]);
 
-    $classSession = ClassSession::create($request->only('name', 'program_id', 'class_type', 'status'));
+    // Atomicity fix: previously 4 separate writes (create session,
+    // attach tutors, update enrollments, create schedules). If any
+    // failed mid-way, the session was created with partial data.
+    $classSession = DB::transaction(function () use ($request) {
+        $classSession = ClassSession::create($request->only('name', 'program_id', 'class_type', 'status'));
 
-    if ($request->filled('tutor_ids')) {
-        $classSession->tutors()->attach($request->tutor_ids, ['status' => 'pending']);
-    }
+        if ($request->filled('tutor_ids')) {
+            $classSession->tutors()->attach($request->tutor_ids, ['status' => 'pending']);
+        }
 
-    if ($request->filled('enrollment_ids')) {
-        Enrollment::whereIn('id', $request->enrollment_ids)
-            ->update(['class_session_id' => $classSession->id]);
-    }
+        if ($request->filled('enrollment_ids')) {
+            Enrollment::whereIn('id', $request->enrollment_ids)
+                ->update(['class_session_id' => $classSession->id]);
+        }
 
-    if ($request->filled('schedules')) {
-        foreach ($request->schedules as $s) {
-            if (empty($s['day']) || empty($s['time_block']) || empty($s['classroom_id'])) continue;
+        if ($request->filled('schedules')) {
+            foreach ($request->schedules as $s) {
+                if (empty($s['day']) || empty($s['time_block']) || empty($s['classroom_id'])) continue;
 
-            $conflict = \App\Models\Schedule::where('classroom_id', $s['classroom_id'])
-                ->where('day', $s['day'])
-                ->where('time_block', $s['time_block'])
-                ->exists();
+                $conflict = \App\Models\Schedule::where('classroom_id', $s['classroom_id'])
+                    ->where('day', $s['day'])
+                    ->where('time_block', $s['time_block'])
+                    ->lockForUpdate()
+                    ->exists();
 
-            if (!$conflict) {
-                \App\Models\Schedule::create([
-                    'class_session_id' => $classSession->id,
-                    'enrollment_id'    => null,
-                    'classroom_id'     => $s['classroom_id'],
-                    'day'              => $s['day'],
-                    'time_block'       => $s['time_block'],
-                ]);
+                if (!$conflict) {
+                    \App\Models\Schedule::create([
+                        'class_session_id' => $classSession->id,
+                        'enrollment_id'    => null,
+                        'classroom_id'     => $s['classroom_id'],
+                        'day'              => $s['day'],
+                        'time_block'       => $s['time_block'],
+                    ]);
+                }
             }
         }
-    }
+
+        return $classSession;
+    });
 
     return redirect()->route('admin.class-sessions.show', $classSession->id)
         ->with('success', 'Class session created.');

@@ -1328,3 +1328,11 @@
 .textarea:focus, .textarea:focus-within {
     outline: none;
 }
+
+/* ════════════════════════════════════════════════════════════════
+   Alpine.js x-cloak — hides elements until Alpine has initialized.
+   Without this, elements with x-show="someFalsyValue" flash briefly
+   on page load before Alpine evaluates them.
+   Usage: <span x-show="submitting" x-cloak>Loading…</span>
+   ════════════════════════════════════════════════════════════════ */
+[x-cloak] { display: none !important; }

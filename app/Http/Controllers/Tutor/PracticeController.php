@@ -4,9 +4,9 @@ namespace App\Http\Controllers\Tutor;
 
 use App\Http\Controllers\Controller;
 use App\Models\Practice;
-use App\Models\ClassRoom; // sesuaikan model kelas yang ada
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 class PracticeController extends Controller
 {
@@ -57,36 +57,42 @@ class PracticeController extends Controller
             'student_ids.*'      => 'exists:students,id',
         ]);
 
+        // Atomicity fix: previously Practice::create() + $practice->students()->attach()
+        // were 2 separate writes. If attach failed (e.g. invalid student_id), the
+        // Practice record was orphaned with no students assigned.
         $tutor = \App\Models\Tutor::where('user_id', Auth::id())->firstOrFail();
-        $practice = Practice::create([
-            'tutor_id'           => Auth::id(),
-            'title'              => $validated['title'],
-            'description'        => $validated['description'] ?? null,
-            'external_link'      => $validated['external_link'] ?? null,
-            'estimated_duration' => $validated['estimated_duration'] ?? null,
-            'deadline'           => $validated['deadline'] ?? null,
-            'status'             => $validated['status'],
-        ]);
 
-        $studentIds = collect($validated['student_ids'] ?? []);
+        DB::transaction(function () use ($validated, $tutor) {
+            $practice = Practice::create([
+                'tutor_id'           => Auth::id(),
+                'title'              => $validated['title'],
+                'description'        => $validated['description'] ?? null,
+                'external_link'      => $validated['external_link'] ?? null,
+                'estimated_duration' => $validated['estimated_duration'] ?? null,
+                'deadline'           => $validated['deadline'] ?? null,
+                'status'             => $validated['status'],
+            ]);
 
-        // Auto-assign semua student aktif untuk semi-private & group
-        if (!empty($validated['class_ids'])) {
-            $sessions = \App\Models\ClassSession::with(['enrollments' => fn($q) => $q->where('status', 'active')])
-                ->whereIn('id', $validated['class_ids'])
-                ->whereIn('class_type', ['semi-private', 'group'])
-                ->get();
+            $studentIds = collect($validated['student_ids'] ?? []);
 
-            foreach ($sessions as $session) {
-                $sessionStudentIds = $session->enrollments->pluck('student_id');
-                $studentIds = $studentIds->merge($sessionStudentIds);
+            // Auto-assign semua student aktif untuk semi-private & group
+            if (!empty($validated['class_ids'])) {
+                $sessions = \App\Models\ClassSession::with(['enrollments' => fn($q) => $q->where('status', 'active')])
+                    ->whereIn('id', $validated['class_ids'])
+                    ->whereIn('class_type', ['semi-private', 'group'])
+                    ->get();
+
+                foreach ($sessions as $session) {
+                    $sessionStudentIds = $session->enrollments->pluck('student_id');
+                    $studentIds = $studentIds->merge($sessionStudentIds);
+                }
             }
-        }
 
-        $uniqueIds = $studentIds->unique()->values()->toArray();
-        if (!empty($uniqueIds)) {
-            $practice->students()->attach($uniqueIds);
-        }
+            $uniqueIds = $studentIds->unique()->values()->toArray();
+            if (!empty($uniqueIds)) {
+                $practice->students()->attach($uniqueIds);
+            }
+        });
 
         return redirect()->route('tutor.practice.index')
                          ->with('success', 'Practice berhasil disimpan.');

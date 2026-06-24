@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\TrackerColumn;
 use App\Models\TrackerEntry;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TrackerController extends Controller
 {
@@ -72,15 +73,26 @@ class TrackerController extends Controller
             'tracker_column_id' => 'required|exists:tracker_columns,id',
         ]);
 
-        $entry = TrackerEntry::where('student_id', $request->student_id)
+        // Race-condition fix: previously a read-modify-write (`$entry->is_done`
+        // → `update(['is_done' => !$entry->is_done])`). Two concurrent toggles
+        // could both read `is_done=false` and both write `true`, resulting in
+        // a net single toggle instead of two (state ends up `true` instead of
+        // back to `false`).
+        //
+        // Fix: use a single atomic UPDATE with `NOT is_done` so the toggle is
+        // applied server-side, immune to concurrent reads.
+        $updated = TrackerEntry::where('student_id', $request->student_id)
             ->where('tracker_column_id', $request->tracker_column_id)
-            ->first();
+            ->update(['is_done' => DB::raw('NOT is_done'), 'updated_at' => now()]);
 
-        if (!$entry) {
-    return response()->json(['message' => 'Entry not found.'], 404);
-}
+        if ($updated === 0) {
+            return response()->json(['message' => 'Entry not found.'], 404);
+        }
 
-$entry->update(['is_done' => !$entry->is_done]);
-return response()->json(['is_done' => $entry->fresh()->is_done]);
+        $newValue = (bool) TrackerEntry::where('student_id', $request->student_id)
+            ->where('tracker_column_id', $request->tracker_column_id)
+            ->value('is_done');
+
+        return response()->json(['is_done' => $newValue]);
     }
 }

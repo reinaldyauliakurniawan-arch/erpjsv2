@@ -9,6 +9,7 @@ use App\Models\Program;
 use App\Models\Tutor;
 use App\Http\Requests\Admin\StoreStudentRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class StudentController extends Controller
@@ -154,34 +155,42 @@ public function data(Request $request)
 
     public function destroy(Student $student)
     {
-        $hasActiveEnrollment = $student->enrollments()
-            ->whereIn('status', ['active', 'waitlist'])
-            ->exists();
+        // Atomicity fix: previously 5 separate writes (cascade-delete each
+        // enrollment → delete student → delete user). If user->delete() failed
+        // (e.g. FK on attendance_tutor.marked_by), the student and all their
+        // enrollments were gone but the user record remained as a zombie.
+        // Now wrapped in a transaction so all-or-nothing semantics hold.
+        return DB::transaction(function () use ($student) {
+            $hasActiveEnrollment = $student->enrollments()
+                ->whereIn('status', ['active', 'waitlist'])
+                ->lockForUpdate()
+                ->exists();
 
-        if ($hasActiveEnrollment) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Student tidak bisa dihapus karena masih memiliki enrollment aktif. Expire atau graduate enrollment terlebih dahulu.',
-            ], 422);
-        }
+            if ($hasActiveEnrollment) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student tidak bisa dihapus karena masih memiliki enrollment aktif. Expire atau graduate enrollment terlebih dahulu.',
+                ], 422);
+            }
 
-        $hasJournal = \App\Models\Journal::whereIn(
-            'reference',
-            $student->enrollments()->pluck('id')->map(fn($id) => 'PAYMENT-ENROLL-' . $id)
-        )->exists();
+            $hasJournal = \App\Models\Journal::whereIn(
+                'reference',
+                $student->enrollments()->pluck('id')->map(fn($id) => 'PAYMENT-ENROLL-' . $id)
+            )->exists();
 
-        if ($hasJournal) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Student tidak bisa dihapus karena memiliki riwayat jurnal pembayaran.',
-            ], 422);
-        }
+            if ($hasJournal) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Student tidak bisa dihapus karena memiliki riwayat jurnal pembayaran.',
+                ], 422);
+            }
 
-        $user = $student->user;
-        $student->enrollments()->each(fn($e) => $e->delete());
-        $student->delete();
-        $user->delete();
+            $user = $student->user;
+            $student->enrollments()->each(fn($e) => $e->delete());
+            $student->delete();
+            $user->delete();
 
-        return response()->json(['success' => true]);
+            return response()->json(['success' => true]);
+        });
     }
 }

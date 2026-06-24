@@ -135,7 +135,7 @@
                     formatter: function(cell) {
                         var val = cell.getValue();
                         var cls = payColors[val] || '';
-                        return '<span class="badge badge-soft' + cls + '">' + val + '</span>';
+                        return '<span class="badge badge-soft ' + cls + '">' + val + '</span>';
                     },
                 },
                 {
@@ -146,7 +146,7 @@
                     formatter: function(cell) {
                         var val = cell.getValue();
                         var cls = statusColors[val] || '';
-                        return '<span class="badge badge-soft' + cls + '">' + val + '</span>';
+                        return '<span class="badge badge-soft ' + cls + '">' + val + '</span>';
                     },
                 },
                 {

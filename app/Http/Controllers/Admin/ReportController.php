@@ -125,37 +125,51 @@ class ReportController extends Controller
         ->orderBy('accounts.code')
         ->get();
 
+    // N+1 fix: previously ran 2 queries per account (opening + items) inside
+    // ->map(). With 40 accounts that's 80 queries. Now we batch:
+    //   1. One query for ALL opening balances (grouped by account_id)
+    //   2. One query for ALL in-period items (joined with account_id)
+    // Then merge in PHP.
+    $accountIds = $accounts->pluck('id')->all();
+
+    $openingBalances = DB::table('journal_items')
+        ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+        ->whereIn('journal_items.account_id', $accountIds)
+        ->whereDate('journals.date', '<', $from)
+        ->selectRaw('journal_items.account_id, SUM(journal_items.debit) as total_debit, SUM(journal_items.credit) as total_credit')
+        ->groupBy('journal_items.account_id')
+        ->get()
+        ->keyBy('account_id');
+
+    $allItems = DB::table('journal_items')
+        ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+        ->whereIn('journal_items.account_id', $accountIds)
+        ->whereBetween('journals.date', [$from, $to])
+        ->select(
+            'journal_items.account_id',
+            'journals.date',
+            'journals.description',
+            'journals.reference',
+            'journal_items.debit',
+            'journal_items.credit'
+        )
+        ->orderBy('journals.date')
+        ->orderBy('journals.id')
+        ->get()
+        ->groupBy('account_id');
+
     // Untuk setiap akun, ambil semua transaksinya + hitung saldo berjalan
-    $ledger = $accounts->map(function ($account) use ($from, $to) {
+    $ledger = $accounts->map(function ($account) use ($openingBalances, $allItems) {
         $normalDebet = in_array($account->type, ['Asset', 'Expense']);
 
-        // Saldo awal: semua transaksi SEBELUM $from
-        $opening = DB::table('journal_items')
-            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-            ->where('journal_items.account_id', $account->id)
-            ->whereDate('journals.date', '<', $from)
-            ->selectRaw('SUM(debit) as total_debit, SUM(credit) as total_credit')
-            ->first();
+        $opening = $openingBalances->get($account->id);
 
         $openingBalance = $normalDebet
-            ? ((float)($opening->total_debit ?? 0) - (float)($opening->total_credit ?? 0))
-            : ((float)($opening->total_credit ?? 0) - (float)($opening->total_debit ?? 0));
+            ? ((float)($opening?->total_debit ?? 0) - (float)($opening?->total_credit ?? 0))
+            : ((float)($opening?->total_credit ?? 0) - (float)($opening?->total_debit ?? 0));
 
-        // Transaksi dalam periode
-        $items = DB::table('journal_items')
-            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-            ->where('journal_items.account_id', $account->id)
-            ->whereBetween('journals.date', [$from, $to])
-            ->select(
-                'journals.date',
-                'journals.description',
-                'journals.reference',
-                'journal_items.debit',
-                'journal_items.credit'
-            )
-            ->orderBy('journals.date')
-            ->orderBy('journals.id')
-            ->get();
+        // Transaksi dalam periode (sudah di-batch di atas)
+        $items = $allItems->get($account->id, collect());
 
         // Hitung saldo berjalan
         $runningBalance = $openingBalance;

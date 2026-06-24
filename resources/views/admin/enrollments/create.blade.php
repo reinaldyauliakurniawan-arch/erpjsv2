@@ -560,7 +560,7 @@
                                 :class="{ 'loading': submitting }"
                                 class="w-full py-md bg-secondary-container text-on-secondary-container rounded-lg font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
                                 <span x-show="!submitting">Simpan Enrollment</span>
-                                <span x-show="submitting" class="hidden">Menyimpan…</span>
+                                <span x-show="submitting" x-cloak>Menyimpan…</span>
                             </button>
                         </div>
                         <div class="absolute -right-6 -bottom-6 opacity-10">

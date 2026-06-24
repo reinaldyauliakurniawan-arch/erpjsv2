@@ -12,6 +12,7 @@ use App\Services\AttendanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 class AttendanceController extends Controller
 {
@@ -75,10 +76,10 @@ class AttendanceController extends Controller
         }
 
         $rows = $query->orderByDesc('date')->get()->map(function ($att) use ($tutor) {
-            $pivot = DB::table('attendance_tutor')
-                ->where('attendance_id', $att->id)
-                ->where('tutor_id', $tutor->id)
-                ->first();
+            // N+1 fix: previously ran a separate DB query per attendance row
+            // to fetch the pivot. The `tutors` relation is already eager-loaded
+            // (line 59), so we can read the pivot from the loaded collection.
+            $pivot = $att->tutors->firstWhere('id', $tutor->id)?->pivot;
 
             $mode = 'own';
             if ($pivot?->is_replacement) $mode = 'replacement';
@@ -244,6 +245,16 @@ class AttendanceController extends Controller
         } catch (\App\Exceptions\DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
+            // Silent-fail fix: previously the exception was swallowed with a
+            // generic message and no logging. Production bugs were impossible
+            // to diagnose. Now we log the full exception + input for triage.
+            Log::error('tutor.attendance.store failed', [
+                'tutor_id'   => $tutor->id ?? null,
+                'input'      => $request->except(['students']),
+                'exception'  => $e::class,
+                'message'    => $e->getMessage(),
+                'trace'      => $e->getTraceAsString(),
+            ]);
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan. Coba lagi.'], 500);
         }
     }
@@ -260,6 +271,14 @@ class AttendanceController extends Controller
         } catch (\App\Exceptions\DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
+            // Silent-fail fix: log the exception so production bugs are diagnosable.
+            Log::error('tutor.attendance.destroy failed', [
+                'tutor_id'     => $tutor->id,
+                'attendance_id'=> $id,
+                'exception'    => $e::class,
+                'message'      => $e->getMessage(),
+                'trace'        => $e->getTraceAsString(),
+            ]);
             return response()->json(['success' => false, 'message' => 'Terjadi kesalahan.'], 500);
         }
     }

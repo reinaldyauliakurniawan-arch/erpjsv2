@@ -236,32 +236,63 @@ class FinanceController extends Controller
             'payable_amount' => 'required|numeric|min:1',
         ]);
 
-        $row = DB::table('attendance_tutor')->where('id', $attendanceTutorId)->lockForUpdate()->first();
-
-        if (!$row || !$row->pending_rate) {
-            return back()->with('error', 'Rate sudah di-assign sebelumnya.');
-        }
-
+        // Race-condition + IdempotencyException fix:
+        // Previously `lockForUpdate()` ran OUTSIDE the transaction, so the
+        // lock was released immediately. Two concurrent assignRate requests
+        // could both read `pending_rate=true`, both pass the guard, and
+        // both call createJournal with the same reference. The second
+        // would throw an unhandled IdempotencyException → 500 error.
+        //
+        // Fix: lock the row INSIDE the transaction, re-check pending_rate,
+        // and catch IdempotencyException (it means another concurrent
+        // request already assigned the rate — treat as success/idempotent).
         $reference = 'RATE-AT-' . $attendanceTutorId;
 
-        DB::transaction(function () use ($attendanceTutorId, $reference, $request) {
-            $journal = $this->accountingService->createJournal(
-                now()->toDateString(),
-                'Tutor fee assigned for attendance_tutor #' . $attendanceTutorId,
-                $reference,
-                [
-                    ['account_code' => AccountCode::EXPENSE_TUTOR_FEE->value, 'debit' => $request->payable_amount, 'credit' => 0],
-                    ['account_code' => AccountCode::TUTOR_PAYABLE->value,     'debit' => 0, 'credit' => $request->payable_amount],
-                ],
-                'tutor_accrual'
-            );
+        try {
+            DB::transaction(function () use ($attendanceTutorId, $reference, $request) {
+                $row = DB::table('attendance_tutor')
+                    ->where('id', $attendanceTutorId)
+                    ->lockForUpdate()
+                    ->first();
 
-            DB::table('attendance_tutor')->where('id', $attendanceTutorId)->update([
-                'payable_amount' => $request->payable_amount,
-                'pending_rate'   => false,
-                'journal_id'     => $journal->id,
-            ]);
-        });
+                if (!$row || !$row->pending_rate) {
+                    throw new \App\Exceptions\DomainException('Rate sudah di-assign sebelumnya.');
+                }
+
+                $journal = $this->accountingService->createJournal(
+                    now()->toDateString(),
+                    'Tutor fee assigned for attendance_tutor #' . $attendanceTutorId,
+                    $reference,
+                    [
+                        ['account_code' => AccountCode::EXPENSE_TUTOR_FEE->value, 'debit' => $request->payable_amount, 'credit' => 0],
+                        ['account_code' => AccountCode::TUTOR_PAYABLE->value,     'debit' => 0, 'credit' => $request->payable_amount],
+                    ],
+                    'tutor_accrual'
+                );
+
+                DB::table('attendance_tutor')->where('id', $attendanceTutorId)->update([
+                    'payable_amount' => $request->payable_amount,
+                    'pending_rate'   => false,
+                    'journal_id'     => $journal->id,
+                ]);
+            });
+        } catch (\App\Exceptions\IdempotencyException $e) {
+            // Another concurrent request already created the journal.
+            // The pending_rate flag was either already flipped by that
+            // request, or this request should flip it now (the journal
+            // exists, so the rate is effectively assigned).
+            DB::table('attendance_tutor')
+                ->where('id', $attendanceTutorId)
+                ->where('pending_rate', true)
+                ->update([
+                    'payable_amount' => $request->payable_amount,
+                    'pending_rate'   => false,
+                    'journal_id'     => \App\Models\Journal::where('reference', $reference)->value('id'),
+                ]);
+            // Fall through to success — the rate is assigned.
+        } catch (\App\Exceptions\DomainException $e) {
+            return back()->with('error', $e->getMessage());
+        }
 
         return back()->with('success', 'Rate berhasil di-assign.');
     }

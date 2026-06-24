@@ -80,7 +80,7 @@ Route::middleware('auth')->group(function () {
         Route::post('room-bookings', [App\Http\Controllers\Admin\RoomBookingController::class, 'store'])->name('room-bookings.store');
         Route::delete('room-bookings/{id}', [App\Http\Controllers\Admin\RoomBookingController::class, 'destroy'])->name('room-bookings.destroy');
 
-        Route::post('/enrollments/{enrollmentId}/installments/{installmentId}/paid', [EnrollmentController::class, 'markInstallmentPaid'])->name('enrollments.installments.paid');
+        Route::post('/enrollments/{enrollmentId}/installments/{installmentId}/paid', [EnrollmentController::class, 'markInstallmentPaid'])->name('enrollments.installments.paid')->middleware('idempotent');
 
         Route::post('/class-sessions/{id}/assign', [ClassSessionController::class, 'assignEnrollment'])->name('class-sessions.assign');
         Route::post('/class-sessions/{id}/remove', [ClassSessionController::class, 'removeEnrollment'])->name('class-sessions.remove');
@@ -134,7 +134,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('accounts', AccountController::class);
         Route::get('/journals/data', [JournalController::class, 'data'])->name('journals.data');
         Route::resource('journals', JournalController::class)->only(['index', 'create', 'store', 'show']);
-        Route::post('/journals/{journal}/reverse', [JournalController::class, 'reverse'])->name('journals.reverse');
+        Route::post('/journals/{journal}/reverse', [JournalController::class, 'reverse'])->name('journals.reverse')->middleware('idempotent');
 
 
         Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');
@@ -175,9 +175,9 @@ Route::middleware('auth')->group(function () {
         Route::get('/imports', [ImportController::class, 'financeImports'])->name('imports');
 
         Route::get('/payroll', [PayrollController::class, 'index'])->name('payroll.index');
-        Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store');
-        Route::post('/payroll/{id}/approve', [PayrollController::class, 'approve'])->name('payroll.approve');
-        Route::post('/payroll/{id}/reverse', [PayrollController::class, 'reverse'])->name('payroll.reverse');
+        Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store')->middleware('idempotent');
+        Route::post('/payroll/{id}/approve', [PayrollController::class, 'approve'])->name('payroll.approve')->middleware('idempotent');
+        Route::post('/payroll/{id}/reverse', [PayrollController::class, 'reverse'])->name('payroll.reverse')->middleware('idempotent');
 
         // RAB
         Route::get('/rab', [RabController::class, 'index'])->name('rab.index');

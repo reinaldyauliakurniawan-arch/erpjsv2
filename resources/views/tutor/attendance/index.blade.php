@@ -1,7 +1,7 @@
 <x-app-layout>
 <x-slot name="title">Absensi</x-slot>
 
-<div class="p-lg space-y-md" x-data="attendancePage()" x-init="init()">
+<div class="p-lg space-y-md" x-data="attendancePage()">
 
     <div class="flex items-center justify-between">
         <div>
@@ -312,9 +312,10 @@
 
                 {{-- Daftar Siswa --}}
                 <div>
-                    <span class="badge badge-soft badge-success text-body-sm"
+                    <span class="badge badge-soft badge-success text-body-sm">
                         Kehadiran Siswa (<span x-text="modal.students.length"></span> siswa)
-                    </p>
+                    </span>
+                </div>
                     <div class="app-table-wrapper">
 <table class="table table-sm w-full">
                         <thead>

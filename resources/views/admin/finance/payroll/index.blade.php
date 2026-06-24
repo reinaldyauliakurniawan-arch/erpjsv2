@@ -79,29 +79,27 @@
                         @if($run->status === 'pending')
                         <form method="POST" action="{{ route('finance.payroll.approve', $run->id) }}"
                             x-data="{ submitting: false }"
-                            @submit="submitting = true"
-                            onsubmit="return confirm('Approve payroll {{ \Carbon\Carbon::parse($run->month)->isoFormat('MMMM YYYY') }}? Jurnal akan digenerate otomatis.')">
+                            @submit="if (confirm('Approve payroll {{ \Carbon\Carbon::parse($run->month)->isoFormat('MMMM YYYY') }}? Jurnal akan digenerate otomatis.')) { submitting = true } else { $event.preventDefault() }">
                             @csrf
                             <button type="submit" class="btn btn-sm bg-primary-container text-on-primary border-none hover:opacity-90"
                                 :disabled="submitting"
                                 :class="{ 'loading': submitting }">
                                 <span class="material-symbols-outlined text-base">check_circle</span>
                                 <span x-show="!submitting">Approve</span>
-                                <span x-show="submitting" class="hidden">Memproses…</span>
+                                <span x-show="submitting" x-cloak>Memproses…</span>
                             </button>
                         </form>
                         @elseif($run->status === 'approved')
                         <form method="POST" action="{{ route('finance.payroll.reverse', $run->id) }}"
                             x-data="{ submitting: false }"
-                            @submit="submitting = true"
-                            onsubmit="return confirm('Reverse payroll {{ \Carbon\Carbon::parse($run->month)->isoFormat('MMMM YYYY') }}? Jurnal pembalik akan dibuat dan semua attendance tutor akan ditandai unpaid kembali.')">
+                            @submit="if (confirm('Reverse payroll {{ \Carbon\Carbon::parse($run->month)->isoFormat('MMMM YYYY') }}? Jurnal pembalik akan dibuat dan semua attendance tutor akan ditandai unpaid kembali.')) { submitting = true } else { $event.preventDefault() }">
                             @csrf
                             <button type="submit" class="btn btn-sm btn-ghost text-error border border-error/30 hover:bg-error/10"
                                 :disabled="submitting"
                                 :class="{ 'loading': submitting }">
                                 <span class="material-symbols-outlined text-base">undo</span>
                                 <span x-show="!submitting">Reverse</span>
-                                <span x-show="submitting" class="hidden">Memproses…</span>
+                                <span x-show="submitting" x-cloak>Memproses…</span>
                             </button>
                         </form>
                         @else
@@ -153,7 +151,7 @@
                     :class="{ 'loading': submitting }">
                     <span class="material-symbols-outlined text-base">add</span>
                     <span x-show="!submitting">Buat Run</span>
-                    <span x-show="submitting" class="hidden">Memproses…</span>
+                    <span x-show="submitting" x-cloak>Memproses…</span>
                 </button>
             </div>
         </form>

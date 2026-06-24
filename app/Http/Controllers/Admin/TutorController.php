@@ -8,14 +8,18 @@ use App\Models\User;
 use App\Models\Program;
 use App\Http\Requests\Admin\StoreTutorRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class TutorController extends Controller
 {
     public function index()
     {
-        $tutors = Tutor::with('user')->get();
-        $activeTutorCount = $tutors->where('status', 'active')->count();
+        // Pagination fix: previously ->get() loaded every tutor into memory.
+        // With active + inactive tutors over years of operation, this grows
+        // unbounded. Paginated to 20 per page.
+        $tutors = Tutor::with('user')->latest()->paginate(20);
+        $activeTutorCount = Tutor::where('status', 'active')->count();
         return view('admin.tutors.index', compact('tutors', 'activeTutorCount'));
     }
 
@@ -29,16 +33,22 @@ class TutorController extends Controller
     public function store(StoreTutorRequest $request)
     {
         $validated = $request->validated();
-        $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role'     => 'tutor',
-        ]);
-        Tutor::create([
-            'user_id' => $user->id,
-            'persona' => $validated['persona'],
-        ]);
+
+        // Atomicity fix: User + Tutor creation must be atomic. If Tutor::create
+        // fails, the User would be orphaned with role=tutor but no tutor record.
+        DB::transaction(function () use ($validated) {
+            $user = User::create([
+                'name'     => $validated['name'],
+                'email'    => $validated['email'],
+                'password' => Hash::make($validated['password']),
+                'role'     => 'tutor',
+            ]);
+            Tutor::create([
+                'user_id' => $user->id,
+                'persona' => $validated['persona'],
+            ]);
+        });
+
         return redirect()->route('admin.tutors.index')->with('success', 'Tutor created successfully.');
     }
 
@@ -91,20 +101,26 @@ class TutorController extends Controller
             'availability.*.status'     => 'sometimes|in:available,not_available,occupied',
         ]);
 
-        $incomingBlocks = collect($request->availability)->pluck('time_block')->unique()->values()->toArray();
+        // Atomicity fix: previously delete-then-recreate was 2 separate
+        // writes. If any create failed, the tutor's availability was wiped
+        // but only partially recreated — leaving the tutor with no slots.
+        DB::transaction(function () use ($request, $tutorId) {
+            $incomingBlocks = collect($request->availability)->pluck('time_block')->unique()->values()->toArray();
 
-        TutorAvailability::where('tutor_id', $tutorId)
-            ->whereIn('time_block', $incomingBlocks)
-            ->delete();
+            TutorAvailability::where('tutor_id', $tutorId)
+                ->whereIn('time_block', $incomingBlocks)
+                ->delete();
 
-        foreach ($request->availability as $slot) {
-            TutorAvailability::create([
-                'tutor_id'   => $tutorId,
-                'day'        => $slot['day'],
-                'time_block' => $slot['time_block'],
-                'status'     => $slot['status'] ?? 'available',
-            ]);
-        }
+            foreach ($request->availability as $slot) {
+                TutorAvailability::create([
+                    'tutor_id'   => $tutorId,
+                    'day'        => $slot['day'],
+                    'time_block' => $slot['time_block'],
+                    'status'     => $slot['status'] ?? 'available',
+                ]);
+            }
+        });
+
         return back()->with('success', 'Availability updated.');
     }
 
@@ -132,27 +148,32 @@ class TutorController extends Controller
 
     public function destroy($id)
     {
-        $tutor = Tutor::findOrFail($id);
+        // Atomicity fix: previously 6 separate writes (detach x2, delete x3,
+        // delete user). If $user->delete() failed, the tutor and all their
+        // data was gone but the user record remained as a zombie with role=tutor.
+        return DB::transaction(function () use ($id) {
+            $tutor = Tutor::lockForUpdate()->findOrFail($id);
 
-        $hasUnpaidAttendance = \Illuminate\Support\Facades\DB::table('attendance_tutor')
-            ->where('tutor_id', $tutor->id)
-            ->whereNull('paid_at')
-            ->where('pending_rate', false)
-            ->where('payable_amount', '>', 0)
-            ->exists();
+            $hasUnpaidAttendance = DB::table('attendance_tutor')
+                ->where('tutor_id', $tutor->id)
+                ->whereNull('paid_at')
+                ->where('pending_rate', false)
+                ->where('payable_amount', '>', 0)
+                ->exists();
 
-        if ($hasUnpaidAttendance) {
-            return redirect()->route('admin.tutors.index')
-                ->with('error', 'Tutor tidak bisa dihapus karena masih ada hutang fee yang belum dibayar. Selesaikan payroll terlebih dahulu.');
-        }
+            if ($hasUnpaidAttendance) {
+                return redirect()->route('admin.tutors.index')
+                    ->with('error', 'Tutor tidak bisa dihapus karena masih ada hutang fee yang belum dibayar. Selesaikan payroll terlebih dahulu.');
+            }
 
-        $user  = $tutor->user;
-        $tutor->enrollments()->detach();
-        $tutor->classSessions()->detach();
-        $tutor->availability()->delete();
-        $tutor->rates()->delete();
-        $tutor->delete();
-        $user->delete();
-        return redirect()->route('admin.tutors.index')->with('success', 'Tutor berhasil dihapus.');
+            $user  = $tutor->user;
+            $tutor->enrollments()->detach();
+            $tutor->classSessions()->detach();
+            $tutor->availability()->delete();
+            $tutor->rates()->delete();
+            $tutor->delete();
+            $user->delete();
+            return redirect()->route('admin.tutors.index')->with('success', 'Tutor berhasil dihapus.');
+        });
     }
 }

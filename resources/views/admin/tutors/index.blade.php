@@ -54,7 +54,7 @@
                                 <td class="text-on-surface-variant">{{ $tutor->user->email }}</td>
                                 <td style="max-width:140px">
                                     <span class="badge badge-soft" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;cursor:default"
-                                        onmouseenter="showTooltip(event,'{{ $tutor->persona }}')"
+                                        onmouseenter="showTooltip(event, @json($tutor->persona))"
                                         onmouseleave="hideTooltip()">{{ $tutor->persona }}</span>
                                 </td>
                                 <td>
@@ -77,6 +77,14 @@
                         </tbody>
                     </table>
 </div>
+
+                {{-- Pagination --}}
+                @if($tutors->hasPages())
+                <div class="flex justify-center mt-md">
+                    {{ $tutors->links() }}
+                </div>
+                @endif
+
                 </div>
             @endif
         </div>

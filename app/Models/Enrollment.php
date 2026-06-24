@@ -4,17 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 class Enrollment extends Model
 {
     use HasFactory;
     protected static function booted()
     {
+        // Atomicity fix: previously the cascade deletes (tutors/schedules/installments)
+        // ran as 3 separate statements with no transaction. If any failed, the
+        // enrollment would NOT be deleted (the parent delete aborts), but the
+        // already-detached/deleted children were gone — leaving orphans.
+        // Wrap the cascade in a transaction so all-or-nothing semantics hold.
+        // Callers of $enrollment->delete() should also wrap in DB::transaction
+        // for full atomicity across the cascade + their own writes.
         static::deleting(function ($enrollment) {
-            $enrollment->tutors()->detach();
-            $enrollment->schedules()->delete();
-            $enrollment->installments()->delete();
-            // Jurnal tidak dihapus — reversal dilakukan via flow refund yang proper
+            DB::transaction(function () use ($enrollment) {
+                $enrollment->tutors()->detach();
+                $enrollment->schedules()->delete();
+                $enrollment->installments()->delete();
+                // Jurnal tidak dihapus — reversal dilakukan via flow refund yang proper
+            });
         });
     }
     protected $fillable = [

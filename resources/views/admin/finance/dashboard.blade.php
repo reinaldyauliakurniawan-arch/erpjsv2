@@ -175,7 +175,7 @@
 
             <div class="app-card space-y-md"
                 x-data="{ open: null }"
-                x-init="{{ $errors->any() ? 'open = ' . (old('attendance_tutor_id') ?? 'null') : '' }}">
+                x-init="{{ $errors->any() ? 'open = ' . (old('rate_id') ?? 'null') : '' }}">
 
                 <div class="flex items-center justify-between">
                     <h4 class="text-headline-md font-semibold text-on-surface">Pending Tutor Rates</h4>
@@ -207,6 +207,9 @@
                                     <form method="POST" action="{{ route('finance.rate.assign', $rate->id) }}"
                                         class="flex gap-sm items-end mt-xs">
                                         @csrf
+                                        {{-- Hidden field so old('rate_id') is populated on validation error,
+                                            allowing the x-init above to re-open this card after redirect. --}}
+                                        <input type="hidden" name="rate_id" value="{{ $rate->id }}">
                                         <div class="fieldset flex-1">
                                             <label class="fieldset-legend text-on-surface">Payable Amount (Rp)</label>
                                             <input type="number" name="payable_amount" class="input w-full" placeholder="0" min="1" required />

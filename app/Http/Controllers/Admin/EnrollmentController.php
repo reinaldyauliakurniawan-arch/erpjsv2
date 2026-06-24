@@ -104,7 +104,14 @@ class EnrollmentController extends Controller
     public function searchStudents(Request $request)
 {
     $q = $request->input('q', '');
-    $students = \App\Models\Student::with('user')
+
+    // N+1 fix: previously the enrollments query ran inside ->map() per
+    // student (1 query × 10 students = 10 extra queries). Now we eager-load
+    // the latest 3 enrollments + program in a single relation query.
+    $students = \App\Models\Student::with([
+        'user',
+        'enrollments' => fn($query) => $query->with('program')->latest()->take(3),
+    ])
         ->whereHas('user', fn($query) => $query->where('name', 'like', "%{$q}%")
             ->orWhere('email', 'like', "%{$q}%"))
         ->limit(10)
@@ -114,7 +121,7 @@ class EnrollmentController extends Controller
             'name'  => $s->user->name,
             'email' => $s->user->email,
             'phone' => $s->user->phone,
-            'enrollments' => $s->enrollments()->with('program')->latest()->take(3)->get()->map(fn($e) => [
+            'enrollments' => $s->enrollments->map(fn($e) => [
                 'program' => $e->program->name,
                 'status'  => $e->status,
             ]),
@@ -140,39 +147,54 @@ public function eligibleSessions(Request $request)
         return response()->json([]);
     }
 
+    // N+1 fix: previously 2 queries per session inside ->map() (one for
+    // active count, one for finished count). With 50 sessions that's 100
+    // extra queries. Now we use withCount + a single subquery for
+    // finished meetings, reducing to 1 query for all sessions.
     $sessions = \App\Models\ClassSession::with(['schedules.classroom', 'tutors.user'])
+        ->withCount([
+            'enrollments as active_count' => fn($q) => $q->whereIn('status', ['active', 'waitlist']),
+        ])
         ->where('program_id', $programId)
         ->where('status', 'active')
         ->whereHas('schedules', fn($q) => $q->where('day', $day)->where('time_block', $timeBlock))
-        ->get()
-        ->map(function ($session) use ($day, $timeBlock) {
-            $activeCount = $session->enrollments()->whereIn('status', ['active', 'waitlist'])->count();
-            $finished    = \App\Models\Attendance::where('class_session_id', $session->id)->distinct('date')->count('date');
-            $schedule    = $session->schedules->first();
-            $capacity    = $schedule?->classroom?->capacity ?? 999;
+        ->get();
 
-            if ($activeCount >= $capacity) return null;
-            if ($finished > 8) return null;
+    // Single query for all sessions' finished-meeting counts
+    $sessionIds   = $sessions->pluck('id')->all();
+    $finishedMap  = \App\Models\Attendance::whereIn('class_session_id', $sessionIds)
+        ->selectRaw('class_session_id, COUNT(DISTINCT date) as finished')
+        ->groupBy('class_session_id')
+        ->pluck('finished', 'class_session_id');
 
-            return [
-                'id'                => $session->id,
-                'name'              => $session->name,
-                'day'               => $day,
-                'time_block'        => $timeBlock,
-                'classroom'         => $schedule?->classroom?->name,
-                'capacity'          => $schedule?->classroom?->capacity,
-                'enrolled_count'    => $activeCount,
-                'finished_meetings' => $finished,
-                'tutors'            => $session->tutors->map(fn($t) => [
-                    'id'   => $t->id,
-                    'name' => $t->user->name,
-                ]),
-            ];
-        })
-        ->filter()
-        ->values();
+    $result = $sessions->map(function ($session) use ($day, $timeBlock, $finishedMap) {
+        $activeCount = $session->active_count;
+        $finished    = $finishedMap->get($session->id, 0);
+        $schedule    = $session->schedules->first();
+        $capacity    = $schedule?->classroom?->capacity ?? 999;
 
-    return response()->json($sessions);
+        if ($activeCount >= $capacity) return null;
+        if ($finished > 8) return null;
+
+        return [
+            'id'                => $session->id,
+            'name'              => $session->name,
+            'day'               => $day,
+            'time_block'        => $timeBlock,
+            'classroom'         => $schedule?->classroom?->name,
+            'capacity'          => $schedule?->classroom?->capacity,
+            'enrolled_count'    => $activeCount,
+            'finished_meetings' => $finished,
+            'tutors'            => $session->tutors->map(fn($t) => [
+                'id'   => $t->id,
+                'name' => $t->user->name,
+            ]),
+        ];
+    })
+    ->filter()
+    ->values();
+
+    return response()->json($result);
 }
 
 public function availableTutors(Request $request)
@@ -219,6 +241,19 @@ public function availableTutors(Request $request)
 
     public function markInstallmentPaid(Request $request, $enrollmentId, $installmentId)
     {
+        // Race-condition fix: previously `lockForUpdate()` was called OUTSIDE
+        // the DB transaction, so the row lock was released immediately. Also,
+        // only the current installment was (supposedly) locked; sibling
+        // installments and the enrollment row were not. Two concurrent
+        // requests paying different installments of the same enrollment
+        // could both count "1 unpaid" and both write `payment_status=partial`,
+        // corrupting the final `payment_status` (should be `full`).
+        //
+        // Fix: lock the entire enrollment row + all its installments inside
+        // a single transaction. Re-check `paid_at` inside the lock to defend
+        // against a concurrent request that already paid this installment.
+        $enrollment = Enrollment::lockForUpdate()->findOrFail($enrollmentId);
+
         $installment = Installment::where('id', $installmentId)
             ->where('enrollment_id', $enrollmentId)
             ->lockForUpdate()
@@ -228,9 +263,16 @@ public function availableTutors(Request $request)
             return back()->withErrors(['error' => 'Installment sudah dibayar sebelumnya.']);
         }
 
-        $enrollment = $installment->enrollment;
+        // Lock all sibling installments so the unpaid-count below is consistent
+        Installment::where('enrollment_id', $enrollmentId)->lockForUpdate()->get();
 
         DB::transaction(function () use ($installment, $enrollment, $enrollmentId, $installmentId) {
+            // Re-check inside the transaction — a concurrent request may have
+            // paid this installment between the outer check and the lock acquisition.
+            if ($installment->fresh()->paid_at) {
+                throw new \App\Exceptions\DomainException('Installment sudah dibayar sebelumnya.');
+            }
+
             $this->accountingService->createJournal(
                 now()->toDateString(),
                 "Installment Payment - Enrollment #{$enrollmentId}",
@@ -259,51 +301,58 @@ public function availableTutors(Request $request)
 
     public function expire($id)
     {
-        $enrollment = Enrollment::with(['student.user', 'program'])->findOrFail($id);
+        // Atomicity fix: previously, journal creation, enrollment update, and
+        // room booking deletion were 3 separate writes with no transaction.
+        // If the enrollment update failed after the journal was created, we'd
+        // have a revenue recognition journal for an enrollment that's still
+        // active — leading to double revenue recognition later.
+        return DB::transaction(function () use ($id) {
+            $enrollment = Enrollment::with(['student.user', 'program'])->lockForUpdate()->findOrFail($id);
 
-        if ($enrollment->status !== 'active') {
-            return back()->withErrors(['error' => 'Enrollment tidak aktif.']);
-        }
-
-        $paidAmount        = $enrollment->payment_method === 'full upfront'
-            ? (float) $enrollment->total_amount
-            : (float) $enrollment->installments()->whereNotNull('paid_at')->sum('amount');
-        $perMeetingPrice   = $enrollment->program->total_meetings > 0
-            ? bcdiv((string) $paidAmount, (string) $enrollment->program->total_meetings, 2)
-            : '0';
-        $remainingDeferred = bcmul((string) $enrollment->remaining_meetings, $perMeetingPrice, 2);
-
-        if ($remainingDeferred > 0) {
-            try {
-                $this->accountingService->createJournal(
-                    now()->toDateString(),
-                    "Manual Expiry - Student {$enrollment->student->user->name}",
-                    "MANUAL-EXPIRY-{$enrollment->id}",
-                    [
-                        ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $remainingDeferred, 'credit' => 0],
-                        ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $remainingDeferred],
-                    ],
-                    'revenue_recognition',
-                    $enrollment->program_id
-                );
-            } catch (\App\Exceptions\IdempotencyException $e) {
-                // Journal sudah ada — lanjut update status
-            } catch (DomainException $e) {
-                return back()->withErrors(['error' => $e->getMessage()]);
+            if ($enrollment->status !== 'active') {
+                return back()->withErrors(['error' => 'Enrollment tidak aktif.']);
             }
-        }
 
-        $enrollment->update([
-            'status'           => 'expired',
-            'remaining_meetings' => 0,
-            'payment_status'   => PaymentStatus::FULL->value,
-        ]);
+            $paidAmount        = $enrollment->payment_method === 'full upfront'
+                ? (float) $enrollment->total_amount
+                : (float) $enrollment->installments()->whereNotNull('paid_at')->sum('amount');
+            $perMeetingPrice   = $enrollment->program->total_meetings > 0
+                ? bcdiv((string) $paidAmount, (string) $enrollment->program->total_meetings, 2)
+                : '0';
+            $remainingDeferred = bcmul((string) $enrollment->remaining_meetings, $perMeetingPrice, 2);
 
-        \App\Models\RoomBooking::where('enrollment_id', $enrollment->id)
-            ->where('date', '>', now()->toDateString())
-            ->delete();
+            if ($remainingDeferred > 0) {
+                try {
+                    $this->accountingService->createJournal(
+                        now()->toDateString(),
+                        "Manual Expiry - Student {$enrollment->student->user->name}",
+                        "MANUAL-EXPIRY-{$enrollment->id}",
+                        [
+                            ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $remainingDeferred, 'credit' => 0],
+                            ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $remainingDeferred],
+                        ],
+                        'revenue_recognition',
+                        $enrollment->program_id
+                    );
+                } catch (\App\Exceptions\IdempotencyException $e) {
+                    // Journal sudah ada — lanjut update status
+                } catch (DomainException $e) {
+                    return back()->withErrors(['error' => $e->getMessage()]);
+                }
+            }
 
-        return back()->with('success', 'Enrollment marked as expired, remaining revenue recognized.');
+            $enrollment->update([
+                'status'           => 'expired',
+                'remaining_meetings' => 0,
+                'payment_status'   => PaymentStatus::FULL->value,
+            ]);
+
+            \App\Models\RoomBooking::where('enrollment_id', $enrollment->id)
+                ->where('date', '>', now()->toDateString())
+                ->delete();
+
+            return back()->with('success', 'Enrollment marked as expired, remaining revenue recognized.');
+        });
     }
 
     public function graduate($id)
@@ -373,17 +422,23 @@ public function updateTutorStatus(Request $request, $id, $tutorId)
 
 public function destroy($id)
 {
-    $enrollment = Enrollment::findOrFail($id);
+    // TOCTOU fix: previously the journal-exists check ran outside any
+    // transaction. A payment journal could be created between the check
+    // and the delete, leaving an orphaned payment journal for a deleted
+    // enrollment. Lock the enrollment row + re-check inside transaction.
+    return DB::transaction(function () use ($id) {
+        $enrollment = Enrollment::lockForUpdate()->findOrFail($id);
 
-    $hasJournal = \App\Models\Journal::where('reference', 'PAYMENT-ENROLL-' . $enrollment->id)->exists();
-    if ($hasJournal) {
-        return response()->json([
-            'success' => false,
-            'message' => 'Enrollment ini sudah memiliki jurnal pembayaran dan tidak bisa dihapus. Gunakan Expire jika ingin menonaktifkan.',
-        ], 422);
-    }
+        $hasJournal = \App\Models\Journal::where('reference', 'PAYMENT-ENROLL-' . $enrollment->id)->exists();
+        if ($hasJournal) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Enrollment ini sudah memiliki jurnal pembayaran dan tidak bisa dihapus. Gunakan Expire jika ingin menonaktifkan.',
+            ], 422);
+        }
 
-    $enrollment->delete();
-    return response()->json(['success' => true]);
+        $enrollment->delete();
+        return response()->json(['success' => true]);
+    });
 }
 }

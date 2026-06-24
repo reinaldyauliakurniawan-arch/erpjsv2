@@ -181,7 +181,7 @@
                     :class="{ 'loading': submitting }">
                     <span class="material-symbols-outlined text-base">save</span>
                     <span x-show="!submitting">Simpan Jurnal</span>
-                    <span x-show="submitting" class="hidden">Menyimpan…</span>
+                    <span x-show="submitting" x-cloak>Menyimpan…</span>
                 </button>
             </div>
 

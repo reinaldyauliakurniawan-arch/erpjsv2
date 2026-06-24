@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Absensi</x-slot>
 
-    <div class="p-lg space-y-lg" x-data="attendancePage()" x-init="init()">
+    <div class="p-lg space-y-lg" x-data="attendancePage()">
 
         {{-- Flash --}}
         @if(session('success'))
