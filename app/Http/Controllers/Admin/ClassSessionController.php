@@ -15,90 +15,122 @@ use App\Enums\ClassType;
 use App\Services\AttendanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class ClassSessionController extends Controller
 {
+    /**
+     * AttendanceService instance.
+     *
+     * @var \App\Services\AttendanceService
+     */
+    protected $attendanceService;
+
+    /**
+     * Create a new controller instance.
+     *
+     * @param  \App\Services\AttendanceService  $attendanceService
+     * @return void
+     */
+    public function __construct(AttendanceService $attendanceService)
+    {
+        $this->middleware('auth');
+        $this->attendanceService = $attendanceService;
+    }
+
+    /**
+     * Display a listing of the resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function index()
     {
+        $this->authorize('viewAny', ClassSession::class);
+
         $classSessions = ClassSession::with('program')
             ->withCount('enrollments')
             ->orderBy('name')
-            ->get();
+            ->paginate(15);
+
         return view('admin.class_sessions.index', compact('classSessions'));
     }
 
+    /**
+     * Show the form for creating a new resource.
+     *
+     * @return \Illuminate\Http\Response
+     */
     public function create()
-{
-    $programs   = Program::orderBy('name')->get();
-    $tutors     = Tutor::with('user')->get();
-    $classTypes = ClassType::cases();
-    $classrooms = Classroom::all();
-    $timeBlocks = TimeBlock::cases();
-    $days       = DayOfWeek::cases();
-    return view('admin.class_sessions.create', compact('programs', 'tutors', 'classTypes', 'classrooms', 'timeBlocks', 'days'));
-}
+    {
+        $this->authorize('create', ClassSession::class);
 
+        $programs   = Program::orderBy('name')->get();
+        $tutors     = Tutor::with('user')->get();
+        $classTypes = ClassType::cases();
+        $classrooms = Classroom::all();
+        $timeBlocks = TimeBlock::cases();
+        $days       = DayOfWeek::cases();
+
+        return view('admin.class_sessions.create', compact('programs', 'tutors', 'classTypes', 'classrooms', 'timeBlocks', 'days'));
+    }
+
+    /**
+     * Store a newly created resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return \Illuminate\Http\Response
+     */
     public function store(Request $request)
-{
-    $request->validate([
-        'name'                      => 'required|string|max:255|unique:class_sessions,name',
-        'program_id'                => 'required|exists:programs,id',
-        'class_type'                => 'required|in:private,semi-private,group',
-        'status'                    => 'required|in:active,inactive',
-        'tutor_ids'                 => 'nullable|array',
-        'tutor_ids.*'               => 'exists:tutors,id',
-        'enrollment_ids'            => 'nullable|array',
-        'enrollment_ids.*'          => 'exists:enrollments,id',
-        'schedules'                 => 'nullable|array',
-        'schedules.*.day'           => 'required_with:schedules|string',
-        'schedules.*.time_block'    => 'required_with:schedules|string',
-        'schedules.*.classroom_id'  => 'required_with:schedules|exists:classrooms,id',
-    ]);
+    {
+        $this->authorize('create', ClassSession::class);
 
-    // Atomicity fix: previously 4 separate writes (create session,
-    // attach tutors, update enrollments, create schedules). If any
-    // failed mid-way, the session was created with partial data.
-    $classSession = DB::transaction(function () use ($request) {
-        $classSession = ClassSession::create($request->only('name', 'program_id', 'class_type', 'status'));
+        $validated = $this->validateStore($request);
 
-        if ($request->filled('tutor_ids')) {
-            $classSession->tutors()->attach($request->tutor_ids, ['status' => 'pending']);
-        }
+        try {
+            $classSession = DB::transaction(function () use ($validated) {
+                $classSession = ClassSession::create($validated['session']);
 
-        if ($request->filled('enrollment_ids')) {
-            Enrollment::whereIn('id', $request->enrollment_ids)
-                ->update(['class_session_id' => $classSession->id]);
-        }
-
-        if ($request->filled('schedules')) {
-            foreach ($request->schedules as $s) {
-                if (empty($s['day']) || empty($s['time_block']) || empty($s['classroom_id'])) continue;
-
-                $conflict = \App\Models\Schedule::where('classroom_id', $s['classroom_id'])
-                    ->where('day', $s['day'])
-                    ->where('time_block', $s['time_block'])
-                    ->lockForUpdate()
-                    ->exists();
-
-                if (!$conflict) {
-                    \App\Models\Schedule::create([
-                        'class_session_id' => $classSession->id,
-                        'enrollment_id'    => null,
-                        'classroom_id'     => $s['classroom_id'],
-                        'day'              => $s['day'],
-                        'time_block'       => $s['time_block'],
-                    ]);
+                if (!empty($validated['tutor_ids'])) {
+                    $this->attachTutors($classSession, $validated['tutor_ids']);
                 }
-            }
+
+                if (!empty($validated['enrollment_ids'])) {
+                    $this->updateEnrollments($classSession, $validated['enrollment_ids']);
+                }
+
+                if (!empty($validated['schedules'])) {
+                    $this->createSchedules($classSession, $validated['schedules']);
+                }
+
+                return $classSession;
+            });
+
+            Log::info('Class session created successfully', [
+                'class_session_id' => $classSession->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return redirect()->route('admin.class-sessions.show', $classSession->id)
+                ->with('success', 'Class session created successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to create class session', [
+                'error' => $e->getMessage(),
+                'user_id' => auth()->id(),
+                'input' => $request->all()
+            ]);
+
+            throw $e;
         }
+    }
 
-        return $classSession;
-    });
-
-    return redirect()->route('admin.class-sessions.show', $classSession->id)
-        ->with('success', 'Class session created.');
-}
-
+    /**
+     * Display the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function show($id)
     {
         $classSession = ClassSession::with([
@@ -107,6 +139,8 @@ class ClassSessionController extends Controller
             'tutors.user',
             'schedules.classroom',
         ])->findOrFail($id);
+
+        $this->authorize('view', $classSession);
 
         $availableEnrollments = Enrollment::with('student.user')
             ->where('program_id', $classSession->program_id)
@@ -130,149 +164,272 @@ class ClassSessionController extends Controller
         ));
     }
 
+    /**
+     * Show the form for editing the specified resource.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function edit($id)
     {
         $classSession = ClassSession::findOrFail($id);
+
+        $this->authorize('update', $classSession);
+
         $programs     = Program::orderBy('name')->get();
         $classTypes   = ClassType::cases();
+
         return view('admin.class_sessions.edit', compact('classSession', 'programs', 'classTypes'));
     }
 
+    /**
+     * Update the specified resource in storage.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function update(Request $request, $id)
     {
         $classSession = ClassSession::findOrFail($id);
 
-        $request->validate([
-            'name'       => 'required|string|max:255|unique:class_sessions,name,' . $id,
-            'program_id' => 'required|exists:programs,id',
-            'class_type' => 'required|in:private,semi-private,group',
-            'status'     => 'required|in:active,inactive',
-        ]);
+        $this->authorize('update', $classSession);
 
-        $classSession->update($request->only('name', 'program_id', 'class_type', 'status'));
+        $validated = $this->validateUpdate($request, $id);
 
-        return redirect()->route('admin.class-sessions.index')->with('success', 'Class session updated.');
+        try {
+            $classSession->update($validated['session']);
+
+            Log::info('Class session updated successfully', [
+                'class_session_id' => $classSession->id,
+                'user_id' => auth()->id()
+            ]);
+
+            return redirect()->route('admin.class-sessions.index')->with('success', 'Class session updated successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to update class session', [
+                'error' => $e->getMessage(),
+                'class_session_id' => $id,
+                'user_id' => auth()->id()
+            ]);
+
+            throw $e;
+        }
     }
 
+    /**
+     * Remove the specified resource from storage.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function destroy($id)
-{
-    $classSession = ClassSession::findOrFail($id);
+    {
+        $classSession = ClassSession::findOrFail($id);
 
-    $hasActiveEnrollments = Enrollment::where('class_session_id', $id)
-        ->where('status', 'active')
-        ->exists();
+        $this->authorize('delete', $classSession);
 
-    if ($hasActiveEnrollments) {
-        return redirect()->route('admin.class-sessions.index')
-            ->with('error', 'Class session tidak bisa dihapus karena masih ada siswa aktif.');
+        // Check if there are active enrollments
+        $hasActiveEnrollments = Enrollment::where('class_session_id', $id)
+            ->where('status', 'active')
+            ->exists();
+
+        if ($hasActiveEnrollments) {
+            return redirect()->route('admin.class-sessions.index')
+                ->with('error', 'Class session cannot be deleted because there are active students enrolled.');
+        }
+
+        // Check if there are any paid attendances for tutors
+        $hasPaidAttendance = DB::table('attendance_tutor')
+            ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+            ->where('attendance.class_session_id', $id)
+            ->whereNotNull('attendance_tutor.paid_at')
+            ->exists();
+
+        if ($hasPaidAttendance) {
+            return redirect()->route('admin.class-sessions.index')
+                ->with('error', 'Class session cannot be deleted because there are tutors who have been paid for this session.');
+        }
+
+        try {
+            DB::transaction(function () use ($classSession) {
+                // Reverse all attendances for this class session
+                $attendances = Attendance::where('class_session_id', $classSession->id)->get();
+                foreach ($attendances as $attendance) {
+                    $this->attendanceService->reverseAttendance($attendance);
+                }
+
+                // Delete the class session (this will cascade to related records like schedules, etc.)
+                $classSession->delete();
+            });
+
+            Log::info('Class session deleted successfully', [
+                'class_session_id' => $id,
+                'user_id' => auth()->id()
+            ]);
+
+            return redirect()->route('admin.class-sessions.index')->with('success', 'Class session deleted successfully.');
+        } catch (\Exception $e) {
+            Log::error('Failed to delete class session', [
+                'error' => $e->getMessage(),
+                'class_session_id' => $id,
+                'user_id' => auth()->id()
+            ]);
+
+            throw $e;
+        }
     }
 
-    $hasPaidAttendance = \Illuminate\Support\Facades\DB::table('attendance_tutor')
-        ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
-        ->where('attendance.class_session_id', $id)
-        ->whereNotNull('attendance_tutor.paid_at')
-        ->exists();
-
-    if ($hasPaidAttendance) {
-        return redirect()->route('admin.class-sessions.index')
-            ->with('error', 'Class session tidak bisa dihapus karena ada tutor yang sudah dibayar untuk sesi ini.');
-    }
-
-    \Illuminate\Support\Facades\DB::transaction(function () use ($id, $classSession) {
-        Attendance::where('class_session_id', $id)->each(function ($attendance) {
-            app(AttendanceService::class)->reverseAttendance($attendance);
-        });
-        $classSession->delete();
-    });
-
-    return redirect()->route('admin.class-sessions.index')->with('success', 'Class session deleted.');
-}
-
+    /**
+     * Assign an enrollment to the class session.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function assignEnrollment(Request $request, $id)
     {
+        $classSession = ClassSession::findOrFail($id);
+
+        $this->authorize('update', $classSession);
+
         $request->validate(['enrollment_id' => 'required|exists:enrollments,id']);
 
         Enrollment::where('id', $request->enrollment_id)
             ->update(['class_session_id' => $id]);
 
-        return back()->with('success', 'Student assigned to class session.');
+        return back()->with('success', 'Student assigned to class session successfully.');
     }
 
+    /**
+     * Remove an enrollment from the class session.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function removeEnrollment(Request $request, $id)
     {
+        $classSession = ClassSession::findOrFail($id);
+
+        $this->authorize('update', $classSession);
+
         $request->validate(['enrollment_id' => 'required|exists:enrollments,id']);
 
         Enrollment::where('id', $request->enrollment_id)
             ->where('class_session_id', $id)
             ->update(['class_session_id' => null]);
 
-        return back()->with('success', 'Student removed from class session.');
+        return back()->with('success', 'Student removed from class session successfully.');
     }
 
+    /**
+     * Assign a tutor to the class session.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function assignTutor(Request $request, $id)
     {
-        $request->validate(['tutor_id' => 'required|exists:tutors,id']);
-
         $classSession = ClassSession::findOrFail($id);
 
+        $this->authorize('update', $classSession);
+
+        $request->validate(['tutor_id' => 'required|exists:tutors,id']);
+
         if ($classSession->tutors()->where('tutor_id', $request->tutor_id)->exists()) {
-            return back()->withErrors(['error' => 'Tutor sudah ada di class session ini.']);
+            return back()->withErrors(['error' => 'Tutor is already assigned to this class session.']);
         }
 
         $classSession->tutors()->attach($request->tutor_id, ['status' => 'pending']);
 
-        return back()->with('success', 'Tutor assigned.');
+        return back()->with('success', 'Tutor assigned successfully.');
     }
 
+    /**
+     * Remove a tutor from the class session.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function removeTutor(Request $request, $id)
     {
+        $classSession = ClassSession::findOrFail($id);
+
+        $this->authorize('update', $classSession);
+
         $request->validate(['tutor_id' => 'required|exists:tutors,id']);
 
-        $classSession = ClassSession::findOrFail($id);
         $classSession->tutors()->detach($request->tutor_id);
 
-        return back()->with('success', 'Tutor removed.');
+        return back()->with('success', 'Tutor removed successfully.');
     }
 
+    /**
+     * Update the status of a tutor in the class session.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @param  int  $tutorId
+     * @return \Illuminate\Http\Response
+     */
     public function updateTutorStatus(Request $request, $id, $tutorId)
     {
+        $classSession = ClassSession::findOrFail($id);
+
+        $this->authorize('update', $classSession);
+
         $request->validate(['status' => 'required|in:pending,confirmed']);
 
-        ClassSession::findOrFail($id)->tutors()->updateExistingPivot($tutorId, [
+        $classSession->tutors()->updateExistingPivot($tutorId, [
             'status' => $request->status,
         ]);
 
-        return back()->with('success', 'Tutor status updated.');
+        return back()->with('success', 'Tutor status updated successfully.');
     }
 
+    /**
+     * Store a new schedule for the class session.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function storeSchedule(Request $request, $id)
     {
-        $request->validate([
+        $classSession = ClassSession::findOrFail($id);
+
+        $this->authorize('update', $classSession);
+
+        $validated = $request->validate([
             'classroom_id' => 'required|exists:classrooms,id',
             'day'          => 'required|string',
             'time_block'   => 'required|string',
             'custom_time'  => 'nullable|required_if:time_block,Custom|string',
         ]);
 
-        $classSession = ClassSession::findOrFail($id);
-        $timeBlock    = $request->time_block === 'Custom' ? $request->custom_time : $request->time_block;
+        $timeBlock = $request->time_block === 'Custom' ? $request->custom_time : $request->time_block;
 
-        $exists = \App\Models\Schedule::where('class_session_id', $id)
+        // Check for schedule conflict in the same classroom, day, and time block
+        $conflict = \App\Models\Schedule::where('classroom_id', $request->classroom_id)
             ->where('day', $request->day)
             ->where('time_block', $timeBlock)
             ->exists();
 
-        if ($exists) {
-            return back()->withErrors(['error' => 'Jadwal ini sudah ada.']);
+        if ($conflict) {
+            return back()->withErrors(['error' => 'The room is already booked at this time.']);
         }
 
-        $conflictRoom = \App\Models\Schedule::where('classroom_id', $request->classroom_id)
+        // Check for schedule conflict for this class session (same day and time block)
+        $sessionConflict = \App\Models\Schedule::where('class_session_id', $id)
             ->where('day', $request->day)
             ->where('time_block', $timeBlock)
             ->exists();
 
-        if ($conflictRoom) {
-            return back()->withErrors(['error' => 'Ruangan sudah dipakai di slot ini.']);
+        if ($sessionConflict) {
+            return back()->withErrors(['error' => 'This class session already has a schedule at this time.']);
         }
 
         \App\Models\Schedule::create([
@@ -283,21 +440,40 @@ class ClassSessionController extends Controller
             'time_block'       => $timeBlock,
         ]);
 
-        return back()->with('success', 'Jadwal ditambahkan.');
+        return back()->with('success', 'Schedule added successfully.');
     }
 
+    /**
+     * Remove a schedule from the class session.
+     *
+     * @param  int  $id
+     * @param  int  $scheduleId
+     * @return \Illuminate\Http\Response
+     */
     public function destroySchedule($id, $scheduleId)
     {
+        $classSession = ClassSession::findOrFail($id);
+
+        $this->authorize('update', $classSession);
+
         \App\Models\Schedule::where('id', $scheduleId)
             ->where('class_session_id', $id)
             ->delete();
 
-        return back()->with('success', 'Jadwal dihapus.');
+        return back()->with('success', 'Schedule removed successfully.');
     }
 
+    /**
+     * Get information about the class session for AJAX requests.
+     *
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
     public function info($id)
     {
         $classSession = ClassSession::with('program', 'schedules.classroom')->findOrFail($id);
+
+        $this->authorize('view', $classSession);
 
         $finishedCount = Attendance::where('class_session_id', $id)
             ->where('status', 'finished')
@@ -319,18 +495,136 @@ class ClassSessionController extends Controller
         ]);
     }
 
+    /**
+     * Get available enrollments for a program (for AJAX requests).
+     *
+     * @param  int  $programId
+     * @return \Illuminate\Http\Response
+     */
     public function availableEnrollments($programId)
-{
-    $enrollments = Enrollment::with('student.user')
-        ->where('program_id', $programId)
-        ->where('status', 'active')
-        ->whereNull('class_session_id')
-        ->get()
-        ->map(fn($e) => [
-            'id'   => $e->id,
-            'name' => $e->student->user->name,
+    {
+        $enrollments = Enrollment::with('student.user')
+            ->where('program_id', $programId)
+            ->where('status', 'active')
+            ->whereNull('class_session_id')
+            ->get()
+            ->map(function ($enrollment) {
+                return [
+                    'id'   => $enrollment->id,
+                    'name' => $enrollment->student->user->name,
+                ];
+            });
+
+        return response()->json($enrollments);
+    }
+
+    /**
+     * Validate the store request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @return array
+     */
+    protected function validateStore(Request $request)
+    {
+        $validated = $request->validate([
+            'name'                      => 'required|string|max:255|unique:class_sessions,name',
+            'program_id'                => 'required|exists:programs,id',
+            'class_type'                => 'required|in:private,semi-private,group',
+            'status'                    => 'required|in:active,inactive',
+            'tutor_ids'                 => 'nullable|array',
+            'tutor_ids.*'               => 'exists:tutors,id',
+            'enrollment_ids'            => 'nullable|array',
+            'enrollment_ids.*'          => 'exists:enrollments,id',
+            'schedules'                 => 'nullable|array',
+            'schedules.*.day'           => 'required_with:schedules|string',
+            'schedules.*.time_block'    => 'required_with:schedules|string',
+            'schedules.*.classroom_id'  => 'required_with:schedules|exists:classrooms,id',
         ]);
 
-    return response()->json($enrollments);
-}
+        return [
+            'session' => $request->only('name', 'program_id', 'class_type', 'status'),
+            'tutor_ids' => $request->input('tutor_ids', []),
+            'enrollment_ids' => $request->input('enrollment_ids', []),
+            'schedules' => $request->input('schedules', []),
+        ];
+    }
+
+    /**
+     * Validate the update request.
+     *
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return array
+     */
+    protected function validateUpdate(Request $request, $id)
+    {
+        $validated = $request->validate([
+            'name'       => 'required|string|max:255|unique:class_sessions,name,' . $id,
+            'program_id' => 'required|exists:programs,id',
+            'class_type' => 'required|in:private,semi-private,group',
+            'status'     => 'required|in:active,inactive',
+        ]);
+
+        return [
+            'session' => $request->only('name', 'program_id', 'class_type', 'status'),
+        ];
+    }
+
+    /**
+     * Attach tutors to the class session.
+     *
+     * @param  \App\Models\ClassSession  $classSession
+     * @param  array  $tutorIds
+     * @return void
+     */
+    protected function attachTutors(ClassSession $classSession, array $tutorIds)
+    {
+        $classSession->tutors()->attach($tutorIds, ['status' => 'pending']);
+    }
+
+    /**
+     * Update enrollments to point to the class session.
+     *
+     * @param  \App\Models\ClassSession  $classSession
+     * @param  array  $enrollmentIds
+     * @return void
+     */
+    protected function updateEnrollments(ClassSession $classSession, array $enrollmentIds)
+    {
+        Enrollment::whereIn('id', $enrollmentIds)
+            ->update(['class_session_id' => $classSession->id]);
+    }
+
+    /**
+     * Create schedules for the class session.
+     *
+     * @param  \App\Models\ClassSession  $classSession
+     * @param  array  $schedules
+     * @return void
+     */
+    protected function createSchedules(ClassSession $classSession, array $schedules)
+    {
+        foreach ($schedules as $schedule) {
+            if (empty($schedule['day']) || empty($schedule['time_block']) || empty($schedule['classroom_id'])) {
+                continue;
+            }
+
+            // Check for conflict with existing schedules (locked to prevent race conditions)
+            $conflict = \App\Models\Schedule::where('classroom_id', $schedule['classroom_id'])
+                ->where('day', $schedule['day'])
+                ->where('time_block', $schedule['time_block'])
+                ->lockForUpdate()
+                ->exists();
+
+            if (!$conflict) {
+                \App\Models\Schedule::create([
+                    'class_session_id' => $classSession->id,
+                    'enrollment_id'    => null,
+                    'classroom_id'     => $schedule['classroom_id'],
+                    'day'              => $schedule['day'],
+                    'time_block'       => $schedule['time_block'],
+                ]);
+            }
+        }
+    }
 }
