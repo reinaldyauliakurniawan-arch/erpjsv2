@@ -397,7 +397,7 @@
                                 </div>
                                 <div class="flex justify-end gap-sm mt-md">
                                     <button type="button" @click="modal = false" class="btn btn-ghost">Batal</button>
-                                    <button type="submit" class="btn bg-blue-500 text-white border-none hover:opacity-90">
+                                    <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
                                         <span class="material-symbols-outlined text-[18px]">save</span>
                                         Booking
                                     </button>

@@ -261,37 +261,27 @@ public function availableTutors(Request $request)
     {
         $this->authorize('update', Enrollment::findOrFail($enrollmentId));
 
-        // Race-condition fix: previously `lockForUpdate()` was called OUTSIDE
-        // the DB transaction, so the row lock was released immediately. Also,
-        // only the current installment was (supposedly) locked; sibling
-        // installments and the enrollment row were not. Two concurrent
-        // requests paying different installments of the same enrollment
-        // could both count "1 unpaid" and both write `payment_status=partial`,
-        // corrupting the final `payment_status` (should be `full`).
-        //
-        // Fix: lock the entire enrollment row + all its installments inside
-        // a single transaction. Re-check `paid_at` inside the lock to defend
-        // against a concurrent request that already paid this installment.
-        $enrollment = Enrollment::lockForUpdate()->findOrFail($enrollmentId);
+        // Race-condition fix: ALL lockForUpdate() calls must be INSIDE the
+        // DB transaction. Previously they were outside, so the locks released
+        // immediately when each SELECT completed. Two concurrent requests
+        // paying different installments of the same enrollment could both
+        // count "1 unpaid" and both write `payment_status=partial`, corrupting
+        // the final `payment_status` (should be `full`).
+        return DB::transaction(function () use ($enrollmentId, $installmentId) {
+            // Lock the enrollment + the target installment + all sibling installments
+            $enrollment = Enrollment::lockForUpdate()->findOrFail($enrollmentId);
 
-        $installment = Installment::where('id', $installmentId)
-            ->where('enrollment_id', $enrollmentId)
-            ->lockForUpdate()
-            ->firstOrFail();
+            $installment = Installment::where('id', $installmentId)
+                ->where('enrollment_id', $enrollmentId)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-        if ($installment->paid_at) {
-            return back()->withErrors(['error' => 'Installment sudah dibayar sebelumnya.']);
-        }
-
-        // Lock all sibling installments so the unpaid-count below is consistent
-        Installment::where('enrollment_id', $enrollmentId)->lockForUpdate()->get();
-
-        DB::transaction(function () use ($installment, $enrollment, $enrollmentId, $installmentId) {
-            // Re-check inside the transaction — a concurrent request may have
-            // paid this installment between the outer check and the lock acquisition.
-            if ($installment->fresh()->paid_at) {
-                throw new \App\Exceptions\DomainException('Installment sudah dibayar sebelumnya.');
+            if ($installment->paid_at) {
+                return back()->withErrors(['error' => 'Installment sudah dibayar sebelumnya.']);
             }
+
+            // Lock all sibling installments so the unpaid-count below is consistent
+            Installment::where('enrollment_id', $enrollmentId)->lockForUpdate()->get();
 
             $this->accountingService->createJournal(
                 now()->toDateString(),
@@ -314,9 +304,9 @@ public function availableTutors(Request $request)
                     ? PaymentStatus::FULL->value
                     : PaymentStatus::PARTIAL->value,
             ]);
-        });
 
-        return back()->with('success', 'Installment marked as paid.');
+            return back()->with('success', 'Installment marked as paid.');
+        });
     }
 
     public function expire($id)
@@ -358,9 +348,14 @@ public function availableTutors(Request $request)
                     );
                 } catch (\App\Exceptions\IdempotencyException $e) {
                     // Journal sudah ada — lanjut update status
-                } catch (DomainException $e) {
-                    return back()->withErrors(['error' => $e->getMessage()]);
                 }
+                // Note: DomainException is intentionally NOT caught here.
+                // Previously, catching it and returning back()->withErrors()
+                // from inside the transaction callback caused Laravel to COMMIT
+                // the transaction (return = success), leaving partial writes
+                // (e.g. journal rows) committed while the enrollment status
+                // was NOT updated — half-state. Now we let DomainException
+                // bubble up and roll back the entire transaction.
             }
 
             $enrollment->update([
@@ -381,24 +376,30 @@ public function availableTutors(Request $request)
     {
         $this->authorize('update', Enrollment::findOrFail($id));
 
-        $enrollment = Enrollment::findOrFail($id);
+        // TOCTOU fix: previously check-then-update with no transaction/lock.
+        // Between the check and the update, a new attendance could decrement
+        // remaining_meetings, or a new installment could be marked unpaid.
+        // Now wrapped in transaction with lockForUpdate.
+        return DB::transaction(function () use ($id) {
+            $enrollment = Enrollment::lockForUpdate()->findOrFail($id);
 
-        if ($enrollment->status !== 'active') {
-            return back()->withErrors(['error' => 'Enrollment tidak aktif.']);
-        }
+            if ($enrollment->status !== 'active') {
+                return back()->withErrors(['error' => 'Enrollment tidak aktif.']);
+            }
 
-        if ($enrollment->remaining_meetings > 0) {
-            return back()->withErrors(['error' => "Masih ada {$enrollment->remaining_meetings} meeting tersisa. Gunakan expire jika ingin hanguskan."]);
-        }
+            if ($enrollment->remaining_meetings > 0) {
+                return back()->withErrors(['error' => "Masih ada {$enrollment->remaining_meetings} meeting tersisa. Gunakan expire jika ingin hanguskan."]);
+            }
 
-        $unpaidInstallments = $enrollment->installments()->whereNull('paid_at')->count();
-        if ($unpaidInstallments > 0) {
-            return back()->withErrors(['error' => "Masih ada {$unpaidInstallments} cicilan belum lunas."]);
-        }
+            $unpaidInstallments = $enrollment->installments()->whereNull('paid_at')->count();
+            if ($unpaidInstallments > 0) {
+                return back()->withErrors(['error' => "Masih ada {$unpaidInstallments} cicilan belum lunas."]);
+            }
 
-        $enrollment->update(['status' => 'graduate']);
+            $enrollment->update(['status' => 'graduate']);
 
-        return back()->with('success', 'Student marked as graduate.');
+            return back()->with('success', 'Student marked as graduate.');
+        });
     }
 
     public function assignTutor(Request $request, $id)

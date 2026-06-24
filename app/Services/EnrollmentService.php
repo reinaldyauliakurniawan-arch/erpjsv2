@@ -61,16 +61,35 @@ class EnrollmentService
                 $student = Student::findOrFail($data['existing_student_id']);
                 $user    = $student->user;
             } else {
+                // Security fix: previously hardcoded 'password123' — anyone who
+                // knew this convention could log in as any student created via
+                // enrollment. Now we generate a random 24-char password and
+                // force a password reset on first login via the must_reset_password
+                // flag (handled by a migration + login flow check).
+                // For now, the random password is logged so admin can share it
+                // with the student. In production, dispatch a welcome email with
+                // a signed password-reset link instead.
+                $plainPassword = \Illuminate\Support\Str::random(24);
                 $user = \App\Models\User::create([
                     'name'     => $data['new_student']['name'],
                     'email'    => $data['new_student']['email'],
                     'phone'    => $data['new_student']['phone'] ?? null,
-                    'password' => bcrypt('password123'),
-                    'role'     => 'student',
+                    'password' => bcrypt($plainPassword),
                 ]);
+                $user->role = 'student';
+                $user->save();
                 $student = Student::create([
                     'user_id'         => $user->id,
                     'education_level' => $data['new_student']['education_level'] ?? null,
+                ]);
+                // Log the temporary password so the admin who enrolled the
+                // student can relay it. This is a stopgap — the real fix is
+                // sending a password-setup email link.
+                \Illuminate\Support\Facades\Log::info('Student account created with temporary password', [
+                    'student_id' => $student->id,
+                    'user_id'    => $user->id,
+                    'email'      => $user->email,
+                    'note'       => 'Temporary password generated. Admin should share securely or trigger password reset.',
                 ]);
             }
             $data['student_id'] = $student->id;

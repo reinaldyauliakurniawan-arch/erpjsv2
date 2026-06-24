@@ -11,11 +11,14 @@
     The Alpine component state lives on this element; the dropdown is
     absolutely positioned relative to it.
 --}}
+@php
+    $searchPlaceholder = auth()->user()->role === 'cfo'
+        ? 'Cari akun, jurnal, payroll, aset...'
+        : 'Cari student, tutor, program, enrollment...';
+@endphp
 <div class="relative" x-data="globalSearch({
         url: @json(route('search')),
-        placeholder: auth()->user()->role === 'cfo'
-            ? 'Cari akun, jurnal, payroll, aset...'
-            : 'Cari student, tutor, program, enrollment...'
+        placeholder: @json($searchPlaceholder)
     })"
     @keydown.window.slash.prevent="$refs.searchInput?.focus()"
     @keydown.escape.window="if (document.activeElement === $refs.searchInput) { $refs.searchInput.blur(); close(); }"

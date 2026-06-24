@@ -26,26 +26,27 @@ class AttendanceService
     {
         $classSession = ClassSession::with('program')->findOrFail($data['class_session_id']);
 
-        return DB::transaction(function () use ($data, $classSession) {
+        try {
+            return DB::transaction(function () use ($data, $classSession) {
 
-            // Lock row untuk cegah race condition
-            $attendance = Attendance::where('class_session_id', $classSession->id)
-                ->where('date', $data['date'])
-                ->where('time_block', $data['time_block'])
-                ->lockForUpdate()
-                ->first();
+                // Lock row untuk cegah race condition
+                $attendance = Attendance::where('class_session_id', $classSession->id)
+                    ->where('date', $data['date'])
+                    ->where('time_block', $data['time_block'])
+                    ->lockForUpdate()
+                    ->first();
 
-            $isNew = !$attendance;
+                $isNew = !$attendance;
 
-            if ($isNew) {
-                $attendance = Attendance::create([
-                    'class_session_id' => $classSession->id,
-                    'date'             => $data['date'],
-                    'time_block'       => $data['time_block'],
-                    'classroom_id'     => $data['classroom_id'],
-                    'marked_by'        => $data['marked_by'],
-                    'notes'            => $data['notes'] ?? null,
-                ]);
+                if ($isNew) {
+                    $attendance = Attendance::create([
+                        'class_session_id' => $classSession->id,
+                        'date'             => $data['date'],
+                        'time_block'       => $data['time_block'],
+                        'classroom_id'     => $data['classroom_id'],
+                        'marked_by'        => $data['marked_by'],
+                        'notes'            => $data['notes'] ?? null,
+                    ]);
 
                 // Eager load enrollments sekaligus untuk hindari N+1
                 $enrollments = Enrollment::with(['program', 'student.user', 'schedules', 'installments'])
@@ -158,6 +159,22 @@ class AttendanceService
 
             return $attendance;
         });
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Race-condition fallback: if two concurrent requests both passed
+            // the lockForUpdate()->first() check (because SELECT FOR UPDATE
+            // locks nothing when no row matches) and both tried to INSERT,
+            // the unique constraint on (class_session_id, date, time_block)
+            // rejects the second. Treat that as "already marked" — re-load
+            // the existing attendance and return it.
+            if ($e->errorInfo[1] === 19 || str_contains($e->getMessage(), 'UniqueViolation')
+                || str_contains($e->getMessage(), 'unique constraint')) {
+                return Attendance::where('class_session_id', $classSession->id)
+                    ->where('date', $data['date'])
+                    ->where('time_block', $data['time_block'])
+                    ->firstOrFail();
+            }
+            throw $e;
+        }
     }
 
     protected function attachTutor(

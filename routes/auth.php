@@ -22,21 +22,28 @@ Route::middleware('guest')->group(function () {
         ->name('login');
 
     // Rate-limit login attempts: 5 per minute per IP+email combo.
-    // Mitigates brute-force attacks. Configurable via LOGIN_RATE_LIMIT env.
+    // Mitigates brute-force attacks. Configurable via LOGIN_RATE_LIMIT env
+    // (read via config() so it works even after config:cache).
     Route::post('login', [AuthenticatedSessionController::class, 'store'])
-        ->middleware('throttle:' . env('LOGIN_RATE_LIMIT', 5) . ',1');
+        ->middleware('throttle:' . config('app.login_rate_limit', 5) . ',1');
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
         ->name('password.request');
 
+    // Throttle password-reset link requests: 5/min per IP to prevent email
+    // spam and email enumeration via the RESET_THROTTLED response.
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-        ->name('password.email');
+        ->name('password.email')
+        ->middleware('throttle:5,1');
 
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
         ->name('password.reset');
 
+    // Throttle password-reset attempts: 5/min per IP to prevent brute-forcing
+    // reset tokens.
     Route::post('reset-password', [NewPasswordController::class, 'store'])
-        ->name('password.store');
+        ->name('password.store')
+        ->middleware('throttle:5,1');
 });
 
 Route::middleware('auth')->group(function () {

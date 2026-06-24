@@ -29,10 +29,25 @@ class UserFactory extends Factory
             'email'             => fake()->unique()->safeEmail(),
             'email_verified_at' => now(),
             'password'          => static::$password ??= Hash::make('password'),
-            'role'              => 'admin',
             'phone'             => fake()->optional()->phoneNumber(),
             'remember_token'    => Str::random(10),
         ];
+    }
+
+    /**
+     * Set the user's role. Called after create because 'role' is not
+     * mass-assignable (removed from $fillable for security).
+     */
+    public function configure(): static
+    {
+        return $this->afterMaking(function (User $user) {
+            // Default role is set via the role() state method below.
+        })->afterCreating(function (User $user) {
+            if ($user->role === null) {
+                $user->role = 'admin';
+                $user->save();
+            }
+        });
     }
 
     /**
@@ -48,10 +63,17 @@ class UserFactory extends Factory
     /**
      * Assign a specific role to the user.
      * Usage: User::factory()->role('admin')->create()
+     *
+     * Note: 'role' is not mass-assignable (removed from $fillable for
+     * security). We stash the desired role in a class property and the
+     * afterCreating hook in configure() applies it via explicit assignment.
      */
     public function role(string $role): static
     {
-        return $this->state(fn () => ['role' => $role]);
+        return $this->afterCreating(function (User $user) use ($role) {
+            $user->role = $role;
+            $user->save();
+        });
     }
 
     /**

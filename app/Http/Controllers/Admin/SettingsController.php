@@ -38,9 +38,11 @@ class SettingsController extends Controller
                 'name'     => $request->name,
                 'email'    => $request->email,
                 'password' => Hash::make($request->password),
-                'role'     => $request->role,
                 'phone'    => $request->phone,
             ]);
+            // Set role explicitly (not mass-assignable per User model security)
+            $user->role = $request->role;
+            $user->save();
 
             if ($request->role === 'tutor') {
                 Tutor::create(['user_id' => $user->id, 'persona' => null]);
@@ -90,9 +92,11 @@ class SettingsController extends Controller
             $user->update([
                 'name'  => $request->name,
                 'email' => $request->email,
-                'role'  => $newRole,
                 'phone' => $request->phone,
             ]);
+            // Set role explicitly (not mass-assignable per User model security)
+            $user->role = $newRole;
+            $user->save();
 
             if ($request->filled('password')) {
                 $user->update(['password' => Hash::make($request->password)]);

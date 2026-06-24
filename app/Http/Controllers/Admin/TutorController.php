@@ -41,8 +41,9 @@ class TutorController extends Controller
                 'name'     => $validated['name'],
                 'email'    => $validated['email'],
                 'password' => Hash::make($validated['password']),
-                'role'     => 'tutor',
             ]);
+            $user->role = 'tutor';
+            $user->save();
             Tutor::create([
                 'user_id' => $user->id,
                 'persona' => $validated['persona'],

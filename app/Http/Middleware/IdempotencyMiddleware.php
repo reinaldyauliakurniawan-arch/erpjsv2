@@ -58,11 +58,16 @@ class IdempotencyMiddleware
         }
 
         // Build a namespaced cache key:
-        // idempotent:{prefix}:{route}:{key}
+        // idempotent:{prefix}:{user_id}:{route}:{key}
         // The route name/URI is included to prevent key reuse across endpoints
         // (a key valid for /payments/charge should not return cached /users/delete).
+        // The user ID is included to prevent cross-user cache leaks — without it,
+        // if two users submit the same Idempotency-Key, the second user would
+        // receive the first user's cached response (which may contain sensitive
+        // financial data like journal IDs and amounts).
         $routeName = $request->route()?->getName() ?? $request->path();
-        $cacheKey  = $this->buildCacheKey($keyPrefix, $routeName, $idempotencyKey);
+        $userId   = $request->user()?->id ?? 'guest';
+        $cacheKey  = $this->buildCacheKey($keyPrefix, $routeName, $idempotencyKey, $userId);
 
         // Use lock to prevent thundering herd when two identical requests arrive
         // simultaneously — the first acquires the lock and processes; the second
@@ -100,9 +105,9 @@ class IdempotencyMiddleware
         }
     }
 
-    private function buildCacheKey(?string $prefix, string $route, string $key): string
+    private function buildCacheKey(?string $prefix, string $route, string $key, $userId = 'guest'): string
     {
-        $parts = array_filter(['idempotent', $prefix, $route, $key]);
+        $parts = array_filter(['idempotent', $prefix, 'u:'.$userId, $route, $key]);
         return implode(':', $parts);
     }
 

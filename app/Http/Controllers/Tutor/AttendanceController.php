@@ -140,6 +140,14 @@ class AttendanceController extends Controller
     {
         $request->validate(['class_session_id' => 'required|exists:class_sessions,id']);
 
+        // Authorization fix: previously any tutor could view the attendance
+        // history (student names + presence matrix) of ANY class session.
+        // Now we verify the acting tutor is assigned to the session.
+        $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
+        $isAssigned = \App\Models\ClassSession::find($request->class_session_id)
+            ?->tutors()->where('tutor_id', $tutor->id)->exists();
+        abort_unless($isAssigned, 403, 'Anda tidak di-assign ke sesi ini.');
+
         $enrollments = Enrollment::with('student.user')
             ->where('class_session_id', $request->class_session_id)
             ->whereIn('status', ['active', 'waitlist'])
@@ -179,7 +187,7 @@ class AttendanceController extends Controller
         });
 
         // Co-tutor candidates untuk mode team teaching
-        $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
+        // $tutor already resolved at top of method for authorization check
         $coTutorCandidates = ClassSession::find($request->class_session_id)
             ?->tutors()
             ->with('user')
@@ -224,6 +232,31 @@ class AttendanceController extends Controller
         ]);
 
         $mode = $request->input('mode');
+        $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
+
+        // Authorization fix: previously any tutor could submit attendance for
+        // ANY class session — triggering revenue recognition journals and
+        // decrementing remaining_meetings on enrollments they don't teach.
+        // Now we verify the acting tutor is assigned to the session (or is
+        // acting as a replacement for an assigned tutor).
+        $classSession = \App\Models\ClassSession::findOrFail($request->class_session_id);
+        $isAssigned = $classSession->tutors()->where('tutor_id', $tutor->id)->exists();
+
+        if (!$isAssigned) {
+            if ($mode === 'replacement' && $request->filled('replaced_tutor_id')) {
+                // Verify the replaced tutor IS assigned to this session
+                $replacedIsAssigned = $classSession->tutors()
+                    ->where('tutor_id', $request->replaced_tutor_id)->exists();
+                abort_unless($replacedIsAssigned, 403, 'Tutor pengganti harus menggantikan tutor yang memang di-assign ke sesi ini.');
+            } elseif ($mode === 'team_teaching') {
+                // Team teaching: at least one co-tutor must be assigned
+                $coTutorAssigned = $classSession->tutors()
+                    ->whereIn('tutor_id', $request->input('co_tutor_ids', []))->exists();
+                abort_unless($coTutorAssigned, 403, 'Team teaching minimal harus ada satu co-tutor yang di-assign ke sesi ini.');
+            } else {
+                abort(403, 'Anda tidak di-assign ke sesi ini.');
+            }
+        }
 
         $data = [
             'class_session_id'  => $request->class_session_id,
@@ -245,11 +278,8 @@ class AttendanceController extends Controller
         } catch (\App\Exceptions\DomainException $e) {
             return response()->json(['success' => false, 'message' => $e->getMessage()], 422);
         } catch (\Throwable $e) {
-            // Silent-fail fix: previously the exception was swallowed with a
-            // generic message and no logging. Production bugs were impossible
-            // to diagnose. Now we log the full exception + input for triage.
             Log::error('tutor.attendance.store failed', [
-                'tutor_id'   => $tutor->id ?? null,
+                'tutor_id'   => $tutor->id,
                 'input'      => $request->except(['students']),
                 'exception'  => $e::class,
                 'message'    => $e->getMessage(),

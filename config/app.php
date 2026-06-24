@@ -65,7 +65,7 @@ return [
     |
     */
 
-    'timezone' => 'Asia/Jakarta',
+    'timezone' => env('APP_TIMEZONE', 'Asia/Jakarta'),
 
     /*
     |--------------------------------------------------------------------------
@@ -104,6 +104,10 @@ return [
             explode(',', (string) env('APP_PREVIOUS_KEYS', ''))
         ),
     ],
+
+    // Rate limit for login attempts (per minute per IP+email combo).
+    // Used by routes/auth.php throttle middleware.
+    'login_rate_limit' => (int) env('LOGIN_RATE_LIMIT', 5),
 
     /*
     |--------------------------------------------------------------------------

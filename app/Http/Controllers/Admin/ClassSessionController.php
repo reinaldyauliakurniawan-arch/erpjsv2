@@ -412,41 +412,50 @@ class ClassSessionController extends Controller
 
         $timeBlock = $request->time_block === 'Custom' ? $request->custom_time : $request->time_block;
 
-        // Lock the classroom and class session to prevent race conditions
-        $classroom = Classroom::where('id', $request->classroom_id)->lockForUpdate()->first();
-        if (!$classroom) {
-            return back()->withErrors(['error' => 'Kelas tidak ditemukan.']);
-        }
+        // Race-condition fix: ALL lockForUpdate() + check + create must be
+        // INSIDE a single DB transaction. Previously the locks released
+        // immediately when each SELECT completed, so two admins submitting
+        // the same schedule simultaneously could both pass the conflict
+        // check and create duplicate schedule rows.
+        return DB::transaction(function () use ($id, $request, $timeBlock) {
+            // Lock the classroom and class session
+            $classroom = Classroom::where('id', $request->classroom_id)->lockForUpdate()->first();
+            if (!$classroom) {
+                return back()->withErrors(['error' => 'Kelas tidak ditemukan.']);
+            }
 
-        $classSessionLock = ClassSession::where('id', $id)->lockForUpdate()->first();
-        if (!$classSessionLock) {
-            return back()->withErrors(['error' => 'Kelas sesi tidak ditemukan.']);
-        }
+            $classSessionLock = ClassSession::where('id', $id)->lockForUpdate()->first();
+            if (!$classSessionLock) {
+                return back()->withErrors(['error' => 'Kelas sesi tidak ditemukan.']);
+            }
 
-        // Check for conflicts
-        $roomConflict = \App\Models\Schedule::where('classroom_id', $request->classroom_id)
-            ->where('day', $request->day)
-            ->where('time_block', $timeBlock)
-            ->exists();
+            // Check for conflicts (now safe — locks are held)
+            $roomConflict = \App\Models\Schedule::where('classroom_id', $request->classroom_id)
+                ->where('day', $request->day)
+                ->where('time_block', $timeBlock)
+                ->lockForUpdate()
+                ->exists();
 
-        $classSessionConflict = \App\Models\Schedule::where('class_session_id', $id)
-            ->where('day', $request->day)
-            ->where('time_block', $timeBlock)
-            ->exists();
+            $classSessionConflict = \App\Models\Schedule::where('class_session_id', $id)
+                ->where('day', $request->day)
+                ->where('time_block', $timeBlock)
+                ->lockForUpdate()
+                ->exists();
 
-        if ($roomConflict || $classSessionConflict) {
-            return back()->withErrors(['error' => 'Jadwal bentrok.']);
-        }
+            if ($roomConflict || $classSessionConflict) {
+                return back()->withErrors(['error' => 'Jadwal bentrok.']);
+            }
 
-        \App\Models\Schedule::create([
-            'class_session_id' => $id,
-            'enrollment_id'    => null,
-            'classroom_id'     => $request->classroom_id,
-            'day'              => $request->day,
-            'time_block'       => $timeBlock,
-        ]);
+            \App\Models\Schedule::create([
+                'class_session_id' => $id,
+                'enrollment_id'    => null,
+                'classroom_id'     => $request->classroom_id,
+                'day'              => $request->day,
+                'time_block'       => $timeBlock,
+            ]);
 
-        return back()->with('success', 'Schedule added successfully.');
+            return back()->with('success', 'Schedule added successfully.');
+        });
     }
 
     /**

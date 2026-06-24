@@ -132,10 +132,17 @@ class ImportController extends Controller
                 if (User::where('email', $email)->where('role', 'student')->exists()) {
                     $errors[] = "Row {$index}: email '{$email}' sudah terdaftar sebagai student, dilewati."; continue;
                 }
+                // Security fix: was Hash::make('password123') — all imported
+                // tutors shared a known password. Now random per-user.
                 $user = User::firstOrCreate(
                     ['email' => $email],
-                    ['name' => trim($row[0]), 'password' => Hash::make('password123'), 'role' => 'tutor', 'phone' => trim($row[5] ?? '') ?: null]
+                    ['name' => trim($row[0]), 'password' => Hash::make(\Illuminate\Support\Str::random(24)), 'phone' => trim($row[5] ?? '') ?: null]
                 );
+                // Set role explicitly (not mass-assignable per User model security)
+                if (!$user->role) {
+                    $user->role = 'tutor';
+                    $user->save();
+                }
                 $tutor = Tutor::updateOrCreate(
                     ['user_id' => $user->id],
                     [
@@ -190,10 +197,17 @@ class ImportController extends Controller
             if (User::where('email', trim($row[1]))->whereIn('role', ['admin', 'tutor'])->exists()) {
                 $errors[] = "Row {$index}: email '{$row[1]}' sudah terdaftar sebagai admin atau tutor, dilewati."; continue;
             }
+            // Security fix: was Hash::make('password123') — all imported
+            // students shared a known password. Now random per-user.
             $user = User::firstOrCreate(
                 ['email' => trim($row[1])],
-                ['name' => trim($row[0]), 'password' => Hash::make('password123'), 'role' => 'student', 'phone' => trim($row[3] ?? '') ?: null]
+                ['name' => trim($row[0]), 'password' => Hash::make(\Illuminate\Support\Str::random(24)), 'phone' => trim($row[3] ?? '') ?: null]
             );
+            // Set role explicitly (not mass-assignable per User model security)
+            if (!$user->role) {
+                $user->role = 'student';
+                $user->save();
+            }
             Student::updateOrCreate(
                 ['user_id' => $user->id],
                 [
