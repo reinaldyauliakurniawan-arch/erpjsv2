@@ -1336,3 +1336,220 @@
    Usage: <span x-show="submitting" x-cloak>Loading…</span>
    ════════════════════════════════════════════════════════════════ */
 [x-cloak] { display: none !important; }
+
+/* ════════════════════════════════════════════════════════════════
+   Global search bar — Cool Mode design per BRAND_PERSONALITY_GUIDE
+   ════════════════════════════════════════════════════════════════
+   Rules followed:
+   - Flat, neutral surface (no gradient, no glassmorphism)
+   - Green only as accent on focus (active state)
+   - 13px body text (text-body-md)
+   - Material Symbols Outlined icons
+   - 150ms transitions (motion-fast)
+   - Cards use bg-surface-bright + border-surface-border
+   - No decorative animations (only the spinner rotates, which is functional)
+   ════════════════════════════════════════════════════════════════ */
+
+.app-search {
+    position: relative;
+    display: flex;
+    align-items: center;
+    background: var(--color-surface-bright);
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-md, 8px);
+    padding: 0 var(--spacing-sm, 8px);
+    transition: border-color var(--motion-fast, 150ms) var(--motion-easing),
+                box-shadow var(--motion-fast, 150ms) var(--motion-easing);
+}
+
+/* Green accent on focus — Brand Guide §3: "When you see green, it means something" */
+.app-search:focus-within {
+    border-color: var(--color-secondary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-secondary) 20%, transparent);
+}
+
+.app-search__icon {
+    color: var(--color-on-surface-variant);
+    font-size: 18px;
+    flex-shrink: 0;
+    pointer-events: none;
+}
+
+.app-search__input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 8px var(--spacing-sm, 8px);
+    font-size: 13px; /* text-body-md per Brand Guide */
+    font-family: var(--font-sans);
+    color: var(--color-on-surface);
+    outline: none;
+}
+
+.app-search__input::placeholder {
+    color: var(--color-on-surface-variant);
+    opacity: 0.7;
+}
+
+.app-search__kbd {
+    font-family: var(--font-sans);
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+    background: var(--color-surface-container-low);
+    border: 1px solid var(--color-surface-border);
+    border-radius: 4px;
+    padding: 2px 6px;
+    flex-shrink: 0;
+    line-height: 1;
+}
+
+.app-search__kbd-inline {
+    font-family: var(--font-sans);
+    font-size: 0.85em;
+    font-weight: 600;
+    color: var(--color-on-surface-variant);
+    background: var(--color-surface-container-low);
+    border: 1px solid var(--color-surface-border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    line-height: 1;
+    margin: 0 2px;
+}
+
+.app-search__spinner {
+    display: inline-flex;
+    align-items: center;
+    color: var(--color-on-surface-variant);
+    flex-shrink: 0;
+}
+
+.app-search__spin {
+    font-size: 18px;
+    animation: app-search-spin 1s linear infinite;
+}
+
+@keyframes app-search-spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
+
+/* Respect prefers-reduced-motion — Brand Guide §6 */
+@media (prefers-reduced-motion: reduce) {
+    .app-search__spin {
+        animation-duration: 0.001ms;
+    }
+}
+
+/* ── Dropdown ─────────────────────────────────────────────────── */
+.app-search__dropdown {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--color-surface-bright);
+    border: 1px solid var(--color-surface-border);
+    border-radius: var(--radius-md, 8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    max-height: 70vh;
+    overflow-y: auto;
+    z-index: 100;
+    /* Mirror the topbar spacing rhythm */
+    padding: var(--spacing-xs, 4px) 0;
+}
+
+.app-search__empty {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-xs, 4px);
+    padding: var(--spacing-lg, 24px);
+    color: var(--color-on-surface);
+    text-align: center;
+    font-size: 13px;
+}
+
+.app-search__empty .material-symbols-outlined {
+    font-size: 28px;
+    color: var(--color-on-surface-variant);
+    opacity: 0.6;
+}
+
+.app-search__groups {
+    display: flex;
+    flex-direction: column;
+}
+
+.app-search__group {
+    padding: var(--spacing-xs, 4px) 0;
+}
+
+.app-search__group + .app-search__group {
+    border-top: 1px solid var(--color-surface-border);
+}
+
+.app-search__group-label {
+    /* Brand Guide §9: section labels — small, uppercase, tracked out, faded */
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--color-on-surface-variant);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px) var(--spacing-xs, 4px);
+}
+
+.app-search__item {
+    display: block;
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px);
+    text-decoration: none;
+    color: var(--color-on-surface);
+    transition: background-color var(--motion-fast, 150ms) var(--motion-easing);
+    cursor: pointer;
+}
+
+.app-search__item:hover,
+.app-search__item--active {
+    /* Subtle highlight — neutral grey, not green. Green is reserved for
+       active state per Brand Guide §3. */
+    background: var(--color-surface-container-low);
+}
+
+/* When the item is the cursor-highlighted one (keyboard nav), use a slightly
+   warmer tint so keyboard users can see which item Enter will follow. */
+.app-search__item--active {
+    background: var(--color-surface-container-low);
+    border-left: 3px solid var(--color-secondary);
+    padding-left: calc(var(--spacing-md, 16px) - 3px);
+}
+
+.app-search__item-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-on-surface);
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.app-search__item-subtitle {
+    font-size: 11px;
+    color: var(--color-on-surface-variant);
+    line-height: 1.4;
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ── Mobile: search bar hidden in topbar (no room), show inline instead ──
+   The topbar's `<x-search-bar />` is wrapped in `hidden md:block`, so on
+   mobile it disappears. The search bar component itself is still usable
+   if a separate mobile trigger is added later. For now, the `/` keyboard
+   shortcut works only on desktop. */
+@media (max-width: 767px) {
+    .app-search__dropdown {
+        /* On small screens, dropdown can extend full width */
+        max-height: 60vh;
+    }
+}

@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Rab extends Model
 {
+    use HasFactory;
+
     protected $fillable = ['year', 'division', 'account_name', 'account_code', 'activity', 'q1', 'q2', 'q3', 'q4'];
     protected $casts = [
         'q1' => 'integer', 'q2' => 'integer',

@@ -42,4 +42,141 @@ Tabulator.registerModule([
 ]);
 window.Tabulator = Tabulator;
 
+// ── Global search Alpine component ──────────────────────────────────
+// Registered on window so the x-data="globalSearch({...})" call in
+// components/search-bar.blade.php resolves. Loaded BEFORE Alpine.start()
+// so the component is available when Alpine walks the DOM.
+//
+// Design rationale:
+//   - Debounced 300ms on input to avoid hammering the server.
+//   - AbortController cancels in-flight requests when the user types more
+//     (prevents race conditions where an old slow response overwrites a new one).
+//   - Cursor navigation with arrow keys + Enter to follow the highlighted result.
+//   - Mouse hover also moves the cursor (so click + keyboard feel unified).
+//   - flatIndex() maps (category, idx) to a flat 0..N-1 index so cursor can
+//     traverse the whole flattened result list with up/down arrows.
+window.globalSearch = function (config) {
+    return {
+        url: config.url,
+        placeholder: config.placeholder,
+
+        query: '',
+        results: {},
+        loading: false,
+        open: false,
+        hasSearched: false,
+        cursor: -1,
+        _abortController: null,
+
+        get total() {
+            return Object.values(this.results).reduce((sum, items) => sum + items.length, 0);
+        },
+
+        onFocus() {
+            // Only auto-open if we already have results from a previous search.
+            if (this.total > 0 || this.hasSearched) {
+                this.open = true;
+            }
+        },
+
+        async search() {
+            const q = this.query.trim();
+
+            // Below minimum length — clear results, close dropdown.
+            if (q.length < 2) {
+                this.results = {};
+                this.hasSearched = false;
+                this.cursor = -1;
+                this.open = q.length > 0; // show "min 2 chars" hint
+                return;
+            }
+
+            // Cancel any in-flight request before firing a new one.
+            if (this._abortController) {
+                this._abortController.abort();
+            }
+            this._abortController = new AbortController();
+
+            this.loading = true;
+            this.open = true;
+
+            try {
+                const url = new URL(this.url, window.location.origin);
+                url.searchParams.set('q', q);
+
+                const res = await fetch(url, {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest',
+                    },
+                    signal: this._abortController.signal,
+                });
+
+                if (!res.ok) {
+                    throw new Error('Search failed: ' + res.status);
+                }
+
+                const data = await res.json();
+                this.results = data.results || {};
+                this.hasSearched = true;
+                this.cursor = this.total > 0 ? 0 : -1;
+            } catch (e) {
+                // AbortError is expected when the user types more — silently ignore.
+                if (e.name !== 'AbortError') {
+                    console.error('Global search failed:', e);
+                    this.results = {};
+                    this.hasSearched = true;
+                    this.cursor = -1;
+                }
+            } finally {
+                this.loading = false;
+            }
+        },
+
+        /**
+         * Map (category, idx) to a flat index for arrow-key navigation.
+         */
+        flatIndex(category, idx) {
+            let flat = 0;
+            for (const [cat, items] of Object.entries(this.results)) {
+                if (cat === category) return flat + idx;
+                flat += items.length;
+            }
+            return flat + idx;
+        },
+
+        /**
+         * Inverse of flatIndex — given a flat cursor, return {item} or null.
+         */
+        itemAt(flat) {
+            let acc = 0;
+            for (const [cat, items] of Object.entries(this.results)) {
+                if (flat < acc + items.length) {
+                    const idx = flat - acc;
+                    return { category: cat, idx, item: items[idx] };
+                }
+                acc += items.length;
+            }
+            return null;
+        },
+
+        moveCursor(delta) {
+            if (this.total === 0) return;
+            this.cursor = (this.cursor + delta + this.total) % this.total;
+        },
+
+        enter() {
+            if (this.cursor < 0) return;
+            const hit = this.itemAt(this.cursor);
+            if (hit && hit.item.url) {
+                window.location.href = hit.item.url;
+            }
+        },
+
+        close() {
+            this.open = false;
+        },
+    };
+};
+
 Alpine.start(); // ← paling bawah

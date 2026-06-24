@@ -24,6 +24,7 @@ use App\Http\Controllers\Tutor\ScheduleController as TutorSchedule;
 use App\Http\Controllers\Admin\ScheduleController as AdminSchedule;
 use App\Http\Controllers\Admin\AttendanceController as AdminAttendance;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Admin\TrackerController;
 use App\Http\Controllers\Admin\AdjustingJournalController;
@@ -39,6 +40,13 @@ Route::get('/dashboard', [DashboardController::class, 'index'])
     ->name('dashboard');
 
 Route::middleware('auth')->group(function () {
+    // Global search — admin & CFO only (topbar widget). Returns JSON.
+    // Throttled to 30 req/min per user to prevent abuse / scraping.
+    Route::get('/search', SearchController::class)
+        ->middleware('role:admin,cfo')
+        ->middleware('throttle:30,1')
+        ->name('search');
+
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');

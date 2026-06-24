@@ -49,8 +49,8 @@
 
 {{-- TOP BAR --}}
 <header class="app-topbar">
-    <div class="flex justify-between items-center w-full">
-        <div class="flex items-center gap-md">
+    <div class="flex justify-between items-center w-full gap-md">
+        <div class="flex items-center gap-md flex-shrink-0">
             <button type="button" onclick="document.getElementById('mobile-drawer').checked = true"
                 class="app-mobile-trigger lg:hidden"
                 aria-label="Open menu">
@@ -58,7 +58,18 @@
             </button>
             <h2 class="text-headline-md font-semibold text-on-surface">{{ $title ?? 'Dashboard' }}</h2>
         </div>
-        <div class="flex items-center gap-sm">
+
+        {{-- Global search — admin & CFO only. Sits in the topbar so it's
+             available on every page without consuming content area.
+             Brand Guide Section 7: "The topbar is identical across modes"
+             so the search bar lives here rather than in page content. --}}
+        @if(in_array(auth()->user()->role, ['admin', 'cfo']))
+            <div class="flex-1 max-w-md hidden md:block">
+                <x-search-bar />
+            </div>
+        @endif
+
+        <div class="flex items-center gap-sm flex-shrink-0">
             <div class="app-user-avatar">
                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
             </div>
