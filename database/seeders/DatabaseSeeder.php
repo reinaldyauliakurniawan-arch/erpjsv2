@@ -1044,34 +1044,53 @@ class DatabaseSeeder extends Seeder
                 $dayMap = ['Senin'=>'Monday','Selasa'=>'Tuesday','Rabu'=>'Wednesday','Kamis'=>'Thursday','Jumat'=>'Friday','Sabtu'=>'Saturday','Minggu'=>'Sunday'];
                 while ($date->englishDayOfWeek !== ($dayMap[$enroll['day']] ?? $enroll['day'])) $date->addDay();
 
-                DB::table('room_bookings')->insert([
-                    'classroom_id'  => $enroll['classroom_id'],
-                    'schedule_id'   => $enroll['schedule_id'] ?? null,
-                    'date'          => $date->toDateString(),
-                    'time_block'    => $enroll['time_block'],
-                    'type'          => 'regular_skip',
-                    'enrollment_id' => $enroll['id'],
-                    'tutor_id'      => $enroll['tutor_id'],
-                    'notes'         => fake()->randomElement(['Student izin sakit','Libur nasional','Tutor berhalangan',null]),
-                    'created_at'    => $now,'updated_at'=>$now,
-                ]);
+                $slotTaken = DB::table('room_bookings')
+                    ->where('classroom_id', $enroll['classroom_id'])
+                    ->where('date', $date->toDateString())
+                    ->where('time_block', $enroll['time_block'])
+                    ->where('type', 'regular_skip')
+                    ->exists();
+
+                if (!$slotTaken) {
+                    DB::table('room_bookings')->insert([
+                        'classroom_id'  => $enroll['classroom_id'],
+                        'schedule_id'   => $enroll['schedule_id'] ?? null,
+                        'date'          => $date->toDateString(),
+                        'time_block'    => $enroll['time_block'],
+                        'type'          => 'regular_skip',
+                        'enrollment_id' => $enroll['id'],
+                        'tutor_id'      => $enroll['tutor_id'],
+                        'notes'         => fake()->randomElement(['Student izin sakit','Libur nasional','Tutor berhalangan',null]),
+                        'created_at'    => $now,'updated_at'=>$now,
+                    ]);
+                }
             }
 
             // temporary: reschedule ke slot lain dari availability tutor
             if (rand(0,1)) {
                 $altSlot = $this->findSlotForTutor($enroll['tutor_id']);
                 if ($altSlot) {
-                    DB::table('room_bookings')->insert([
-                        'classroom_id'  => $enroll['classroom_id'],
-                        'schedule_id'   => $enroll['schedule_id'] ?? null,
-                        'date'          => Carbon::now()->addDays(rand(3,21))->toDateString(),
-                        'time_block'    => $altSlot['time_block'],
-                        'type'          => 'temporary',
-                        'enrollment_id' => $enroll['id'],
-                        'tutor_id'      => $enroll['tutor_id'],
-                        'notes'         => 'Reschedule dari jadwal rutin.',
-                        'created_at'    => $now,'updated_at'=>$now,
-                    ]);
+                    $altDate = Carbon::now()->addDays(rand(3,21))->toDateString();
+                    $altTaken = DB::table('room_bookings')
+                        ->where('classroom_id', $enroll['classroom_id'])
+                        ->where('date', $altDate)
+                        ->where('time_block', $altSlot['time_block'])
+                        ->where('type', 'temporary')
+                        ->exists();
+
+                    if (!$altTaken) {
+                        DB::table('room_bookings')->insert([
+                            'classroom_id'  => $enroll['classroom_id'],
+                            'schedule_id'   => $enroll['schedule_id'] ?? null,
+                            'date'          => $altDate,
+                            'time_block'    => $altSlot['time_block'],
+                            'type'          => 'temporary',
+                            'enrollment_id' => $enroll['id'],
+                            'tutor_id'      => $enroll['tutor_id'],
+                            'notes'         => 'Reschedule dari jadwal rutin.',
+                            'created_at'    => $now,'updated_at'=>$now,
+                        ]);
+                    }
                 }
             }
         }

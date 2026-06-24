@@ -63,6 +63,18 @@ class ChartOfAccountsSeeder extends Seeder
                 'type' => 'Expense',
                 'cash_flow_category' => 'operating',
             ],
+            [
+                'code' => '1006',
+                'name' => 'Akumulasi Penyusutan Aset Tetap',
+                'type' => 'Asset',
+                'cash_flow_category' => 'investing',
+            ],
+            [
+                'code' => '5108',
+                'name' => 'Beban Penyusutan',
+                'type' => 'Expense',
+                'cash_flow_category' => 'investing',
+            ],
         ];
 
         // Update cash_flow_category untuk semua akun yang sudah ada di DB
