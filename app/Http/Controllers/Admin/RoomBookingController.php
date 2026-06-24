@@ -3,12 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
-use App\Models\ClassSession;
-use App\Models\Classroom;
-use App\Models\Enrollment;
 use App\Models\RoomBooking;
-use App\Models\Schedule;
-use App\Models\Tutor;
 use Illuminate\Http\Request;
 
 class RoomBookingController extends Controller

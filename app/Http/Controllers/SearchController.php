@@ -15,7 +15,6 @@ use App\Models\Program;
 use App\Models\Rab;
 use App\Models\Student;
 use App\Models\Tutor;
-use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;

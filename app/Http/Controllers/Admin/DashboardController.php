@@ -7,7 +7,6 @@ use App\Models\Student;
 use App\Models\Tutor;
 use App\Models\Enrollment;
 use App\Models\Installment;
-use App\Models\ClassSession;
 use App\Models\Classroom;
 use App\Models\Schedule;
 use App\Models\RoomBooking;

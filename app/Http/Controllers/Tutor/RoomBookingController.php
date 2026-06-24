@@ -4,7 +4,6 @@ namespace App\Http\Controllers\Tutor;
 
 use App\Http\Controllers\Controller;
 use App\Models\RoomBooking;
-use App\Models\Schedule;
 use App\Models\Tutor;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
