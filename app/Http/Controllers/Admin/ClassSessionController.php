@@ -295,7 +295,7 @@ class ClassSessionController extends Controller
 
         $request->validate(['enrollment_id' => 'required|exists:enrollments,id']);
 
-        Enrollment::where('id', $request->enrollment_id')
+        Enrollment::where('id', $request->enrollment_id)
             ->update(['class_session_id' => $id]);
 
         return back()->with('success', 'Student assigned to class session successfully.');
