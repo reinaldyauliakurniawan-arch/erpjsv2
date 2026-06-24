@@ -16,11 +16,10 @@ return Application::configure(basePath: dirname(__DIR__))
         // In production, restrict to your LB's IP range via TrustProxy middleware config.
         $middleware->trustProxies(at: '*');
 
-        // Global middleware — applied to every request
-        $middleware->append([
-            // Throttle API/login endpoints to mitigate brute-force and DoS
-            // (already configured via RouteServiceProvider for web routes)
-        ]);
+        // Observability — logs every request as structured JSON for OpenObserve.
+        // Even without OTEL SDK installed, this produces queryable log entries
+        // with method, URL, status, duration, user context.
+        $middleware->append(\App\Http\Middleware\ObservabilityMiddleware::class);
 
         // Route middleware aliases — usable via ->middleware('alias') in routes
         $middleware->alias([
