@@ -37,7 +37,7 @@
         {{-- Stats --}}
         <div class="grid grid-cols-2 gap-md" style="max-width: 28rem">
             <div class="app-card p-md flex items-center gap-md">
-                <div class="p-xs bg-warning/10 rounded-md">
+                <div class="p-xs bg-warning/10 rounded-lg">
                     <span class="material-symbols-outlined text-warning text-[20px]">pending_actions</span>
                 </div>
                 <div>
@@ -46,7 +46,7 @@
                 </div>
             </div>
             <div class="app-card p-md flex items-center gap-md">
-                <div class="p-xs bg-success/10 rounded-md">
+                <div class="p-xs bg-success/10 rounded-lg">
                     <span class="material-symbols-outlined text-success text-[20px]">done_all</span>
                 </div>
                 <div>

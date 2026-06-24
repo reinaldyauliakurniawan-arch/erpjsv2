@@ -10,6 +10,13 @@
     name: "light";
     default: true;
     color-scheme: light;
+    /* Radius tokens for DaisyUI components — aligned with our --radius-* scale
+       so buttons, inputs, selects, badges all share the same roundness as
+       custom components. DaisyUI defaults are sharper (4px); we bump to 8px
+       for a softer, more modern feel. */
+    --radius-field: 0.5rem;     /* buttons, inputs — 8px */
+    --radius-box: 1rem;         /* cards, modals — 16px */
+    --radius-selector: 0.5rem;  /* checkboxes, radios, tabs — 8px */
     --color-base-100: oklch(98% 0.01 240);
     --color-base-200: oklch(95% 0.01 240);
     --color-base-300: oklch(92% 0.01 240);
@@ -162,12 +169,15 @@
     --spacing-3xl: 64px;     /* max spacing — page-level separation */
     --spacing-gutter: 24px;  /* content gutter (alias of lg) */
 
-    /* Radius scale */
-    --radius-sm: 0.25rem;
-    --radius-md: 0.375rem;
-    --radius-lg: 0.75rem;
-    --radius-xl: 1rem;
-    --radius-full: 9999px;
+    /* Radius scale — bumped for a softer, more modern feel.
+       Previous values (4/6/12/16px) felt corporate and sharp.
+       New values (6/8/16/20px) are closer to Linear / Vercel / Stripe
+       which use 8-12px for buttons and 12-16px for cards. */
+    --radius-sm: 0.375rem;   /* 6px  — tiny indicators, legend dots */
+    --radius-md: 0.5rem;     /* 8px  — buttons, inputs, small badges */
+    --radius-lg: 1rem;       /* 16px — cards, modals, table wrappers */
+    --radius-xl: 1.25rem;    /* 20px — large modals, hero sections */
+    --radius-full: 9999px;   /* pills, avatars, circular buttons */
 
     /* ── Shadow scale — aesthetic layered shadows ─────────────────────
        Per Material Design 3 / Apple HIG / Stripe / Vercel principles:

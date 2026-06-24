@@ -173,15 +173,15 @@
                                                             <td class="px-md py-sm text-body-sm font-medium text-on-surface">{{ $p['title'] }}</td>
                                                             <td class="px-md py-sm">
                                                                 @if($p['completion_status'] === 'completed')
-                                                                    <span class="inline-flex items-center gap-xs px-xs py-0.5 rounded bg-tertiary/10 text-tertiary text-label-sm font-bold">
+                                                                    <span class="inline-flex items-center gap-xs px-xs py-0.5 rounded-md bg-tertiary/10 text-tertiary text-label-sm font-bold">
                                                                         <span class="material-symbols-outlined text-[13px]" style="font-variation-settings:'FILL' 1">check_circle</span>Selesai
                                                                     </span>
                                                                 @elseif($p['completion_status'] === 'in_progress')
-                                                                    <span class="inline-flex items-center gap-xs px-xs py-0.5 rounded bg-surface-container text-secondary text-label-sm font-bold">
+                                                                    <span class="inline-flex items-center gap-xs px-xs py-0.5 rounded-md bg-surface-container text-secondary text-label-sm font-bold">
                                                                         <span class="material-symbols-outlined text-[13px]" style="font-variation-settings:'FILL' 1">radio_button_checked</span>Dibuka
                                                                     </span>
                                                                 @else
-                                                                    <span class="inline-flex items-center gap-xs px-xs py-0.5 rounded border border-surface-border text-on-surface-variant text-label-sm font-bold">
+                                                                    <span class="inline-flex items-center gap-xs px-xs py-0.5 rounded-md border border-surface-border text-on-surface-variant text-label-sm font-bold">
                                                                         <span class="material-symbols-outlined text-[13px]">radio_button_unchecked</span>Belum Mulai
                                                                     </span>
                                                                 @endif

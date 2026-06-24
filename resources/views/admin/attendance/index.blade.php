@@ -340,7 +340,7 @@
                         {
                             title: 'Time Block', field: 'time_block', width: 120,
                             formatter(cell) {
-                                return `<span class="px-sm py-xs bg-surface-container border border-surface-border rounded text-[12px] font-medium text-on-surface">${cell.getValue() ?? '—'}</span>`;
+                                return `<span class="px-sm py-xs bg-surface-container border border-surface-border rounded-md text-[12px] font-medium text-on-surface">${cell.getValue() ?? '—'}</span>`;
                             },
                         },
                         {

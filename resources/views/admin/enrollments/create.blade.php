@@ -234,7 +234,7 @@
                                                     <p class="text-body-sm text-on-surface-variant" x-text="s.email"></p>
                                                     <div class="flex gap-xs flex-wrap mt-xs">
                                                         <template x-for="e in s.enrollments" :key="e.program">
-                                                            <span class="text-label-lg px-xs py-0.5 rounded bg-surface-container text-on-surface-variant"
+                                                            <span class="text-label-lg px-xs py-0.5 rounded-md bg-surface-container text-on-surface-variant"
                                                                 x-text="e.program + ' · ' + e.status"></span>
                                                         </template>
                                                     </div>
@@ -411,7 +411,7 @@
                                                 <p class="text-body-sm text-on-surface-variant">Pertemuan berjalan: <span class="font-semibold" x-text="sess.finished_meetings"></span></p>
                                                 <div class="flex gap-xs flex-wrap mt-xs">
                                                     <template x-for="t in sess.tutors" :key="t.id">
-                                                        <span class="text-label-lg px-xs py-0.5 rounded bg-surface-container text-on-surface-variant" x-text="t.name"></span>
+                                                        <span class="text-label-lg px-xs py-0.5 rounded-md bg-surface-container text-on-surface-variant" x-text="t.name"></span>
                                                     </template>
                                                 </div>
                                             </div>
