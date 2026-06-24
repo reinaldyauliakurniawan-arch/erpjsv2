@@ -7,19 +7,27 @@ use App\Models\Account;
 use App\Services\AccountingService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class JournalController extends Controller
 {
-    public function __construct(protected AccountingService $accountingService) {}
+    public function __construct(protected AccountingService $accountingService)
+    {
+        $this->middleware('auth');
+    }
 
     public function index()
     {
+        $this->authorize('viewAny', Journal::class);
+
         $journals = Journal::with('items.account')->orderBy('date', 'desc')->orderBy('id', 'desc')->paginate(20);
         return view('admin.journals.index', compact('journals'));
     }
 
     public function data(Request $request)
 {
+    $this->authorize('viewAny', Journal::class);
+
     $query = Journal::with('items')->orderBy('date', 'desc')->orderBy('id', 'desc');
 
     if ($request->filled('search')) {
@@ -58,12 +66,16 @@ class JournalController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Journal::class);
+
         $accounts = Account::orderBy('code')->get();
         return view('admin.journals.create', compact('accounts'));
     }
 
     public function store(Request $request)
     {
+        $this->authorize('create', Journal::class);
+
         $request->validate([
             'date'        => 'required|date',
             'description' => 'required|string',
@@ -108,6 +120,8 @@ class JournalController extends Controller
 
     public function show(Journal $journal)
     {
+        $this->authorize('view', $journal);
+
         $journal->load('items.account');
         $reverseRef = 'REV-' . $journal->reference;
         $alreadyReversed = Journal::where('reference', $reverseRef)->exists();
@@ -116,6 +130,8 @@ class JournalController extends Controller
 
     public function reverse(Journal $journal)
     {
+        $this->authorize('update', $journal);
+
         $reverseRef = 'REV-' . $journal->reference;
 
         if (Journal::where('reference', $reverseRef)->exists()) {

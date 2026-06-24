@@ -19,6 +19,7 @@ class NewPasswordController extends Controller
 {
     public function __construct()
     {
+        $this->middleware('guest')->only(['create', 'store']);
         $this->middleware('throttle:60,1')->only('store');
     }
 

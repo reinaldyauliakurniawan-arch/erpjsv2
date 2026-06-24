@@ -15,6 +15,7 @@ use App\Enums\PaymentStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Exceptions\DomainException;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class EnrollmentController extends Controller
 {
@@ -23,18 +24,23 @@ class EnrollmentController extends Controller
 
     public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService)
     {
+        $this->middleware('auth');
         $this->enrollmentService = $enrollmentService;
         $this->accountingService = $accountingService;
     }
 
     public function index()
     {
+        $this->authorize('viewAny', Enrollment::class);
+
         $enrollments = Enrollment::with(['student.user', 'program', 'classSession'])->get();
         return view('admin.enrollments.index', compact('enrollments'));
     }
 
     public function data(Request $request)
 {
+    $this->authorize('viewAny', Enrollment::class);
+
     $query = Enrollment::with(['student.user', 'program', 'classSession']);
 
     if ($request->filled('search')) {
@@ -76,6 +82,8 @@ class EnrollmentController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Enrollment::class);
+
         $programs      = Program::all();
         $classrooms    = Classroom::all();
         $classSessions = ClassSession::with(['program', 'schedules.classroom'])
@@ -89,6 +97,8 @@ class EnrollmentController extends Controller
 
     public function store(StoreEnrollmentRequest $request)
     {
+        $this->authorize('create', Enrollment::class);
+
         try {
             [$enrollment, $roomNotes] = $this->enrollmentService->enroll($request->validated());
             $successMsg = 'Student enrolled successfully.';
@@ -103,6 +113,8 @@ class EnrollmentController extends Controller
 
     public function searchStudents(Request $request)
 {
+    $this->authorize('viewAny', Enrollment::class);
+
     $q = $request->input('q', '');
 
     // N+1 fix: previously the enrollments query ran inside ->map() per
@@ -132,6 +144,8 @@ class EnrollmentController extends Controller
 
 public function eligibleSessions(Request $request)
 {
+    $this->authorize('viewAny', Enrollment::class);
+
     $request->validate([
         'program_id' => 'required|exists:programs,id',
         'day'        => 'nullable|string',
@@ -199,6 +213,8 @@ public function eligibleSessions(Request $request)
 
 public function availableTutors(Request $request)
 {
+    $this->authorize('viewAny', Enrollment::class);
+
     $day       = $request->input('day');
     $timeBlock = $request->input('time_block');
 
@@ -221,6 +237,8 @@ public function availableTutors(Request $request)
 
     public function show($id)
 {
+    $this->authorize('view', Enrollment::findOrFail($id));
+
     $enrollment = Enrollment::with([
         'student.user',
         'program',
@@ -241,6 +259,8 @@ public function availableTutors(Request $request)
 
     public function markInstallmentPaid(Request $request, $enrollmentId, $installmentId)
     {
+        $this->authorize('update', Enrollment::findOrFail($enrollmentId));
+
         // Race-condition fix: previously `lockForUpdate()` was called OUTSIDE
         // the DB transaction, so the row lock was released immediately. Also,
         // only the current installment was (supposedly) locked; sibling
@@ -301,6 +321,8 @@ public function availableTutors(Request $request)
 
     public function expire($id)
     {
+        $this->authorize('update', Enrollment::findOrFail($id));
+
         // Atomicity fix: previously, journal creation, enrollment update, and
         // room booking deletion were 3 separate writes with no transaction.
         // If the enrollment update failed after the journal was created, we'd
@@ -357,6 +379,8 @@ public function availableTutors(Request $request)
 
     public function graduate($id)
     {
+        $this->authorize('update', Enrollment::findOrFail($id));
+
         $enrollment = Enrollment::findOrFail($id);
 
         if ($enrollment->status !== 'active') {
@@ -379,6 +403,8 @@ public function availableTutors(Request $request)
 
     public function assignTutor(Request $request, $id)
 {
+    $this->authorize('update', Enrollment::findOrFail($id));
+
     $request->validate([
         'tutor_id' => 'required|exists:tutors,id',
     ]);
@@ -396,6 +422,8 @@ public function availableTutors(Request $request)
 
 public function removeTutor(Request $request, $id)
 {
+    $this->authorize('update', Enrollment::findOrFail($id));
+
     $request->validate([
         'tutor_id' => 'required|exists:tutors,id',
     ]);
@@ -408,6 +436,8 @@ public function removeTutor(Request $request, $id)
 
 public function updateTutorStatus(Request $request, $id, $tutorId)
 {
+    $this->authorize('update', Enrollment::findOrFail($id));
+
     $request->validate([
         'status' => 'required|in:pending,confirmed',
     ]);
@@ -420,25 +450,27 @@ public function updateTutorStatus(Request $request, $id, $tutorId)
     return back()->with('success', 'Tutor status updated.');
 }
 
-public function destroy($id)
-{
-    // TOCTOU fix: previously the journal-exists check ran outside any
-    // transaction. A payment journal could be created between the check
-    // and the delete, leaving an orphaned payment journal for a deleted
-    // enrollment. Lock the enrollment row + re-check inside transaction.
-    return DB::transaction(function () use ($id) {
-        $enrollment = Enrollment::lockForUpdate()->findOrFail($id);
+    public function destroy($id)
+    {
+        $this->authorize('delete', Enrollment::findOrFail($id));
 
-        $hasJournal = \App\Models\Journal::where('reference', 'PAYMENT-ENROLL-' . $enrollment->id)->exists();
-        if ($hasJournal) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Enrollment ini sudah memiliki jurnal pembayaran dan tidak bisa dihapus. Gunakan Expire jika ingin menonaktifkan.',
-            ], 422);
-        }
+        // TOCTOU fix: previously the journal-exists check ran outside any
+        // transaction. A payment journal could be created between the check
+        // and the delete, leaving an orphaned payment journal for a deleted
+        // enrollment. Lock the enrollment row + re-check inside transaction.
+        return DB::transaction(function () use ($id) {
+            $enrollment = Enrollment::lockForUpdate()->findOrFail($id);
 
-        $enrollment->delete();
-        return response()->json(['success' => true]);
-    });
-}
+            $hasJournal = \App\Models\Journal::where('reference', 'PAYMENT-ENROLL-' . $enrollment->id)->exists();
+            if ($hasJournal) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Enrollment ini sudah memiliki jurnal pembayaran dan tidak bisa dihapus. Gunakan Expire jika ingin menonaktifkan.',
+                ], 422);
+            }
+
+            $enrollment->delete();
+            return response()->json(['success' => true]);
+        });
+    }
 }

@@ -13,6 +13,7 @@ class AuthenticatedSessionController extends Controller
 {
     public function __construct()
     {
+        $this->middleware('guest')->except('destroy');
         $this->middleware('throttle:60,1')->only(['store']);
     }
     public function create(): View

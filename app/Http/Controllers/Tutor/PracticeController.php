@@ -7,9 +7,21 @@ use App\Models\Practice;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Auth\Access\AuthorizationException;
 
 class PracticeController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('auth');
+        $this->middleware(function ($request, $next) {
+            if (auth()->user() && auth()->user()->role !== 'tutor') {
+                abort(403);
+            }
+            return $next($request);
+        });
+    }
+
     public function index()
     {
         $practices = Practice::where('tutor_id', Auth::id())

@@ -262,16 +262,20 @@ class AttendanceService
                 $payable = $tutor->pivot->payable_amount;
                 if ($payable <= 0) continue;
 
-                $this->accountingService->createJournal(
-                    now()->toDateString(),
-                    "REVERSE Tutor Fee: {$tutor->user->name}, Session: {$attendance->id}",
-                    "REV-TUTOR-PAY-{$attendance->id}-{$tutor->id}",
-                    [
-                        ['account_code' => AccountCode::TUTOR_PAYABLE->value,     'debit' => $payable, 'credit' => 0],
-                        ['account_code' => AccountCode::EXPENSE_TUTOR_FEE->value, 'debit' => 0, 'credit' => $payable],
-                    ],
-                    'reversal'
-                );
+                try {
+                    $this->accountingService->createJournal(
+                        now()->toDateString(),
+                        "REVERSE Tutor Fee: {$tutor->user->name}, Session: {$attendance->id}",
+                        "REV-TUTOR-PAY-{$attendance->id}-{$tutor->id}",
+                        [
+                            ['account_code' => AccountCode::TUTOR_PAYABLE->value,     'debit' => $payable, 'credit' => 0],
+                            ['account_code' => AccountCode::EXPENSE_TUTOR_FEE->value, 'debit' => 0, 'credit' => $payable],
+                        ],
+                        'reversal'
+                    );
+                } catch (\App\Exceptions\IdempotencyException $e) {
+                    // Journal already exists, skip
+                }
             }
 
             $attendance->students()->detach();
