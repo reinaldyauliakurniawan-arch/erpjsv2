@@ -9,11 +9,19 @@ return new class extends Migration
 {
     public function up(): void
     {
-        DB::statement("ALTER TABLE enrollments MODIFY COLUMN status ENUM('active','waitlist','expired','graduate') NOT NULL DEFAULT 'active'");
+        // Cross-database: SQLite doesn't support MODIFY COLUMN or ENUM.
+        // On SQLite the column is already a plain string (no ENUM constraint),
+        // so 'waitlist' values can be inserted without schema changes.
+        // On MySQL we still issue the ALTER to tighten the ENUM check.
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE enrollments MODIFY COLUMN status ENUM('active','waitlist','expired','graduate') NOT NULL DEFAULT 'active'");
+        }
     }
 
     public function down(): void
     {
-        DB::statement("ALTER TABLE enrollments MODIFY COLUMN status ENUM('active','expired','graduate') NOT NULL DEFAULT 'active'");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("ALTER TABLE enrollments MODIFY COLUMN status ENUM('active','expired','graduate') NOT NULL DEFAULT 'active'");
+        }
     }
 };

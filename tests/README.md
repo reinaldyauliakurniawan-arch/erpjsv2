@@ -5,78 +5,40 @@
 ```
 tests/
 ├── Unit/
-│   └── Services/
-│       ├── AccountingServiceTest.php   ← logika journal, balance, idempotency
-│       └── EnrollmentServiceTest.php   ← logika enrollment, waitlist, room occupancy
+│   ├── Services/
+│   │   ├── AccountingServiceTest.php   ← logika journal, balance, idempotency
+│   │   ├── EnrollmentServiceTest.php   ← logika enrollment, waitlist, room occupancy
+│   │   └── PayrollServiceTest.php      ← payroll run, approve, reverse, edge cases
+│   └── ValueObjects/
+│       └── MoneyTest.php               ← Money value object (arithmetic, parsing, formatting)
 └── Feature/
     ├── Auth/
     │   └── AuthenticationTest.php      ← login, logout, role redirect, rate limit
     ├── Admin/
     │   ├── EnrollmentControllerTest.php ← CRUD, installment paid, expire, graduate
     │   ├── JournalControllerTest.php    ← manual journal, reverse
-    │   └── PayrollControllerTest.php    ← run payroll, approve
-    └── AttendanceControllerTest.php     ← admin & tutor attendance, revenue recognition
+    │   ├── PayrollControllerTest.php    ← run payroll, approve
+    │   ├── ScheduleControllerTest.php   ← CRUD, conflict detection, role guard
+    │   └── StudentControllerTest.php    ← CRUD, filter, delete guard, role guard
+    ├── Middleware/
+    │   └── IdempotencyMiddlewareTest.php ← RFC Idempotency-Key header behavior
+    ├── AttendanceControllerTest.php     ← admin & tutor attendance, revenue recognition
+    └── SearchControllerTest.php         ← global search (admin & CFO role isolation)
 ```
 
 ---
 
 ## Setup
 
-### 1. Buat database testing
-Di `phpunit.xml` atau `.env.testing`, pastikan pakai SQLite in-memory:
+Test suite sudah dikonfigurasi untuk SQLite in-memory — **tidak perlu MySQL server**.
+
+`phpunit.xml` sudah set:
 ```xml
 <env name="DB_CONNECTION" value="sqlite"/>
 <env name="DB_DATABASE" value=":memory:"/>
 ```
 
-Atau buat database MySQL terpisah:
-```env
-# .env.testing
-DB_DATABASE=just_speak_test
-```
-
-### 2. Pastikan factories sudah ada
-Test ini butuh factories untuk semua model. Buat jika belum ada:
-```bash
-php artisan make:factory AccountFactory --model=Account
-php artisan make:factory EnrollmentFactory --model=Enrollment
-php artisan make:factory InstallmentFactory --model=Installment
-php artisan make:factory JournalFactory --model=Journal
-php artisan make:factory PayrollRunFactory --model=PayrollRun
-php artisan make:factory AttendanceFactory --model=Attendance
-php artisan make:factory ScheduleFactory --model=Schedule
-php artisan make:factory TutorFactory --model=Tutor
-php artisan make:factory ClassSessionFactory --model=ClassSession
-```
-
-Beberapa factory membutuhkan **states** khusus:
-```php
-// TutorFactory — state withUser()
-public function withUser(array $attrs = []): static
-{
-    return $this->state(fn () => [
-        'user_id' => User::factory()->create(array_merge(['role' => 'tutor'], $attrs))->id,
-    ]);
-}
-
-// EnrollmentFactory — state withRelations()
-public function withRelations(): static
-{
-    return $this->state(fn () => [
-        'student_id'       => Student::factory()->create()->id,
-        'program_id'       => Program::factory()->create()->id,
-        'class_session_id' => ClassSession::factory()->create()->id,
-    ]);
-}
-
-// JournalFactory — state withItems()
-public function withItems(): static
-{
-    return $this->afterCreating(function (Journal $journal) {
-        JournalItem::factory()->count(2)->create(['journal_id' => $journal->id]);
-    });
-}
-```
+Jadi `php artisan test` langsung jalan di fresh clone tanpa konfigurasi database eksternal.
 
 ---
 
@@ -95,9 +57,7 @@ php artisan test --verbose
 ### Satu file saja
 ```bash
 php artisan test tests/Unit/Services/AccountingServiceTest.php
-php artisan test tests/Unit/Services/EnrollmentServiceTest.php
-php artisan test tests/Feature/Admin/EnrollmentControllerTest.php
-php artisan test tests/Feature/Auth/AuthenticationTest.php
+php artisan test tests/Feature/SearchControllerTest.php
 ```
 
 ### Satu test method saja
@@ -113,11 +73,6 @@ php artisan test tests/Unit
 ### Hanya Feature Tests
 ```bash
 php artisan test tests/Feature
-```
-
-### Paralel (lebih cepat)
-```bash
-php artisan test --parallel
 ```
 
 ---
@@ -136,10 +91,17 @@ php artisan test --coverage --min=80
 |---|---|---|
 | AccountingService | Unit | Balance validation, idempotency, account not found, rollback |
 | EnrollmentService | Unit | Private/group enroll, waitlist, quota, room occupancy, installment, journal |
+| PayrollService | Unit | create/approve/reverse lifecycle, pending_rate skip, idempotent reversal |
+| Money | Unit | Factories, arithmetic, comparisons, parsing (ID + EN formats), formatting |
 | EnrollmentController | Feature | CRUD, mark paid, expire, graduate, role guard |
 | JournalController | Feature | Create, reverse, duplicate prevention |
 | PayrollController | Feature | Run, approve, double-approve guard |
+| ScheduleController | Feature | CRUD, slot conflict detection, validation, role guard |
+| StudentController | Feature | CRUD, filter (inactive/overdue), delete guards, role guard |
+| SearchController | Feature | Role isolation (admin vs CFO), substring match, min 2 chars, auth |
+| IdempotencyMiddleware | Feature | Same-key replay, 5xx not cached, 4xx cached, GET bypass |
 | AttendanceController | Feature | Admin delete, tutor absen, revenue recognition, duplicate prevention |
 | Authentication | Feature | Login per role, wrong password, rate limit, logout, role guard |
 
-**Total: ~50 test cases**
+**Total: ~90 test cases**
+

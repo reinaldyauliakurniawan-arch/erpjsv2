@@ -476,26 +476,43 @@ Enrollment expired → Auto recognize sisa pertemuan yang belum terpakai
 ### Instalasi & Setup
 
 **Prasyarat:**
-- PHP >= 8.3
+- PHP >= 8.3 (dengan ekstensi: pdo, pdo_sqlite, mbstring, xml, bcmath, curl, zip)
 - Composer
-- Node.js & npm
+- Node.js >= 18 & npm
+
+#### Opsi 1: Quick Start (SQLite — zero config, recommended untuk local dev)
 
 ```bash
 # Clone
-git clone https://github.com/reinaldyauliakurniawan-arch/erpjustspeak.git
-cd erpjustspeak
+git clone https://github.com/reinaldyauliakurniawan-arch/erpjsv2.git
+cd erpjsv2
 
-# Setup otomatis
+# Setup otomatis: composer install + .env + key:generate + migrate + seed + npm install + build
 composer run setup
 
-# Seeder Chart of Accounts
-php artisan db:seed --class=ChartOfAccountsSeeder
-
-# Development server (4 proses paralel: serve, queue, pail, vite)
+# Jalankan development server (4 proses paralel: serve, queue, pail, vite)
 composer dev
 ```
 
-**Konfigurasi Database (MySQL/PostgreSQL):**
+Setup otomatis akan:
+1. `composer install` — install PHP dependencies
+2. Copy `.env.example` → `.env` (default: SQLite, zero-config)
+3. Create `database/database.sqlite` jika belum ada
+4. `php artisan key:generate` — generate APP_KEY
+5. `php artisan migrate --force` — jalankan semua migration
+6. `php artisan db:seed --force` — seed data lengkap (admin, tutor, student, program, enrollment, jurnal, dll)
+7. `npm install` — install JS dependencies
+8. `npm run build` — build frontend assets
+
+Setelah selesai, buka `http://localhost:8000` dan login dengan:
+- **Admin:** `admin@justspeak.test` / `password`
+- **CFO:** `cfo@justspeak.test` / `password`
+- **Tutor:** `tutor1@justspeak.test` / `password`
+
+#### Opsi 2: MySQL/PostgreSQL (untuk production)
+
+1. Copy `.env.example` ke `.env`
+2. Edit konfigurasi database:
 ```env
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -504,6 +521,31 @@ DB_DATABASE=erp_just_speak
 DB_USERNAME=root
 DB_PASSWORD=your_password
 ```
+3. Jalankan:
+```bash
+composer install
+php artisan key:generate
+php artisan migrate --force
+php artisan db:seed --force
+npm install --ignore-scripts
+npm run build
+```
+
+### Testing
+
+```bash
+# Run semua test (menggunakan SQLite in-memory, tidak perlu MySQL)
+composer test
+
+# atau langsung
+php artisan test
+```
+
+Test suite menggunakan SQLite `:memory:` (lihat `phpunit.xml`) sehingga
+berjalan tanpa konfigurasi database eksternal. Coverage meliputi:
+- Unit: AccountingService, EnrollmentService, PayrollService, Money value object
+- Feature: Auth, Attendance, Enrollment, Journal, Payroll, Student, Schedule, Search
+- Middleware: Idempotency, Role
 
 ### Struktur Proyek
 

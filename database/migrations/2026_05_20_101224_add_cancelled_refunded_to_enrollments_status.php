@@ -7,25 +7,29 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Blueprint tidak support alter ENUM di semua driver,
-        // pakai raw SQL agar aman
-        DB::statement("
-            ALTER TABLE enrollments
-            MODIFY COLUMN status
-            ENUM('active','waitlist','expired','graduate','cancelled','refunded')
-            NOT NULL DEFAULT 'active'
-        ");
+        // Cross-database: SQLite doesn't support MODIFY COLUMN or ENUM.
+        // On SQLite the column is already a plain string, so 'cancelled'
+        // and 'refunded' values can be inserted without schema changes.
+        // On MySQL we issue the ALTER to tighten the ENUM check.
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("
+                ALTER TABLE enrollments
+                MODIFY COLUMN status
+                ENUM('active','waitlist','expired','graduate','cancelled','refunded')
+                NOT NULL DEFAULT 'active'
+            ");
+        }
     }
 
     public function down(): void
     {
-        // Hapus dulu row yang pakai status baru sebelum rollback,
-        // atau down() ini akan error kalau ada data dengan status tsb
-        DB::statement("
-            ALTER TABLE enrollments
-            MODIFY COLUMN status
-            ENUM('active','waitlist','expired','graduate')
-            NOT NULL DEFAULT 'active'
-        ");
+        if (DB::getDriverName() !== 'sqlite') {
+            DB::statement("
+                ALTER TABLE enrollments
+                MODIFY COLUMN status
+                ENUM('active','waitlist','expired','graduate')
+                NOT NULL DEFAULT 'active'
+            ");
+        }
     }
 };

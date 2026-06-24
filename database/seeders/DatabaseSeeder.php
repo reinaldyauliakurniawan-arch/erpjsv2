@@ -68,33 +68,49 @@ class DatabaseSeeder extends Seeder
 
     public function run(): void
     {
-        // Cleanup seeded data agar aman dijalankan ulang
-        DB::statement('SET FOREIGN_KEY_CHECKS=0;');
-        DB::table('attendance_tutor')->truncate();
-        DB::table('attendance_student')->truncate();
-        DB::table('attendance')->truncate();
-        DB::table('installments')->truncate();
-        DB::table('enrollments')->truncate();
-        DB::table('enrollment_tutor')->truncate();
-        DB::table('schedules')->truncate();
-        DB::table('room_bookings')->truncate();
-        DB::table('class_session_tutor')->truncate();
-        DB::table('class_sessions')->truncate();
-        DB::table('tutor_availability')->truncate();
-        DB::table('tutor_rates')->truncate();
-        DB::table('payroll_runs')->truncate();
-        DB::table('journal_items')->truncate();
-        DB::table('journals')->truncate();
-        DB::table('tracker_entries')->truncate();
-        DB::table('practices')->truncate();
-        DB::table('practice_student')->truncate();
+        // ──────────────────────────────────────────────────────────────
+        // Ensure foundational data exists before seeding transactions.
+        // On a fresh database (empty), DatabaseSeeder would fail because
+        // it references Program IDs 1-33, Classroom IDs 1-9, and Tutor
+        // records by ID — none of which exist yet. InitialDataSeeder
+        // creates them idempotently.
+        // ──────────────────────────────────────────────────────────────
+        $this->call([InitialDataSeeder::class]);
+
+        // Cleanup seeded data agar aman dijalankan ulang.
+        // Cross-database: SQLite uses PRAGMA foreign_keys=OFF, MySQL uses
+        // SET FOREIGN_KEY_CHECKS=0. We detect the driver and use the right
+        // syntax. TRUNCATE is faster on MySQL but resets auto-increment;
+        // DELETE preserves auto-increment and works on both. Using DELETE
+        // for portability — the seeder runs infrequently so the perf
+        // difference is negligible.
+        $this->disableForeignKeys();
+        DB::table('attendance_tutor')->delete();
+        DB::table('attendance_student')->delete();
+        DB::table('attendance')->delete();
+        DB::table('installments')->delete();
+        DB::table('enrollments')->delete();
+        DB::table('enrollment_tutor')->delete();
+        DB::table('schedules')->delete();
+        DB::table('room_bookings')->delete();
+        DB::table('class_session_tutor')->delete();
+        DB::table('class_sessions')->delete();
+        DB::table('tutor_availability')->delete();
+        DB::table('tutor_rates')->delete();
+        DB::table('payroll_runs')->delete();
+        DB::table('journal_items')->delete();
+        DB::table('journals')->delete();
+        DB::table('tracker_entries')->delete();
+        DB::table('practices')->delete();
+        DB::table('practice_student')->delete();
+        // Only delete seeded students (email pattern), preserve any manually-created ones
         DB::table('students')->whereNotExists(function($q) {
             $q->select(DB::raw(1))->from('users')
               ->whereColumn('users.id', 'students.user_id')
               ->whereNotLike('users.email', 'student%@justspeak.test');
         })->delete();
         DB::table('users')->where('email','like','student%@justspeak.test')->delete();
-        DB::statement('SET FOREIGN_KEY_CHECKS=1;');
+        $this->enableForeignKeys();
 
         $this->call([ChartOfAccountsSeeder::class]);
         $this->buildAccountCache();
@@ -178,6 +194,34 @@ class DatabaseSeeder extends Seeder
     private function accountId(string $code): int
     {
         return $this->accountIds[$code] ?? throw new \RuntimeException("Account code {$code} not found");
+    }
+
+    /**
+     * Disable FK constraints — cross-database.
+     *   SQLite: PRAGMA foreign_keys = OFF (per-connection)
+     *   MySQL:  SET FOREIGN_KEY_CHECKS = 0
+     */
+    private function disableForeignKeys(): void
+    {
+        $driver = DB::getDriverName();
+        if ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = OFF');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS = 0');
+        }
+    }
+
+    /**
+     * Re-enable FK constraints — cross-database.
+     */
+    private function enableForeignKeys(): void
+    {
+        $driver = DB::getDriverName();
+        if ($driver === 'sqlite') {
+            DB::statement('PRAGMA foreign_keys = ON');
+        } else {
+            DB::statement('SET FOREIGN_KEY_CHECKS = 1');
+        }
     }
 
     // ────────────────────────────────────────────────────────────────────
