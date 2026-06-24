@@ -8,6 +8,7 @@ use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
@@ -16,6 +17,11 @@ use Illuminate\View\View;
 
 class NewPasswordController extends Controller
 {
+    public function __construct()
+    {
+        $this->middleware('throttle:60,1')->only('store');
+    }
+
     /**
      * Display the password reset view.
      */
@@ -51,6 +57,12 @@ class NewPasswordController extends Controller
                 event(new PasswordReset($user));
             }
         );
+
+        // Log the password reset attempt
+        Log::info('Password reset request processed', [
+            'email' => $request->email,
+            'status' => $status
+        ]);
 
         // If the password was successfully reset, we will redirect the user back to
         // the application's home authenticated view. If there is an error we can
