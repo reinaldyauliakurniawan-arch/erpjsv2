@@ -21,14 +21,14 @@
 
        This is REQUIRED because DaisyUI's @plugin block emits its CSS
        *after* our @theme block in the compiled output, so without these
-       overrides DaisyUI's defaults (e.g. oklch(70% .2 80) for warning —
+       overrides, DaisyUI's defaults (e.g. oklch(70% .2 80) for warning —
        FAILS WCAG AA) would win the cascade over our brand tokens.
 
        Contrast verified against base-100 (≈ #f3f4f6):
          primary #065f46 / white     → 7.68:1 ✓ AAA
          secondary #059669 / white   → 3.77:1 (AA-large only — used for solid
                                           buttons/badges where text is on green)
-         success #047857 / white     → 5.48:1 ✓ AA
+         success #047857 / white     → 5.48:1.48:1 ✓ AA
          warning #b45309 / white     → 5.02:1 ✓ AA
          error #c81e1e / white       → 5.74:1 ✓ AA */
     --color-primary: #065f46;
@@ -54,7 +54,7 @@
    To retheme the app, change values here (or via Settings → Colors,
    which overrides `--color-primary`, `--color-secondary`, `--color-sidebar-bg`
    at runtime through the layout's :root block).
-   ════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════════ */
 @theme {
     /* Typography — Golden Ratio scale (φ = 1.618), base = 1rem (16px).
        All sizes are in rem so they scale with the user's browser font-size
@@ -416,9 +416,9 @@
 @utility space-x-md { & > * + * { margin-left: var(--spacing-md); } }
 @utility space-x-lg { & > * + * { margin-left: var(--spacing-lg); } }
 
-/* ════════════════════════════════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════════
    COLOR UTILITIES — token-driven, so changing --color-* cascades.
-   ════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════════ */
 @utility bg-surface { background-color: var(--color-surface); }
 @utility bg-surface-bright { background-color: var(--color-surface-bright); }
 @utility bg-surface-dim { background-color: var(--color-surface-dim); }
@@ -437,7 +437,7 @@
 @utility bg-background { background-color: var(--color-background); }
 
 @utility text-on-surface { color: var(--color-on-surface); }
-@utility text-on-surface-variant { color: var(--color-on-surface-variant); }
+@utility text-on-surface-variant: color: var(--color-on-surface-variant); }
 @utility text-on-primary { color: var(--color-on-primary); }
 @utility text-on-primary-container { color: var(--color-on-primary-container); }
 @utility text-on-secondary-container { color: var(--color-on-secondary-container); }
@@ -472,9 +472,9 @@
 @utility ring-primary-container { --tw-ring-color: var(--color-primary-container); }
 @utility ring-warning { --tw-ring-color: var(--color-warning); }
 
-/* ════════════════════════════════════════════════════════════════════
+/* ═════════════════════════════════════════════════════════════════════
    BASE LAYER
-   ════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════════ */
 @layer base {
     /* Fix double border DaisyUI 5 + Tailwind v4 */
     input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
@@ -557,7 +557,7 @@
 /* ════════════════════════════════════════════════════════════════════
    APP SHELL — sidebar, topbar, main content. All centralized here so
    layouts/*.blade.php just uses class names. No inline styles needed.
-   ════════════════════════════════════════════════════════════════════ */
+   ═════════════════════════════════════════════════════════════════════ */
 
 /* Sidebar — dark by default. Add `.app-sidebar--light` to flip text colors. */
 .app-sidebar {
@@ -1208,7 +1208,7 @@
 
 /* ════════════════════════════════════════════════════════════════════
    MAX-WIDTH UTILITIES (preserved from original)
-   ════════════════════════════════════════════════════════════════════ */
+   ══════════════════════════════════════════════════════════════════════ */
 @layer utilities {
     .max-w-sm { max-width: 24rem; }
     .max-w-md { max-width: 28rem; }
@@ -1329,17 +1329,17 @@
     outline: none;
 }
 
-/* ════════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════════════
    Alpine.js x-cloak — hides elements until Alpine has initialized.
    Without this, elements with x-show="someFalsyValue" flash briefly
    on page load before Alpine evaluates them.
    Usage: <span x-show="submitting" x-cloak>Loading…</span>
-   ════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 [x-cloak] { display: none !important; }
 
-/* ════════════════════════════════════════════════════════════════
+/* ════════════════════════════════════════════════════════════════════
    Global search bar — Cool Mode design per BRAND_PERSONALITY_GUIDE
-   ════════════════════════════════════════════════════════════════
+   ═══════════════════════════════════════════════════════════════════
    Rules followed:
    - Flat, neutral surface (no gradient, no glassmorphism)
    - Green only as accent on focus (active state)
@@ -1348,7 +1348,7 @@
    - 150ms transitions (motion-fast)
    - Cards use bg-surface-bright + border-surface-border
    - No decorative animations (only the spinner rotates, which is functional)
-   ════════════════════════════════════════════════════════════════ */
+   ═══════════════════════════════════════════════════════════════════ */
 
 .app-search {
     position: relative;
@@ -1514,8 +1514,6 @@
     background: var(--color-surface-container-low);
 }
 
-/* When the item is the cursor-highlighted one (keyboard nav), use a slightly
-   warmer tint so keyboard users can see which item Enter will follow. */
 .app-search__item--active {
     background: var(--color-surface-container-low);
     border-left: 3px solid var(--color-secondary);
