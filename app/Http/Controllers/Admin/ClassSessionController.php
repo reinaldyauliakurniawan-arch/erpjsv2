@@ -295,7 +295,7 @@ class ClassSessionController extends Controller
 
         $request->validate(['enrollment_id' => 'required|exists:enrollments,id']);
 
-        Enrollment::where('id', $request->enrollment_id)
+        Enrollment::where('id', $request->enrollment_id')
             ->update(['class_session_id' => $id]);
 
         return back()->with('success', 'Student assigned to class session successfully.');
@@ -412,24 +412,30 @@ class ClassSessionController extends Controller
 
         $timeBlock = $request->time_block === 'Custom' ? $request->custom_time : $request->time_block;
 
-        // Check for schedule conflict in the same classroom, day, and time block
-        $conflict = \App\Models\Schedule::where('classroom_id', $request->classroom_id)
-            ->where('day', $request->day)
-            ->where('time_block', $timeBlock)
-            ->exists();
-
-        if ($conflict) {
-            return back()->withErrors(['error' => 'The room is already booked at this time.']);
+        // Lock the classroom and class session to prevent race conditions
+        $classroom = Classroom::where('id', $request->classroom_id)->lockForUpdate()->first();
+        if (!$classroom) {
+            return back()->withErrors(['error' => 'Kelas tidak ditemukan.']);
         }
 
-        // Check for schedule conflict for this class session (same day and time block)
-        $sessionConflict = \App\Models\Schedule::where('class_session_id', $id)
+        $classSessionLock = ClassSession::where('id', $id)->lockForUpdate()->first();
+        if (!$classSessionLock) {
+            return back()->withErrors(['error' => 'Kelas sesi tidak ditemukan.']);
+        }
+
+        // Check for conflicts
+        $roomConflict = \App\Models\Schedule::where('classroom_id', $request->classroom_id)
             ->where('day', $request->day)
             ->where('time_block', $timeBlock)
             ->exists();
 
-        if ($sessionConflict) {
-            return back()->withErrors(['error' => 'This class session already has a schedule at this time.']);
+        $classSessionConflict = \App\Models\Schedule::where('class_session_id', $id)
+            ->where('day', $request->day)
+            ->where('time_block', $timeBlock)
+            ->exists();
+
+        if ($roomConflict || $classSessionConflict) {
+            return back()->withErrors(['error' => 'Jadwal bentrok.']);
         }
 
         \App\Models\Schedule::create([
@@ -609,22 +615,39 @@ class ClassSessionController extends Controller
                 continue;
             }
 
-            // Check for conflict with existing schedules (locked to prevent race conditions)
-            $conflict = \App\Models\Schedule::where('classroom_id', $schedule['classroom_id'])
+            // Lock the classroom and class session to prevent race conditions
+            $classroom = Classroom::where('id', $schedule['classroom_id'])->lockForUpdate()->first();
+            if (!$classroom) {
+                throw new \Exception("Kelas tidak ditemukan.");
+            }
+
+            $classSessionLock = ClassSession::where('id', $classSession->id)->lockForUpdate()->first();
+            if (!$classSessionLock) {
+                throw new \Exception("Kelas sesi tidak ditemukan.");
+            }
+
+            // Check for conflicts
+            $roomConflict = \App\Models\Schedule::where('classroom_id', $schedule['classroom_id'])
                 ->where('day', $schedule['day'])
                 ->where('time_block', $schedule['time_block'])
-                ->lockForUpdate()
                 ->exists();
 
-            if (!$conflict) {
-                \App\Models\Schedule::create([
-                    'class_session_id' => $classSession->id,
-                    'enrollment_id'    => null,
-                    'classroom_id'     => $schedule['classroom_id'],
-                    'day'              => $schedule['day'],
-                    'time_block'       => $schedule['time_block'],
-                ]);
+            $classSessionConflict = \App\Models\Schedule::where('class_session_id', $classSession->id)
+                ->where('day', $schedule['day'])
+                ->where('time_block', $schedule['time_block'])
+                ->exists();
+
+            if ($roomConflict || $classSessionConflict) {
+                throw new \Exception("Jadwal bentrok untuk ruang {$schedule['classroom_id']} atau kelas sesi {$classSession->id} pada hari {$schedule['day']} pukul {$schedule['time_block']}.");
             }
+
+            \App\Models\Schedule::create([
+                'class_session_id' => $classSession->id,
+                'enrollment_id'    => null,
+                'classroom_id'     => $schedule['classroom_id'],
+                'day'              => $schedule['day'],
+                'time_block'       => $schedule['time_block'],
+            ]);
         }
     }
 }
