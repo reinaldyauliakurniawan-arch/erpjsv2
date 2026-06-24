@@ -54,19 +54,34 @@ These are created by `InitialDataSeeder` (runs automatically during `db:seed`):
 ```
 tests/e2e/
 ├── helpers/
-│   └── auth.js              # Login/logout helpers for each role
-├── auth.spec.js             # Login, logout, role redirect, forbidden access
-├── admin-students.spec.js   # Student list, detail, update
-├── admin-tutors.spec.js     # Tutor list, detail, create
-├── admin-classrooms.spec.js # Classroom list, create, edit/delete buttons
-├── admin-programs.spec.js   # Program list, create, edit buttons
-├── admin-settings.spec.js   # User CRUD, color settings
-├── cfo-accounts.spec.js     # Account list, create
-├── cfo-journals.spec.js     # Journal list, create balanced entry
-├── cfo-payroll.spec.js      # Payroll list, create run, approve/reverse buttons
-├── navigation.spec.js       # All sidebar links load without error + search bar
-└── button-smoke.spec.js     # No dead clicks: every button does something
+│   └── auth.js                              # Login/logout helpers for each role
+├── auth.spec.js                             # Login, logout, role redirect, forbidden access
+├── admin-students.spec.js                   # Student list, detail, update
+├── admin-tutors.spec.js                     # Tutor list, detail, create
+├── admin-classrooms.spec.js                 # Classroom list, create, edit/delete
+├── admin-programs.spec.js                   # Program list, create, edit
+├── admin-settings.spec.js                   # User CRUD, color settings
+├── admin-class-sessions.spec.js             # Class session CRUD, assign/remove, schedules
+├── admin-enrollments.spec.js                # Enrollment list, create form, detail, expire/graduate
+├── admin-schedule-attendance-tracker.spec.js # Schedule grid, attendance, tracker
+├── admin-imports-dashboard.spec.js          # Import/export, admin dashboard
+├── cfo-accounts.spec.js                     # Account list, create
+├── cfo-journals.spec.js                     # Journal list, create balanced entry
+├── cfo-payroll.spec.js                      # Payroll list, create, approve, reverse
+├── cfo-reports-assets-rab.spec.js           # All 8 reports, adjusting journals, fixed assets, RAB,
+│                                            # finance dashboard, journal detail, all exports
+├── navigation.spec.js                       # All sidebar links + search bar
+├── button-smoke.spec.js                     # No JS errors, no dead clicks, modals open
+├── tutor-all.spec.js                        # Tutor dashboard, attendance, schedule, availability,
+│                                            # practice CRUD, tracker, authz check
+├── student-all.spec.js                      # Student dashboard, practice, tracker, access control
+├── profile-auth.spec.js                     # Profile edit, password change, forgot password,
+│                                            # confirm password
+└── edge-cases.spec.js                       # Apostrophe names, XSS, form validation, modal close,
+                                             # empty states, double-submit protection, pagination
 ```
+
+**Total: 20 test files, 120+ test cases**
 
 ## What Each Test Verifies
 
