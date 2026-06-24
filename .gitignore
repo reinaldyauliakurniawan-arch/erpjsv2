@@ -108,6 +108,11 @@ pnpm-debug.log
 .eslintcache
 .stylelintcache
 
+# ── Playwright E2E test artifacts ───────────────────────────────────
+/playwright-report/
+/test-results/
+/playwright/.cache/
+
 # ── Logs & runtime data ──────────────────────────────────────────────
 *.log
 storage/logs/
