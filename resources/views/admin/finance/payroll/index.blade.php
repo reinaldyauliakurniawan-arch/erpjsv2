@@ -39,7 +39,7 @@
     <div class="app-card">
         @if($payrollRuns->isEmpty())
         <div class="text-center py-xl text-on-surface-variant">
-            <span class="material-symbols-outlined text-4xl">payments</span>
+            <span class="material-symbols-outlined text-[48px]">payments</span>
             <p class="mt-sm text-sm">Belum ada payroll run</p>
         </div>
         @else

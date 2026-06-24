@@ -5,7 +5,7 @@
 
     <div class="flex items-center justify-between">
         <div>
-            <h1 class="text-xl font-semibold text-on-surface">Availabilitas</h1>
+            <h1 class="text-headline-lg font-semibold text-on-surface">Availabilitas</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Atur slot waktu yang bisa dijadwalkan admin</p>
         </div>
         <button type="button" onclick="document.getElementById('modal-add').showModal()"
@@ -44,7 +44,7 @@
 
     @if($availability->isEmpty())
     <div class="app-card text-center py-xl text-on-surface-variant">
-        <span class="material-symbols-outlined text-4xl">event_available</span>
+        <span class="material-symbols-outlined text-[48px]">event_available</span>
         <p class="mt-sm text-sm font-medium text-on-surface">Belum ada slot availabilitas</p>
         <p class="mt-xs text-xs">Klik "Tambah Slot" untuk menambahkan waktu yang kamu tersedia</p>
     </div>

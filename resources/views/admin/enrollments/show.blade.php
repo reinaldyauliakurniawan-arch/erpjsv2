@@ -36,7 +36,7 @@
                 @elseif($enrollment->status === 'waitlist')
                     <span class="badge badge-soft badge-warning">Waitlist</span>
                 @elseif($enrollment->status === 'graduate')
-                    <span class="badge badge-soft badge-info">Graduate</span>
+                    <span class="badge badge-soft badge-neutral">Graduate</span>
                 @elseif($enrollment->status === 'expired')
                     <span class="badge badge-soft badge-error">Expired</span>
                 @endif

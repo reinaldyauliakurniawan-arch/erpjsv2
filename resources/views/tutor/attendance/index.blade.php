@@ -27,19 +27,19 @@
     <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Belum Dibayar</p>
-            <p class="text-xl font-bold text-error mt-xs">
+            <p class="text-headline-lg font-bold text-error mt-xs">
                 Rp <span x-text="formatRp(summary.unpaid)">{{ number_format($unpaidTotal,0,',','.') }}</span>
             </p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Dibayar Bulan Ini</p>
-            <p class="text-xl font-bold text-success mt-xs">
+            <p class="text-headline-lg font-bold text-success mt-xs">
                 Rp <span x-text="formatRp(summary.paidMonth)">{{ number_format($paidThisMonth,0,',','.') }}</span>
             </p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Rate Pending</p>
-            <p class="text-xl font-bold mt-xs" :class="summary.pendingRate > 0 ?'text-warning' : 'text-on-surface'">
+            <p class="text-headline-lg font-bold mt-xs" :class="summary.pendingRate > 0 ?'text-warning' : 'text-on-surface'">
                 <span x-text="summary.pendingRate">{{ $pendingRateCount }}</span> sesi
             </p>
         </div>
@@ -104,7 +104,7 @@
                                     <span class="text-body-sm text-secondary" x-text="session.time_block"></span>
                                 </div>
                                 <span class="badge badge-soft text-body-sm"
-                                      :class="session.mode ==='replacement' ? 'badge-warning' : session.mode === 'team_teaching' ? 'badge-info' : ''"
+                                      :class="session.mode ==='replacement' ? 'badge-warning' : session.mode === 'team_teaching' ? 'badge-neutral' : ''"
                                       x-text="session.mode === 'replacement' ? 'Replacement' : session.mode === 'team_teaching' ? 'Team' : 'Own'"></span>
                             </div>
                             <div class="flex items-center justify-between">
@@ -158,7 +158,7 @@
         <div class="overflow-y-auto flex-1 p-lg space-y-md">
             <div class="flex items-center gap-sm">
                 <span class="badge badge-soft text-body-sm"
-                      :class="sessionModal.mode ==='replacement' ? 'badge-warning' : sessionModal.mode === 'team_teaching' ? 'badge-info' : ''"
+                      :class="sessionModal.mode ==='replacement' ? 'badge-warning' : sessionModal.mode === 'team_teaching' ? 'badge-neutral' : ''"
                       x-text="sessionModal.modeLabel"></span>
                 <span class="text-body-sm text-on-surface-variant" x-text="sessionModal.modeLabel"></span>
             </div>

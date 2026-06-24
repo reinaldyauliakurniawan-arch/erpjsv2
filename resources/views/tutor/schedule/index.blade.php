@@ -50,7 +50,7 @@ function guardSlot(dateStr, timeBlock, callback) {
     {{-- Header + Week Nav --}}
     <div class="flex items-center justify-between flex-wrap gap-md">
         <div>
-            <h2 class="text-xl font-semibold text-on-surface">Jadwal</h2>
+            <h2 class="text-headline-lg font-semibold text-on-surface">Jadwal</h2>
             <p class="text-sm text-on-surface-variant mt-xs">
                 {{ $weekStart->isoFormat('D MMM') }} — {{ $weekStart->copy()->endOfWeek()->isoFormat('D MMM YYYY') }}
             </p>
@@ -151,8 +151,8 @@ function guardSlot(dateStr, timeBlock, callback) {
                                 @endphp
                                 @if(!$alreadySkipped)
                                 <button type="button"
-                                    @click="guardSlot('{{ $todayDate }}', '{{ $slot->time_block }}', () => { modal = true; modalType = 'skip'; selectedBlock = '{{ $slot->time_block }}'; selectedDate = '{{ $todayDate }}'; classroomId = '{{ $slot->classroom_id }}'; selectedScheduleId = '{{ $slot->id }}'; })"
-                                    class="btn btn-xs btn-ghost text-yellow-600 hover:bg-yellow-50">
+                                    @click="guardSlot(@json($todayDate), @json($slot->time_block), () => { modal = true; modalType = 'skip'; selectedBlock = @json($slot->time_block); selectedDate = @json($todayDate); classroomId = @json($slot->classroom_id); selectedScheduleId = @json($slot->id); })"
+                                    class="btn btn-xs btn-ghost text-warning hover:bg-yellow-50">
                                     <span class="material-symbols-outlined text-[14px]">event_busy</span>
                                     Skip
                                 </button>
@@ -162,7 +162,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                                         ->where('type', 'regular_skip')
                                         ->first(fn($b) => \Carbon\Carbon::parse($b->date)->toDateString() === $todayDate);
                                 @endphp
-                                <div class="text-xs text-yellow-600 font-semibold">
+                                <div class="text-xs text-warning font-semibold">
                                     Skipped
                                     @if($skipBooking?->notes)
                                         <span class="block text-on-surface-variant font-normal italic">{{ $skipBooking->notes }}</span>
@@ -268,29 +268,29 @@ function guardSlot(dateStr, timeBlock, callback) {
                     @endphp
 
                     @if($schedule && !$isSkipped && !$isTemp)
-                        <div class="{{ $isMySlot ?'bg-primary-container/20 border-primary-container' : 'bg-red-50 border-red-200' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs"
+                        <div class="{{ $isMySlot ?'bg-primary-container/20 border-primary-container' : 'bg-error-container border-error/30' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs"
                             title="{{ $isMySlot ? 'Jadwal saya' : 'Reguler' }}">
-                            <span class="material-symbols-outlined {{ $isMySlot ?'text-primary-container' : 'text-red-400' }} text-sm">
+                            <span class="material-symbols-outlined {{ $isMySlot ?'text-primary-container' : 'text-on-error-container' }} text-sm">
                                 {{ $isMySlot ? 'star' : 'lock' }}
                             </span>
-                            <span class="text-[9px] font-bold {{ $isMySlot ?'text-primary-container' : 'text-red-400' }} text-center leading-tight truncate w-full">
+                            <span class="text-[9px] font-bold {{ $isMySlot ?'text-primary-container' : 'text-on-error-container' }} text-center leading-tight truncate w-full">
                                 {{ $schedule->classSession?->name ?? '—' }}
                             </span>
                         </div>
 
                     @elseif($isMyTemp)
                         <button type="button"
-                            @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'cancel'; selectedRoom = '{{ $classroom->name }}'; selectedBlock = '{{ $block }}'; selectedDate = '{{ $date }}'; bookingId = {{ $booking->id }}; bookingNotes = {{ json_encode($booking->notes ?? '') }}; })"
-                            class="bg-amber-50 border border-blue-300 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-amber-100 transition-colors"
+                            @click="guardSlot(@json($date), @json($block), () => { modal = true; modalType = 'cancel'; selectedRoom = @json($classroom->name); selectedBlock = @json($block); selectedDate = @json($date); bookingId = {{ $booking->id }}; bookingNotes = {{ json_encode($booking->notes ?? '') }}; })"
+                            class="bg-warning/10 border border-warning/30 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-amber-100 transition-colors"
                             title="Booking saya — klik untuk cancel">
-                            <span class="material-symbols-outlined text-amber-600 text-sm">event_available</span>
-                            <span class="text-[9px] font-bold text-amber-600 text-center leading-tight">Saya</span>
+                            <span class="material-symbols-outlined text-on-tertiary-container text-sm">event_available</span>
+                            <span class="text-[9px] font-bold text-on-tertiary-container text-center leading-tight">Saya</span>
                         </button>
 
                     @elseif($isTemp)
-                        <div class="bg-amber-50 border border-amber-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs opacity-60">
-                            <span class="material-symbols-outlined text-amber-500 text-sm">event_busy</span>
-                            <span class="text-[9px] font-bold text-amber-500 text-center leading-tight">Penuh</span>
+                        <div class="bg-warning/10 border border-amber-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs opacity-60">
+                            <span class="material-symbols-outlined text-warning text-sm">event_busy</span>
+                            <span class="text-[9px] font-bold text-warning text-center leading-tight">Penuh</span>
                         </div>
 
                     @elseif($isSkipped || !$schedule)
@@ -300,10 +300,10 @@ function guardSlot(dateStr, timeBlock, callback) {
                         </div>
                         @else
                         <button type="button"
-                            @click="guardSlot('{{ $date }}', '{{ $block }}', () => { modal = true; modalType = 'book'; selectedRoom = '{{ $classroom->name }}'; selectedBlock = '{{ $block }}'; selectedDate = '{{ $date }}'; classroomId = '{{ $classroom->id }}'; })"
-                            class="{{ $isSkipped ?'bg-yellow-50 border-yellow-200 hover:bg-yellow-100' : 'bg-green-50 border-green-200 hover:bg-green-100' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
-                            <span class="material-symbols-outlined {{ $isSkipped ?'text-yellow-500' : 'text-green-600' }} text-sm">add_circle</span>
-                            <span class="text-[9px] font-bold {{ $isSkipped ?'text-yellow-500' : 'text-green-600' }} text-center">
+                            @click="guardSlot(@json($date), @json($block), () => { modal = true; modalType = 'book'; selectedRoom = @json($classroom->name); selectedBlock = @json($block); selectedDate = @json($date); classroomId = @json($classroom->id); })"
+                            class="{{ $isSkipped ?'bg-warning/10 border-warning/30 hover:bg-warning/20' : 'bg-success/10 border-success/30 hover:bg-success/20' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
+                            <span class="material-symbols-outlined {{ $isSkipped ?'text-warning' : 'text-success' }} text-sm">add_circle</span>
+                            <span class="text-[9px] font-bold {{ $isSkipped ?'text-warning' : 'text-success' }} text-center">
                                 {{ $isSkipped ? 'Skip' : 'Kosong' }}
                             </span>
                         </button>

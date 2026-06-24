@@ -140,7 +140,7 @@
                             <td>
                                 <span class="badge badge-soft {{ match($enrollment->status) {'active' => 'badge-success',
                                     'waitlist' => 'badge-warning',
-                                    'graduate' => 'badge-info',
+                                    'graduate' => 'badge-neutral',
                                     'expired' => 'badge-error',
                                     default => ''
                                 } }}">{{ $enrollment->status }}</span>

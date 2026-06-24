@@ -5,7 +5,7 @@
 
     {{-- Greeting --}}
     <div>
-        <h3 class="text-xl font-bold text-on-surface">Halo, {{ Auth::user()->name }} 👋</h3>
+        <h3 class="text-headline-lg font-bold text-on-surface">Halo, {{ Auth::user()->name }} 👋</h3>
         <p class="text-sm text-on-surface-variant mt-xs">{{ $today->translatedFormat('l, d F Y') }}</p>
     </div>
 
@@ -20,7 +20,7 @@
 
         $statusColor = match($enrollment->status) {
             'active'    => 'badge-success',
-            'graduate' => 'badge-info',
+            'graduate' => 'badge-neutral',
             'cancelled' => 'badge-error',
             default     => 'badge-neutral',
         };
@@ -73,15 +73,15 @@
         {{-- Stats --}}
         <div class="grid grid-cols-3 gap-md text-center">
             <div class="bg-surface rounded-lg p-sm">
-                <p class="text-xl font-bold text-primary-container">{{ $attended }}</p>
+                <p class="text-headline-lg font-bold text-primary-container">{{ $attended }}</p>
                 <p class="text-xs text-on-surface-variant">Hadir</p>
             </div>
             <div class="bg-surface rounded-lg p-sm">
-                <p class="text-xl font-bold text-on-surface">{{ $total }}</p>
+                <p class="text-headline-lg font-bold text-on-surface">{{ $total }}</p>
                 <p class="text-xs text-on-surface-variant">Total Sesi</p>
             </div>
             <div class="bg-surface rounded-lg p-sm">
-                <p class="text-xl font-bold text-on-surface">{{ $remaining }}</p>
+                <p class="text-headline-lg font-bold text-on-surface">{{ $remaining }}</p>
                 <p class="text-xs text-on-surface-variant">Sisa</p>
             </div>
         </div>

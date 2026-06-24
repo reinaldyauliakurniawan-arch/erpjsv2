@@ -41,7 +41,7 @@
                 @if($status === 'completed')
                     <span class="badge badge-success badge-soft font-semibold">Selesai</span>
                 @elseif($opened)
-                    <span class="badge badge-info badge-soft font-semibold">Dibuka</span>
+                    <span class="badge badge-neutral badge-soft font-semibold">Dibuka</span>
                 @else
                     <span class="badge badge-neutral badge-soft font-semibold">Belum Dimulai</span>
                 @endif
@@ -135,7 +135,7 @@
         </div>
     @empty
         <div class="app-card text-center text-on-surface-variant">
-            <span class="material-symbols-outlined text-4xl mb-md block">inbox</span>
+            <span class="material-symbols-outlined text-[48px] mb-md block">inbox</span>
             Belum ada practice yang di-assign ke kamu.
         </div>
     @endforelse

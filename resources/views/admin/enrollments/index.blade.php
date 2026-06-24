@@ -64,7 +64,7 @@
     const statusColors = {
         active:   'badge-success',
         waitlist: 'badge-warning',
-        graduate: 'badge-info',
+        graduate: 'badge-neutral',
         expired:  'badge-error',
     };
     const payColors = {

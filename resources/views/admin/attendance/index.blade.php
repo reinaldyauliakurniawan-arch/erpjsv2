@@ -412,7 +412,7 @@
                             formatter(cell) {
                                 const s = cell.getValue();
                                 if (s === 'finished')  return `<span class="badge badge-soft badge-success">Finished</span>`;
-                                if (s === 'ongoing')   return `<span class="badge badge-soft badge-info">Ongoing</span>`;
+                                if (s === 'ongoing')   return `<span class="badge badge-soft badge-neutral">Ongoing</span>`;
                                 if (s === 'scheduled') return `<span class="badge badge-soft badge-warning">Scheduled</span>`;
                                 if (s === 'skipped')   return `<span class="badge badge-soft badge-error">Skipped</span>`;
                                 if (s === 'postponed') return `<span class="badge badge-soft badge-neutral">Postponed</span>`;

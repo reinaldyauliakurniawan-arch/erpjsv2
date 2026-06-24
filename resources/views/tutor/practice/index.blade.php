@@ -2,7 +2,7 @@
 <x-slot name="title">Tugas Saya</x-slot>
 <div class="p-lg space-y-md">
     <div class="flex items-center justify-between">
-        <h1 class="text-xl font-semibold text-on-surface">Tugas Practice</h1>
+        <h1 class="text-headline-lg font-semibold text-on-surface">Tugas Practice</h1>
         <a href="{{ route('tutor.practice.create') }}" class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
             <span class="material-symbols-outlined text-base">add</span> Buat Tugas
         </a>
@@ -31,7 +31,7 @@
     </div>
     @empty
     <div class="text-center text-on-surface-variant py-xl">
-        <span class="material-symbols-outlined text-4xl block mb-sm">inbox</span>
+        <span class="material-symbols-outlined text-[48px] block mb-sm">inbox</span>
         Belum ada tugas. Klik "Buat Tugas" untuk mulai.
     </div>
     @endforelse

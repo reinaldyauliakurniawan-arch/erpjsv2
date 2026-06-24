@@ -110,7 +110,7 @@
                     @empty
                     <tr>
                         <td colspan="5" class="px-lg py-lg text-center text-body-sm text-on-surface-variant">
-                            <span class="material-symbols-outlined text-4xl block mb-sm">inbox</span>
+                            <span class="material-symbols-outlined text-[48px] block mb-sm">inbox</span>
                             Belum ada practice yang di-assign ke kamu.
                         </td>
                     </tr>

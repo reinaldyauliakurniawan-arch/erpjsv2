@@ -4,7 +4,7 @@
 <div class="p-lg space-y-md">
 
     <div>
-        <h1 class="text-xl font-semibold text-on-surface">Halo, {{ Auth::user()->name }} 👋</h1>
+        <h1 class="text-headline-lg font-semibold text-on-surface">Halo, {{ Auth::user()->name }} 👋</h1>
         <p class="text-sm text-on-surface-variant mt-xs">{{ now()->translatedFormat('l, d F Y') }}</p>
     </div>
 

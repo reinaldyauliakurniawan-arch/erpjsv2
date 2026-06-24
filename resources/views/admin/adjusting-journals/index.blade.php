@@ -269,7 +269,7 @@
                         const type = cell.getRow().getData().type;
                         const colors = {
                             depreciation:     'badge-warning',
-                            amortization:     'badge-info',
+                            amortization:     'badge-neutral',
                             deferred_revenue: 'badge-secondary',
                             manual:           'badge-ghost',
                         };

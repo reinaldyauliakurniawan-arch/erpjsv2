@@ -104,6 +104,13 @@
     --text-body-md: 0.75rem;
     --text-body-md--line-height: 1.5;  /* 12px × 1.5 = 18px */
 
+    /* Secondary / caption text — used 183+ times across views.
+       Between body-md (12px) and label-lg (11px). At 11px with 1.4
+       line-height it's readable for short captions, subtitles, and
+       metadata without competing with primary body text. */
+    --text-body-sm: 0.6875rem;
+    --text-body-sm--line-height: 1.4;  /* 11px × 1.4 = 15.4px */
+
     --text-label-lg: 0.6875rem;
     --text-label-lg--line-height: 1.2;
     --text-label-lg--letter-spacing: 0.05em;

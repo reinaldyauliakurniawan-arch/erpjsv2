@@ -100,19 +100,19 @@
                 <template x-for="(items, category) in results" :key="category">
                     <div class="app-search__group">
                         <p class="app-search__group-label" x-text="category"></p>
-                        <a
-                            x-for="(item, idx) in items"
-                            :key="item.id + '-' + category"
-                            :href="item.url"
-                            role="option"
-                            :aria-selected="cursor === flatIndex(category, idx) ? 'true' : 'false'"
-                            @mouseenter="cursor = flatIndex(category, idx)"
-                            @click="close()"
-                            class="app-search__item"
-                            :class="{ 'app-search__item--active': cursor === flatIndex(category, idx) }">
-                            <div class="app-search__item-label" x-text="item.label"></div>
-                            <div class="app-search__item-subtitle" x-text="item.subtitle"></div>
-                        </a>
+                        <template x-for="(item, idx) in items" :key="item.id + '-' + category">
+                            <a
+                                :href="item.url"
+                                role="option"
+                                :aria-selected="cursor === flatIndex(category, idx) ? 'true' : 'false'"
+                                @mouseenter="cursor = flatIndex(category, idx)"
+                                @click="close()"
+                                class="app-search__item"
+                                :class="{ 'app-search__item--active': cursor === flatIndex(category, idx) }">
+                                <div class="app-search__item-label" x-text="item.label"></div>
+                                <div class="app-search__item-subtitle" x-text="item.subtitle"></div>
+                            </a>
+                        </template>
                     </div>
                 </template>
             </div>

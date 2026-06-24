@@ -251,7 +251,8 @@
                                 $studentName     = $e->student->user->name;
                             @endphp
                             <tr class="hover:bg-surface-container-low transition-colors"
-                                x-show="waitSearch === '' || '{{ strtolower($studentName) }}'.includes(waitSearch.toLowerCase())">
+                                data-name="{{ strtolower($studentName) }}"
+                                x-show="waitSearch === '' || $el.dataset.name.includes(waitSearch.toLowerCase())">
                                 <td>
                                     <div class="flex items-center gap-sm">
                                         <div class="app-avatar app-avatar--sm">
@@ -330,7 +331,8 @@
                                 $studentName    = $e->student->user->name;
                             @endphp
                             <tr class="hover:bg-surface-container-low transition-colors"
-                                x-show="waitSearch === '' || '{{ strtolower($studentName) }}'.includes(waitSearch.toLowerCase())">
+                                data-name="{{ strtolower($studentName) }}"
+                                x-show="waitSearch === '' || $el.dataset.name.includes(waitSearch.toLowerCase())">
                                 <td>
                                     <div class="flex items-center gap-sm">
                                         <div class="w-8 h-8 rounded-full bg-error/20 flex items-center justify-center font-bold text-error text-xs shrink-0">
@@ -405,7 +407,8 @@
                                 $studentName = $e->student->user->name;
                             @endphp
                             <tr class="hover:bg-surface-container-low transition-colors"
-                                x-show="waitSearch === '' || '{{ strtolower($studentName) }}'.includes(waitSearch.toLowerCase())">
+                                data-name="{{ strtolower($studentName) }}"
+                                x-show="waitSearch === '' || $el.dataset.name.includes(waitSearch.toLowerCase())">
                                 <td>
                                     <div class="flex items-center gap-sm">
                                         <div class="w-8 h-8 rounded-full bg-warning/20 flex items-center justify-center font-bold text-warning text-xs shrink-0">
@@ -488,7 +491,8 @@
                                 $studentName = $enrollment->student->user->name;
                             @endphp
                             <tr class="hover:bg-surface-container-low transition-colors"
-                                x-show="expiringSearch === '' || '{{ strtolower($studentName) }}'.includes(expiringSearch.toLowerCase())">
+                                data-name="{{ strtolower($studentName) }}"
+                                x-show="expiringSearch === '' || $el.dataset.name.includes(expiringSearch.toLowerCase())">
                                 <td>
                                     <a href="{{ route('admin.enrollments.show', $enrollment->id) }}"
                                         class="font-semibold text-body-md hover:text-primary-container">{{ $studentName }}</a>
@@ -551,7 +555,8 @@
                                 $studentName = $inst->enrollment->student->user->name;
                             @endphp
                             <tr class="hover:bg-surface-container-low transition-colors"
-                                x-show="installSearch === '' || '{{ strtolower($studentName) }}'.includes(installSearch.toLowerCase())">
+                                data-name="{{ strtolower($studentName) }}"
+                                x-show="installSearch === '' || $el.dataset.name.includes(installSearch.toLowerCase())">
                                 <td>
                                     <a href="{{ route('admin.enrollments.show', $inst->enrollment_id) }}"
                                         class="font-semibold text-body-md hover:text-primary-container">{{ $studentName }}</a>
@@ -678,7 +683,8 @@
                         @foreach($newStudents as $student)
                         @php $studentName = $student->user->name ?? '-'; @endphp
                         <tr class="hover:bg-surface-container-low transition-colors"
-                            x-show="newStudentSearch === '' || '{{ strtolower($studentName) }}'.includes(newStudentSearch.toLowerCase())">
+                            data-name="{{ strtolower($studentName) }}"
+                            x-show="newStudentSearch === '' || $el.dataset.name.includes(newStudentSearch.toLowerCase())">
                             <td>
                                 <div class="flex items-center gap-sm">
                                     <div class="app-avatar app-avatar--sm">

@@ -107,12 +107,19 @@
                             <td class="px-lg py-md text-right">
                                 <div class="flex items-center justify-end gap-xs">
                                     <button type="button"
-                                        onclick="openEditModal({{ $user->id }}, '{{ addslashes($user->name) }}', '{{ addslashes($user->email) }}', '{{ $user->phone }}', '{{ $user->role }}')"
+                                        data-id="{{ $user->id }}"
+                                        data-name="{{ $user->name }}"
+                                        data-email="{{ $user->email }}"
+                                        data-phone="{{ $user->phone ?? '' }}"
+                                        data-role="{{ $user->role }}"
+                                        onclick="openEditModal(this.dataset)"
                                         class="btn btn-ghost btn-sm text-on-surface-variant hover:text-secondary">
                                         <span class="material-symbols-outlined text-[18px]">edit</span>
                                     </button>
                                     <button type="button"
-                                        onclick="openDeleteModal({{ $user->id }}, '{{ addslashes($user->name) }}')"
+                                        data-id="{{ $user->id }}"
+                                        data-name="{{ $user->name }}"
+                                        onclick="openDeleteModal(this.dataset)"
                                         class="btn btn-ghost btn-sm text-error">
                                         <span class="material-symbols-outlined text-[18px]">delete</span>
                                     </button>
@@ -242,18 +249,18 @@
     </dialog>
 
     <script>
-    function openEditModal(id, name, email, phone, role) {
-        document.getElementById('edit-name').value  = name;
-        document.getElementById('edit-email').value = email;
-        document.getElementById('edit-phone').value = phone !== 'null' ? phone : '';
-        document.getElementById('edit-role').value  = role;
-        document.getElementById('form-edit').action = `/admin/settings/users/${id}`;
+    function openEditModal(d) {
+        document.getElementById('edit-name').value  = d.name;
+        document.getElementById('edit-email').value = d.email;
+        document.getElementById('edit-phone').value = d.phone !== 'null' ? d.phone : '';
+        document.getElementById('edit-role').value  = d.role;
+        document.getElementById('form-edit').action = `/admin/settings/users/${d.id}`;
         document.getElementById('modal-edit').showModal();
     }
 
-    function openDeleteModal(id, name) {
-        document.getElementById('delete-subtitle').textContent = `User "${name}" akan dihapus permanen.`;
-        document.getElementById('form-delete').action = `/admin/settings/users/${id}`;
+    function openDeleteModal(d) {
+        document.getElementById('delete-subtitle').textContent = `User "${d.name}" akan dihapus permanen.`;
+        document.getElementById('form-delete').action = `/admin/settings/users/${d.id}`;
         document.getElementById('modal-delete').showModal();
     }
     </script>

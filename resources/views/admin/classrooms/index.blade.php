@@ -100,13 +100,19 @@
                                 <td class="px-lg py-md text-right">
                                     <div class="flex items-center justify-end gap-xs">
                                         <button type="button"
-                                            onclick="openEditModal({{ $classroom->id }}, '{{ addslashes($classroom->name) }}', '{{ $classroom->capacity }}', {{ $classroom->is_at_just_speak ? 1 : 0 }})"
+                                            data-id="{{ $classroom->id }}"
+                                            data-name="{{ $classroom->name }}"
+                                            data-capacity="{{ $classroom->capacity }}"
+                                            data-at-just-speak="{{ $classroom->is_at_just_speak ? 1 : 0 }}"
+                                            onclick="openEditModal(this.dataset)"
                                             class="btn btn-ghost btn-sm text-on-surface-variant hover:text-secondary"
                                             title="Edit">
                                             <span class="material-symbols-outlined text-[18px]">edit</span>
                                         </button>
                                         <button type="button"
-                                            onclick="openDeleteModal({{ $classroom->id }}, '{{ addslashes($classroom->name) }}')"
+                                            data-id="{{ $classroom->id }}"
+                                            data-name="{{ $classroom->name }}"
+                                            onclick="openDeleteModal(this.dataset)"
                                             class="btn btn-ghost btn-sm text-error"
                                             title="Hapus">
                                             <span class="material-symbols-outlined text-[18px]">delete</span>
@@ -217,17 +223,17 @@
     </dialog>
 
     <script>
-    function openEditModal(id, name, capacity, isAtJs) {
-        document.getElementById('edit-name').value     = name;
-        document.getElementById('edit-capacity').value = capacity !== 'null' ? capacity : '';
-        document.getElementById('edit-is-at-js').checked = isAtJs == 1;
-        document.getElementById('form-edit').action    = `/admin/classrooms/${id}`;
+    function openEditModal(d) {
+        document.getElementById('edit-name').value     = d.name;
+        document.getElementById('edit-capacity').value = d.capacity !== 'null' ? d.capacity : '';
+        document.getElementById('edit-is-at-js').checked = d.atJustSpeak == 1;
+        document.getElementById('form-edit').action    = `/admin/classrooms/${d.id}`;
         document.getElementById('modal-edit').showModal();
     }
 
-    function openDeleteModal(id, name) {
-        document.getElementById('delete-subtitle').textContent = `Ruangan "${name}" akan dihapus.`;
-        document.getElementById('form-delete').action = `/admin/classrooms/${id}`;
+    function openDeleteModal(d) {
+        document.getElementById('delete-subtitle').textContent = `Ruangan "${d.name}" akan dihapus.`;
+        document.getElementById('form-delete').action = `/admin/classrooms/${d.id}`;
         document.getElementById('modal-delete').showModal();
     }
     </script>
