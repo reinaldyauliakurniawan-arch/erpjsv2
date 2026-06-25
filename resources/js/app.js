@@ -179,4 +179,32 @@ window.globalSearch = function (config) {
     };
 };
 
+// ── App Shell Alpine component ──────────────────────────────────────
+// Controls sidebar visibility across desktop (collapse) and mobile (drawer).
+// Registered before Alpine.start() so it's available when the DOM is walked.
+window.appShell = function () {
+    return {
+        collapsed: false,   // desktop: sidebar collapsed?
+        mobileOpen: false,  // mobile: drawer open?
+
+        toggle() {
+            if (window.innerWidth >= 1024) {
+                this.collapsed = !this.collapsed;
+            } else {
+                this.mobileOpen = !this.mobileOpen;
+            }
+        },
+
+        init() {
+            // Close mobile drawer when resizing to desktop
+            const mq = window.matchMedia('(min-width: 1024px)');
+            mq.addEventListener('change', (e) => {
+                if (e.matches) {
+                    this.mobileOpen = false;
+                }
+            });
+        },
+    };
+};
+
 Alpine.start(); // ← paling bawah

@@ -8,12 +8,6 @@
     <link rel="icon" type="image/png" href="{{ asset('favicon.png') }}">
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
-    {{-- ════════════════════════════════════════════════════════════════
-         Runtime theme overrides — driven by Settings (admin/settings/colors).
-         All tokens are centralized in app.css; we only override the three
-         brand colors + sidebar text contrast here. The contrast check is
-         done server-side (no client-side JS hack).
-         ════════════════════════════════════════════════════════════════ --}}
     @php
         use App\Models\Setting;
 
@@ -21,7 +15,6 @@
         $colorSecondary = Setting::get('color_secondary', '#059669');
         $colorSidebar   = Setting::get('color_sidebar',   '#111827');
 
-        // Server-side luminance check — flips sidebar text color automatically.
         $hex = ltrim($colorSidebar, '#');
         if (strlen($hex) === 3) {
             $hex = $hex[0].$hex[0].$hex[1].$hex[1].$hex[2].$hex[2];
@@ -42,27 +35,43 @@
 </head>
 <body class="bg-surface text-on-surface font-sans antialiased">
 
-{{-- SIDEBAR DESKTOP --}}
-<aside class="app-sidebar hidden lg:flex {{ $sidebarIsLight ? 'app-sidebar--light' : '' }}">
+{{--
+    APP SHELL — single Alpine root controls sidebar on ALL screen sizes.
+    Desktop: hamburger toggles collapse (sidebar slides away, content full-width).
+    Mobile:  hamburger opens overlay drawer.
+
+    Replaced DaisyUI drawer (caused "weird empty bar" due to CSS grid space
+    reservation even when hidden). This Alpine approach has zero layout
+    side-effects when the drawer is closed.
+--}}
+<div x-data="appShell()" @keydown.escape.window="mobileOpen = false">
+
+{{-- DESKTOP SIDEBAR --}}
+<aside
+    class="app-sidebar {{ $sidebarIsLight ? 'app-sidebar--light' : '' }} hidden lg:flex"
+    x-show="!collapsed"
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="-translate-x-full opacity-0"
+    x-transition:enter-end="translate-x-0 opacity-100"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="translate-x-0 opacity-100"
+    x-transition:leave-end="-translate-x-full opacity-0"
+>
     @include('partials.sidebar-nav')
 </aside>
 
-{{-- TOP BAR --}}
-<header class="app-topbar">
+{{-- TOPBAR --}}
+<header class="app-topbar" :class="collapsed && window.innerWidth >= 1024 ? 'app-topbar--expanded' : ''">
     <div class="flex justify-between items-center w-full gap-md">
         <div class="flex items-center gap-md flex-shrink-0">
-            <button type="button" onclick="document.getElementById('mobile-drawer').checked = true"
-                class="app-mobile-trigger lg:hidden"
-                aria-label="Open menu">
+            <button type="button" @click="toggle()"
+                class="app-mobile-trigger"
+                aria-label="Toggle sidebar">
                 <span class="material-symbols-outlined">menu</span>
             </button>
             <h2 class="text-headline-md font-semibold text-on-surface">{{ $title ?? 'Dashboard' }}</h2>
         </div>
 
-        {{-- Global search — admin & CFO only. Sits in the topbar so it's
-             available on every page without consuming content area.
-             Brand Guide Section 7: "The topbar is identical across modes"
-             so the search bar lives here rather than in page content. --}}
         @if(in_array(auth()->user()->role, ['admin', 'cfo']))
             <div class="flex-1 max-w-md hidden md:block">
                 <x-search-bar />
@@ -81,26 +90,46 @@
     </div>
 </header>
 
-{{-- MOBILE DRAWER --}}
-<div class="drawer lg:hidden">
-    <input id="mobile-drawer" type="checkbox" class="drawer-toggle" />
-    <div class="drawer-side z-50">
-        <label for="mobile-drawer" class="drawer-overlay" aria-label="Close menu"></label>
-        <aside class="app-sidebar app-sidebar--in-drawer {{ $sidebarIsLight ? 'app-sidebar--light' : '' }}">
-            <div class="flex justify-end p-sm">
-                <label for="mobile-drawer" class="app-mobile-trigger app-mobile-trigger--sidebar" aria-label="Close menu">
-                    <span class="material-symbols-outlined">close</span>
-                </label>
-            </div>
-            @include('partials.sidebar-nav')
-        </aside>
-    </div>
+{{-- MOBILE DRAWER — pure overlay, no DaisyUI grid --}}
+<div
+    x-show="mobileOpen"
+    x-cloak
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
+    class="fixed inset-0 z-50 lg:hidden"
+>
+    <div class="absolute inset-0 bg-black/40" @click="mobileOpen = false"></div>
+    <aside
+        class="app-sidebar {{ $sidebarIsLight ? 'app-sidebar--light' : '' }} absolute left-0 top-0 h-full"
+        style="width:var(--size-sidebar-width);position:fixed;"
+        @click.stop
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="-translate-x-full"
+        x-transition:enter-end="translate-x-0"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="translate-x-0"
+        x-transition:leave-end="-translate-x-full"
+    >
+        <div class="flex justify-end p-sm">
+            <button type="button" @click="mobileOpen = false"
+                class="app-mobile-trigger app-mobile-trigger--sidebar"
+                aria-label="Close menu">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+        </div>
+        @include('partials.sidebar-nav')
+    </aside>
 </div>
 
 {{-- MAIN CONTENT --}}
-<main class="app-main">
+<main class="app-main" :class="collapsed && window.innerWidth >= 1024 ? 'app-main--expanded' : ''">
     {{ $slot }}
 </main>
 
+</div>{{-- end x-data root --}}
 </body>
 </html>
