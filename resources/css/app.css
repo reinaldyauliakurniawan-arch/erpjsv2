@@ -303,12 +303,12 @@
     /* ── Sidebar — dark green by default per Brand Guide Section 3.
        "Green is our identity." The sidebar is the app's anchor surface,
        so it uses the primary dark green (#065f46) rather than a neutral
-       navy. Accent is a lighter green (#34d399) so the 3px active stripe
+       navy. Accent is a lighter green (#ffffff) so the 3px active stripe
        is visible against the dark green background. */
     --color-sidebar-bg: #065f46;
     --color-sidebar-text: #a7f3d0;
     --color-sidebar-text-active: #ffffff;
-    --color-sidebar-accent: #34d399;
+    --color-sidebar-accent: #ffffff;
     --color-sidebar-border: rgba(255, 255, 255, 0.12);
     --color-sidebar-hover: rgba(255, 255, 255, 0.08);
 
