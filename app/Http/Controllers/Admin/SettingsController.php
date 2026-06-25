@@ -180,7 +180,7 @@ class SettingsController extends Controller
     return view('admin.settings.colors', [
         'color_primary'   => Setting::get('color_primary', '#065f46'),
         'color_secondary' => Setting::get('color_secondary', '#059669'),
-        'color_sidebar'   => Setting::get('color_sidebar', '#065f46'),
+        'color_sidebar'   => Setting::get('color_sidebar', '#054e3b'),
     ]);
 }
 
