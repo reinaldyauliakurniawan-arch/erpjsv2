@@ -16,10 +16,10 @@
         ? 'Cari akun, jurnal, payroll, aset...'
         : 'Cari student, tutor, program, enrollment...';
 @endphp
-<div class="relative" x-data="globalSearch({
+<div class="relative" x-data='globalSearch({
         url: @json(route('search')),
         placeholder: @json($searchPlaceholder)
-    })"
+    })'
     @keydown.window.slash.prevent="$refs.searchInput?.focus()"
     @keydown.escape.window="if (document.activeElement === $refs.searchInput) { $refs.searchInput.blur(); close(); }"
     @click.outside="close()">

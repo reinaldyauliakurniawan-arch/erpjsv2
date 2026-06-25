@@ -114,7 +114,7 @@
                     </button>
                 </div>
                 <div class="overflow-y-auto p-lg space-y-sm" style="max-height: 60vh;">
-                
+
                     @foreach($tutorStats as $t)
                     <div class="flex items-center justify-between p-sm bg-surface-container border border-surface-border rounded-lg">
                         <div>
@@ -473,9 +473,10 @@
                                         <th class="px-lg py-md"></th>
                                     </tr>
                                 </thead>
-                                <tbody class="divide-y divide-surface-border">
+                                <tbody>
                                     @foreach($dayGroups[$d]->sortBy('time_block') as $schedule)
-                                    <tr class="hover:bg-surface-container-low/50 transition-colors group" x-data="{ editing: false }">
+                                    <tbody class="divide-y divide-surface-border" x-data="{ editing: false }">
+                                    <tr class="hover:bg-surface-container-low/50 transition-colors group">
                                         <td class="px-lg py-lg">
                                             <p class="font-mono text-sm font-bold text-primary-container">{{ $schedule->time_block }}</p>
                                             <p class="text-[10px] text-on-surface-variant font-bold uppercase">{{ $roomName }}</p>
@@ -560,8 +561,8 @@
                                             </form>
                                         </td>
                                     </tr>
+                                    </tbody>
                                     @endforeach
-                                </tbody>
                             </table>
                             @else
                             <p class="text-body-md text-on-surface-variant text-center py-lg">Tidak ada jadwal hari ini.</p>

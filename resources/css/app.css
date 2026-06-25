@@ -14,9 +14,9 @@
        so buttons, inputs, selects, badges all share the same roundness as
        custom components. DaisyUI defaults are sharper (4px); we bump to 8px
        for a softer, more modern feel. */
-    --radius-field: 0.5rem;     /* buttons, inputs — 8px */
-    --radius-box: 1rem;         /* cards, modals — 16px */
-    --radius-selector: 0.5rem;  /* checkboxes, radios, tabs — 8px */
+    --radius-field: 0.5rem; /* buttons, inputs — 8px */
+    --radius-box: 1rem; /* cards, modals — 16px */
+    --radius-selector: 0.5rem; /* checkboxes, radios, tabs — 8px */
     --color-base-100: oklch(98% 0.01 240);
     --color-base-200: oklch(95% 0.01 240);
     --color-base-300: oklch(92% 0.01 240);
@@ -106,17 +106,17 @@
     --text-headline-md--line-height: 1.4;
 
     --text-body-lg: 1rem;
-    --text-body-lg--line-height: 1.5;  /* 16px × 1.5 = 24px — WCAG-recommended minimum for body */
+    --text-body-lg--line-height: 1.5; /* 16px × 1.5 = 24px — WCAG-recommended minimum for body */
 
     --text-body-md: 0.75rem;
-    --text-body-md--line-height: 1.5;  /* 12px × 1.5 = 18px */
+    --text-body-md--line-height: 1.5; /* 12px × 1.5 = 18px */
 
     /* Secondary / caption text — used 183+ times across views.
        Between body-md (12px) and label-lg (11px). At 11px with 1.4
        line-height it's readable for short captions, subtitles, and
        metadata without competing with primary body text. */
     --text-body-sm: 0.6875rem;
-    --text-body-sm--line-height: 1.4;  /* 11px × 1.4 = 15.4px */
+    --text-body-sm--line-height: 1.4; /* 11px × 1.4 = 15.4px */
 
     --text-label-lg: 0.6875rem;
     --text-label-lg--line-height: 1.2;
@@ -146,38 +146,47 @@
 
        Larger Tailwind tokens (text-6xl, text-7xl, text-8xl, text-9xl) are
        left at their defaults since they're rarely used in this app. */
-    --text-xs:   0.625rem;   --text-xs--line-height:   1.2;
-    --text-sm:   0.6875rem;  --text-sm--line-height:   1.4;
-    --text-base: 1rem;       --text-base--line-height: 1.6;
-    --text-lg:   1.618rem;   --text-lg--line-height:   1.4;
-    --text-xl:   2.618rem;   --text-xl--line-height:   1.3;
-    --text-2xl:  4.236rem;   --text-2xl--line-height:  1.2;
-    --text-3xl:  4.236rem;   --text-3xl--line-height:  1.2;
-    --text-4xl:  6.854rem;   --text-4xl--line-height:  1.1;
-    --text-5xl:  6.854rem;   --text-5xl--line-height:  1.1;
+    --text-xs: 0.625rem;
+    --text-xs--line-height: 1.2;
+    --text-sm: 0.6875rem;
+    --text-sm--line-height: 1.4;
+    --text-base: 1rem;
+    --text-base--line-height: 1.6;
+    --text-lg: 1.618rem;
+    --text-lg--line-height: 1.4;
+    --text-xl: 2.618rem;
+    --text-xl--line-height: 1.3;
+    --text-2xl: 4.236rem;
+    --text-2xl--line-height: 1.2;
+    --text-3xl: 4.236rem;
+    --text-3xl--line-height: 1.2;
+    --text-4xl: 6.854rem;
+    --text-4xl--line-height: 1.1;
+    --text-5xl: 6.854rem;
+    --text-5xl--line-height: 1.1;
 
     /* Spacing scale — standard 8pt system (multiples of 8, with 4 as half-step).
        Values: 4, 8, 16, 24, 32, 48, 64 — matches Material Design & Apple HIG.
        Using a strict 8pt grid ensures all spacing (margin, padding, gap) aligns
        visually and rhythmically across the app. */
-    --spacing-xs: 4px;       /* half-step — for tight inline groupings */
-    --spacing-sm: 8px;       /* cozy — icon-to-text in buttons */
-    --spacing-md: 16px;      /* standard — form fields, card padding */
-    --spacing-lg: 24px;      /* breathing room — card padding default */
-    --spacing-xl: 32px;      /* section separation */
-    --spacing-2xl: 48px;     /* major section break */
-    --spacing-3xl: 64px;     /* max spacing — page-level separation */
-    --spacing-gutter: 24px;  /* content gutter (alias of lg) */
+    --spacing-xs: 4px; /* half-step — for tight inline groupings */
+    --spacing-sm: 8px; /* cozy — icon-to-text in buttons */
+    --spacing-md: 16px; /* standard — form fields, card padding */
+    --spacing-lg: 24px; /* breathing room — card padding default */
+    --spacing-xl: 32px; /* section separation */
+    --spacing-2xl: 48px; /* major section break */
+    --spacing-3xl: 64px; /* max spacing — page-level separation */
+    --spacing-gutter: 24px; /* content gutter (alias of lg) */
 
     /* Radius scale — bumped for a softer, more modern feel.
        Previous values (4/6/12/16px) felt corporate and sharp.
        New values (6/8/16/20px) are closer to Linear / Vercel / Stripe
        which use 8-12px for buttons and 12-16px for cards. */
-    --radius-sm: 0.375rem;   /* 6px  — tiny indicators, legend dots */
-    --radius-md: 0.5rem;     /* 8px  — buttons, inputs, small badges */
-    --radius-lg: 1rem;       /* 16px — cards, modals, table wrappers */
-    --radius-xl: 1.25rem;    /* 20px — large modals, hero sections */
-    --radius-full: 9999px;   /* pills, avatars, circular buttons */
+    --radius-sm: 0.375rem; /* 6px  — tiny indicators, legend dots */
+    --radius-md: 0.5rem; /* 8px  — buttons, inputs, small badges */
+    --radius-lg: 1rem; /* 16px — cards, modals, table wrappers */
+    --radius-xl: 1.25rem; /* 20px — large modals, hero sections */
+    --radius-full: 9999px; /* pills, avatars, circular buttons */
 
     /* ── Shadow scale — aesthetic layered shadows ─────────────────────
        Per Material Design 3 / Apple HIG / Stripe / Vercel principles:
@@ -198,12 +207,13 @@
        Tailwind utilities shadow-sm/md/lg/xl/2xl are wired to these
        tokens below (overrides Tailwind's defaults which used negative
        spread and slightly high opacity). */
-    --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
-    --shadow-md:  0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
-    --shadow-lg:  0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
-    --shadow-xl:  0 8px 24px rgba(0, 0, 0, 0.10), 0 4px 8px rgba(0, 0, 0, 0.05);
-    --shadow-2xl: 0 16px 40px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
+    --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05), 0 1px 2px rgba(0, 0, 0, 0.03);
+    --shadow-md: 0 2px 6px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+    --shadow-lg: 0 4px 12px rgba(0, 0, 0, 0.08), 0 2px 4px rgba(0, 0, 0, 0.04);
+    --shadow-xl: 0 8px 24px rgba(0, 0, 0, 0.1), 0 4px 8px rgba(0, 0, 0, 0.05);
+    --shadow-2xl:
+        0 16px 40px rgba(0, 0, 0, 0.12), 0 8px 16px rgba(0, 0, 0, 0.06);
     --shadow-inner: inset 0 1px 2px rgba(0, 0, 0, 0.04);
 
     /* Layout sizing
@@ -332,169 +342,455 @@
 /* ═════════════════════════════════════════════════════════════════════
    SPACING UTILITIES — token-driven, so changing --spacing-* cascades.
    ════════════════════════════════════════════════════════════════════ */
-@utility p-xs { padding: var(--spacing-xs); }
-@utility p-sm { padding: var(--spacing-sm); }
-@utility p-md { padding: var(--spacing-md); }
-@utility p-lg { padding: var(--spacing-lg); }
-@utility p-xl { padding: var(--spacing-xl); }
-@utility p-xxl { padding: var(--spacing-3xl); } /* legacy alias for p-3xl */
-@utility p-gutter { padding: var(--spacing-gutter); }
+@utility p-xs {
+    padding: var(--spacing-xs);
+}
+@utility p-sm {
+    padding: var(--spacing-sm);
+}
+@utility p-md {
+    padding: var(--spacing-md);
+}
+@utility p-lg {
+    padding: var(--spacing-lg);
+}
+@utility p-xl {
+    padding: var(--spacing-xl);
+}
+@utility p-xxl {
+    padding: var(--spacing-3xl);
+} /* legacy alias for p-3xl */
+@utility p-gutter {
+    padding: var(--spacing-gutter);
+}
 
-@utility px-xs { padding-inline: var(--spacing-xs); }
-@utility px-sm { padding-inline: var(--spacing-sm); }
-@utility px-md { padding-inline: var(--spacing-md); }
-@utility px-lg { padding-inline: var(--spacing-lg); }
-@utility px-xl { padding-inline: var(--spacing-xl); }
-@utility px-gutter { padding-inline: var(--spacing-gutter); }
+@utility px-xs {
+    padding-inline: var(--spacing-xs);
+}
+@utility px-sm {
+    padding-inline: var(--spacing-sm);
+}
+@utility px-md {
+    padding-inline: var(--spacing-md);
+}
+@utility px-lg {
+    padding-inline: var(--spacing-lg);
+}
+@utility px-xl {
+    padding-inline: var(--spacing-xl);
+}
+@utility px-gutter {
+    padding-inline: var(--spacing-gutter);
+}
 
-@utility py-xs { padding-block: var(--spacing-xs); }
-@utility py-sm { padding-block: var(--spacing-sm); }
-@utility py-md { padding-block: var(--spacing-md); }
-@utility py-lg { padding-block: var(--spacing-lg); }
-@utility py-xl { padding-block: var(--spacing-xl); }
-@utility py-2xl { padding-block: var(--spacing-3xl); } /* legacy alias for py-3xl */
+@utility py-xs {
+    padding-block: var(--spacing-xs);
+}
+@utility py-sm {
+    padding-block: var(--spacing-sm);
+}
+@utility py-md {
+    padding-block: var(--spacing-md);
+}
+@utility py-lg {
+    padding-block: var(--spacing-lg);
+}
+@utility py-xl {
+    padding-block: var(--spacing-xl);
+}
+@utility py-2xl {
+    padding-block: var(--spacing-3xl);
+} /* legacy alias for py-3xl */
 
-@utility pt-xs { padding-top: var(--spacing-xs); }
-@utility pt-sm { padding-top: var(--spacing-sm); }
-@utility pt-md { padding-top: var(--spacing-md); }
-@utility pt-lg { padding-top: var(--spacing-lg); }
-@utility pt-xl { padding-top: var(--spacing-xl); }
+@utility pt-xs {
+    padding-top: var(--spacing-xs);
+}
+@utility pt-sm {
+    padding-top: var(--spacing-sm);
+}
+@utility pt-md {
+    padding-top: var(--spacing-md);
+}
+@utility pt-lg {
+    padding-top: var(--spacing-lg);
+}
+@utility pt-xl {
+    padding-top: var(--spacing-xl);
+}
 
-@utility pb-xs { padding-bottom: var(--spacing-xs); }
-@utility pb-sm { padding-bottom: var(--spacing-sm); }
-@utility pb-md { padding-bottom: var(--spacing-md); }
-@utility pb-lg { padding-bottom: var(--spacing-lg); }
-@utility pb-xl { padding-bottom: var(--spacing-xl); }
+@utility pb-xs {
+    padding-bottom: var(--spacing-xs);
+}
+@utility pb-sm {
+    padding-bottom: var(--spacing-sm);
+}
+@utility pb-md {
+    padding-bottom: var(--spacing-md);
+}
+@utility pb-lg {
+    padding-bottom: var(--spacing-lg);
+}
+@utility pb-xl {
+    padding-bottom: var(--spacing-xl);
+}
 
-@utility pl-xs { padding-left: var(--spacing-xs); }
-@utility pl-sm { padding-left: var(--spacing-sm); }
-@utility pl-md { padding-left: var(--spacing-md); }
-@utility pl-lg { padding-left: var(--spacing-lg); }
+@utility pl-xs {
+    padding-left: var(--spacing-xs);
+}
+@utility pl-sm {
+    padding-left: var(--spacing-sm);
+}
+@utility pl-md {
+    padding-left: var(--spacing-md);
+}
+@utility pl-lg {
+    padding-left: var(--spacing-lg);
+}
 
-@utility pr-xs { padding-right: var(--spacing-xs); }
-@utility pr-sm { padding-right: var(--spacing-sm); }
-@utility pr-md { padding-right: var(--spacing-md); }
-@utility pr-lg { padding-right: var(--spacing-lg); }
+@utility pr-xs {
+    padding-right: var(--spacing-xs);
+}
+@utility pr-sm {
+    padding-right: var(--spacing-sm);
+}
+@utility pr-md {
+    padding-right: var(--spacing-md);
+}
+@utility pr-lg {
+    padding-right: var(--spacing-lg);
+}
 
-@utility m-xs { margin: var(--spacing-xs); }
-@utility m-sm { margin: var(--spacing-sm); }
-@utility m-md { margin: var(--spacing-md); }
-@utility m-lg { margin: var(--spacing-lg); }
-@utility m-xl { margin: var(--spacing-xl); }
+@utility m-xs {
+    margin: var(--spacing-xs);
+}
+@utility m-sm {
+    margin: var(--spacing-sm);
+}
+@utility m-md {
+    margin: var(--spacing-md);
+}
+@utility m-lg {
+    margin: var(--spacing-lg);
+}
+@utility m-xl {
+    margin: var(--spacing-xl);
+}
 
-@utility mx-xs { margin-inline: var(--spacing-xs); }
-@utility mx-sm { margin-inline: var(--spacing-sm); }
-@utility mx-md { margin-inline: var(--spacing-md); }
-@utility mx-lg { margin-inline: var(--spacing-lg); }
-@utility mx-xl { margin-inline: var(--spacing-xl); }
+@utility mx-xs {
+    margin-inline: var(--spacing-xs);
+}
+@utility mx-sm {
+    margin-inline: var(--spacing-sm);
+}
+@utility mx-md {
+    margin-inline: var(--spacing-md);
+}
+@utility mx-lg {
+    margin-inline: var(--spacing-lg);
+}
+@utility mx-xl {
+    margin-inline: var(--spacing-xl);
+}
 
-@utility my-xs { margin-block: var(--spacing-xs); }
-@utility my-sm { margin-block: var(--spacing-sm); }
-@utility my-md { margin-block: var(--spacing-md); }
-@utility my-lg { margin-block: var(--spacing-lg); }
-@utility my-xl { margin-block: var(--spacing-xl); }
+@utility my-xs {
+    margin-block: var(--spacing-xs);
+}
+@utility my-sm {
+    margin-block: var(--spacing-sm);
+}
+@utility my-md {
+    margin-block: var(--spacing-md);
+}
+@utility my-lg {
+    margin-block: var(--spacing-lg);
+}
+@utility my-xl {
+    margin-block: var(--spacing-xl);
+}
 
-@utility mt-xs { margin-top: var(--spacing-xs); }
-@utility mt-sm { margin-top: var(--spacing-sm); }
-@utility mt-md { margin-top: var(--spacing-md); }
-@utility mt-lg { margin-top: var(--spacing-lg); }
-@utility mt-xl { margin-top: var(--spacing-xl); }
+@utility mt-xs {
+    margin-top: var(--spacing-xs);
+}
+@utility mt-sm {
+    margin-top: var(--spacing-sm);
+}
+@utility mt-md {
+    margin-top: var(--spacing-md);
+}
+@utility mt-lg {
+    margin-top: var(--spacing-lg);
+}
+@utility mt-xl {
+    margin-top: var(--spacing-xl);
+}
 
-@utility mb-xs { margin-bottom: var(--spacing-xs); }
-@utility mb-sm { margin-bottom: var(--spacing-sm); }
-@utility mb-md { margin-bottom: var(--spacing-md); }
-@utility mb-lg { margin-bottom: var(--spacing-lg); }
-@utility mb-xl { margin-bottom: var(--spacing-xl); }
+@utility mb-xs {
+    margin-bottom: var(--spacing-xs);
+}
+@utility mb-sm {
+    margin-bottom: var(--spacing-sm);
+}
+@utility mb-md {
+    margin-bottom: var(--spacing-md);
+}
+@utility mb-lg {
+    margin-bottom: var(--spacing-lg);
+}
+@utility mb-xl {
+    margin-bottom: var(--spacing-xl);
+}
 
-@utility ml-xs { margin-left: var(--spacing-xs); }
-@utility ml-sm { margin-left: var(--spacing-sm); }
-@utility ml-md { margin-left: var(--spacing-md); }
-@utility ml-lg { margin-left: var(--spacing-lg); }
+@utility ml-xs {
+    margin-left: var(--spacing-xs);
+}
+@utility ml-sm {
+    margin-left: var(--spacing-sm);
+}
+@utility ml-md {
+    margin-left: var(--spacing-md);
+}
+@utility ml-lg {
+    margin-left: var(--spacing-lg);
+}
 
-@utility mr-xs { margin-right: var(--spacing-xs); }
-@utility mr-sm { margin-right: var(--spacing-sm); }
-@utility mr-md { margin-right: var(--spacing-md); }
-@utility mr-lg { margin-right: var(--spacing-lg); }
+@utility mr-xs {
+    margin-right: var(--spacing-xs);
+}
+@utility mr-sm {
+    margin-right: var(--spacing-sm);
+}
+@utility mr-md {
+    margin-right: var(--spacing-md);
+}
+@utility mr-lg {
+    margin-right: var(--spacing-lg);
+}
 
-@utility gap-xs { gap: var(--spacing-xs); }
-@utility gap-sm { gap: var(--spacing-sm); }
-@utility gap-md { gap: var(--spacing-md); }
-@utility gap-lg { gap: var(--spacing-lg); }
-@utility gap-xl { gap: var(--spacing-xl); }
+@utility gap-xs {
+    gap: var(--spacing-xs);
+}
+@utility gap-sm {
+    gap: var(--spacing-sm);
+}
+@utility gap-md {
+    gap: var(--spacing-md);
+}
+@utility gap-lg {
+    gap: var(--spacing-lg);
+}
+@utility gap-xl {
+    gap: var(--spacing-xl);
+}
 
-@utility space-y-xs { & > * + * { margin-top: var(--spacing-xs); } }
-@utility space-y-sm { & > * + * { margin-top: var(--spacing-sm); } }
-@utility space-y-md { & > * + * { margin-top: var(--spacing-md); } }
-@utility space-y-lg { & > * + * { margin-top: var(--spacing-lg); } }
-@utility space-y-xl { & > * + * { margin-top: var(--spacing-xl); } }
+@utility space-y-xs {
+    & > * + * {
+        margin-top: var(--spacing-xs);
+    }
+}
+@utility space-y-sm {
+    & > * + * {
+        margin-top: var(--spacing-sm);
+    }
+}
+@utility space-y-md {
+    & > * + * {
+        margin-top: var(--spacing-md);
+    }
+}
+@utility space-y-lg {
+    & > * + * {
+        margin-top: var(--spacing-lg);
+    }
+}
+@utility space-y-xl {
+    & > * + * {
+        margin-top: var(--spacing-xl);
+    }
+}
 
-@utility space-x-xs { & > * + * { margin-left: var(--spacing-xs); } }
-@utility space-x-sm { & > * + * { margin-left: var(--spacing-sm); } }
-@utility space-x-md { & > * + * { margin-left: var(--spacing-md); } }
-@utility space-x-lg { & > * + * { margin-left: var(--spacing-lg); } }
+@utility space-x-xs {
+    & > * + * {
+        margin-left: var(--spacing-xs);
+    }
+}
+@utility space-x-sm {
+    & > * + * {
+        margin-left: var(--spacing-sm);
+    }
+}
+@utility space-x-md {
+    & > * + * {
+        margin-left: var(--spacing-md);
+    }
+}
+@utility space-x-lg {
+    & > * + * {
+        margin-left: var(--spacing-lg);
+    }
+}
 
 /* ═════════════════════════════════════════════════════════════════════
    COLOR UTILITIES — token-driven, so changing --color-* cascades.
    ══════════════════════════════════════════════════════════════════════ */
-@utility bg-surface { background-color: var(--color-surface); }
-@utility bg-surface-bright { background-color: var(--color-surface-bright); }
-@utility bg-surface-dim { background-color: var(--color-surface-dim); }
-@utility bg-surface-container-lowest { background-color: var(--color-surface-container-lowest); }
-@utility bg-surface-container-low { background-color: var(--color-surface-container-low); }
-@utility bg-surface-container { background-color: var(--color-surface-container); }
-@utility bg-surface-container-high { background-color: var(--color-surface-container-high); }
-@utility bg-surface-container-highest { background-color: var(--color-surface-container-highest); }
-@utility bg-surface-variant { background-color: var(--color-surface-variant); }
-@utility bg-primary-container { background-color: var(--color-primary-container); }
-@utility bg-secondary-container { background-color: var(--color-secondary-container); }
-@utility bg-error-container { background-color: var(--color-error-container); }
-@utility bg-tertiary-container { background-color: var(--color-tertiary-container); }
-@utility bg-tertiary-fixed { background-color: var(--color-tertiary-fixed); }
-@utility bg-inverse-surface { background-color: var(--color-inverse-surface); }
-@utility bg-background { background-color: var(--color-background); }
+@utility bg-surface {
+    background-color: var(--color-surface);
+}
+@utility bg-surface-bright {
+    background-color: var(--color-surface-bright);
+}
+@utility bg-surface-dim {
+    background-color: var(--color-surface-dim);
+}
+@utility bg-surface-container-lowest {
+    background-color: var(--color-surface-container-lowest);
+}
+@utility bg-surface-container-low {
+    background-color: var(--color-surface-container-low);
+}
+@utility bg-surface-container {
+    background-color: var(--color-surface-container);
+}
+@utility bg-surface-container-high {
+    background-color: var(--color-surface-container-high);
+}
+@utility bg-surface-container-highest {
+    background-color: var(--color-surface-container-highest);
+}
+@utility bg-surface-variant {
+    background-color: var(--color-surface-variant);
+}
+@utility bg-primary-container {
+    background-color: var(--color-primary-container);
+}
+@utility bg-secondary-container {
+    background-color: var(--color-secondary-container);
+}
+@utility bg-error-container {
+    background-color: var(--color-error-container);
+}
+@utility bg-tertiary-container {
+    background-color: var(--color-tertiary-container);
+}
+@utility bg-tertiary-fixed {
+    background-color: var(--color-tertiary-fixed);
+}
+@utility bg-inverse-surface {
+    background-color: var(--color-inverse-surface);
+}
+@utility bg-background {
+    background-color: var(--color-background);
+}
 
-@utility text-on-surface { color: var(--color-on-surface); }
-@utility text-on-surface-variant { color: var(--color-on-surface-variant); }
-@utility text-on-primary { color: var(--color-on-primary); }
-@utility text-on-primary-container { color: var(--color-on-primary-container); }
-@utility text-on-secondary-container { color: var(--color-on-secondary-container); }
-@utility text-on-error-container { color: var(--color-on-error-container); }
-@utility text-on-tertiary-container { color: var(--color-on-tertiary-container); }
-@utility text-on-background { color: var(--color-on-background); }
-@utility text-inverse-on-surface { color: var(--color-inverse-on-surface); }
-@utility text-primary-container { color: var(--color-primary-container); }
-@utility text-primary { color: var(--color-primary); }
-@utility text-secondary { color: var(--color-secondary); }
-@utility text-tertiary { color: var(--color-tertiary); }
-@utility text-error { color: var(--color-error); }
-@utility text-success { color: var(--color-success); }
-@utility text-warning { color: var(--color-warning); }
-@utility text-outline { color: var(--color-outline); }
-@utility text-outline-variant { color: var(--color-outline-variant); }
+@utility text-on-surface {
+    color: var(--color-on-surface);
+}
+@utility text-on-surface-variant {
+    color: var(--color-on-surface-variant);
+}
+@utility text-on-primary {
+    color: var(--color-on-primary);
+}
+@utility text-on-primary-container {
+    color: var(--color-on-primary-container);
+}
+@utility text-on-secondary-container {
+    color: var(--color-on-secondary-container);
+}
+@utility text-on-error-container {
+    color: var(--color-on-error-container);
+}
+@utility text-on-tertiary-container {
+    color: var(--color-on-tertiary-container);
+}
+@utility text-on-background {
+    color: var(--color-on-background);
+}
+@utility text-inverse-on-surface {
+    color: var(--color-inverse-on-surface);
+}
+@utility text-primary-container {
+    color: var(--color-primary-container);
+}
+@utility text-primary {
+    color: var(--color-primary);
+}
+@utility text-secondary {
+    color: var(--color-secondary);
+}
+@utility text-tertiary {
+    color: var(--color-tertiary);
+}
+@utility text-error {
+    color: var(--color-error);
+}
+@utility text-success {
+    color: var(--color-success);
+}
+@utility text-warning {
+    color: var(--color-warning);
+}
+@utility text-outline {
+    color: var(--color-outline);
+}
+@utility text-outline-variant {
+    color: var(--color-outline-variant);
+}
 
-@utility border-surface-border { border-color: var(--color-surface-border); }
-@utility border-primary-container { border-color: var(--color-primary-container); }
-@utility border-primary { border-color: var(--color-primary); }
-@utility border-secondary { border-color: var(--color-secondary); }
-@utility border-secondary-container { border-color: var(--color-secondary-container); }
-@utility border-tertiary { border-color: var(--color-tertiary); }
-@utility border-error { border-color: var(--color-error); }
-@utility border-warning { border-color: var(--color-warning); }
-@utility border-outline { border-color: var(--color-outline); }
-@utility border-outline-variant { border-color: var(--color-outline-variant); }
+@utility border-surface-border {
+    border-color: var(--color-surface-border);
+}
+@utility border-primary-container {
+    border-color: var(--color-primary-container);
+}
+@utility border-primary {
+    border-color: var(--color-primary);
+}
+@utility border-secondary {
+    border-color: var(--color-secondary);
+}
+@utility border-secondary-container {
+    border-color: var(--color-secondary-container);
+}
+@utility border-tertiary {
+    border-color: var(--color-tertiary);
+}
+@utility border-error {
+    border-color: var(--color-error);
+}
+@utility border-warning {
+    border-color: var(--color-warning);
+}
+@utility border-outline {
+    border-color: var(--color-outline);
+}
+@utility border-outline-variant {
+    border-color: var(--color-outline-variant);
+}
 
-@utility ring-secondary { --tw-ring-color: var(--color-secondary); }
-@utility ring-error { --tw-ring-color: var(--color-error); }
-@utility ring-primary { --tw-ring-color: var(--color-primary); }
-@utility ring-primary-container { --tw-ring-color: var(--color-primary-container); }
-@utility ring-warning { --tw-ring-color: var(--color-warning); }
+@utility ring-secondary {
+    --tw-ring-color: var(--color-secondary);
+}
+@utility ring-error {
+    --tw-ring-color: var(--color-error);
+}
+@utility ring-primary {
+    --tw-ring-color: var(--color-primary);
+}
+@utility ring-primary-container {
+    --tw-ring-color: var(--color-primary-container);
+}
+@utility ring-warning {
+    --tw-ring-color: var(--color-warning);
+}
 
 /* ══════════════════════════════════════════════════════════════════════
    BASE LAYER
    ══════════════════════════════════════════════════════════════════════ */
 @layer base {
     /* Fix double border DaisyUI 5 + Tailwind v4 */
-    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+    input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not(
+            [type="file"]
+        ),
     select,
     textarea {
         border: none;
@@ -543,10 +839,14 @@
     a[href],
     summary,
     label[for],
-    .cursor-pointer { cursor: pointer; }
+    .cursor-pointer {
+        cursor: pointer;
+    }
 
     button:disabled,
-    [aria-disabled="true"] { cursor: not-allowed; }
+    [aria-disabled="true"] {
+        cursor: not-allowed;
+    }
 
     /* Visible focus for keyboard nav (UX checklist) */
     a:focus-visible,
@@ -562,7 +862,9 @@
 
     /* Respect reduced motion (UX checklist) */
     @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after {
+        *,
+        *::before,
+        *::after {
             animation-duration: 0.01ms !important;
             animation-iteration-count: 1 !important;
             transition-duration: 0.01ms !important;
@@ -575,6 +877,10 @@
    APP SHELL — sidebar, topbar, main content. All centralized here so
    layouts/*.blade.php just uses class names. No inline styles needed.
    ═════════════════════════════════════════════════════════════════════ */
+
+[x-cloak] {
+    display: none !important;
+}
 
 /* Sidebar — dark by default. Add `.app-sidebar--light` to flip text colors. */
 .app-sidebar {
@@ -653,8 +959,9 @@
     line-height: var(--text-body-md--line-height);
     font-weight: 500;
     text-decoration: none;
-    transition: background-color var(--motion-base) var(--motion-easing),
-                color var(--motion-base) var(--motion-easing);
+    transition:
+        background-color var(--motion-base) var(--motion-easing),
+        color var(--motion-base) var(--motion-easing);
     cursor: pointer;
 }
 
@@ -697,13 +1004,17 @@
     transition: left var(--motion-base) var(--motion-easing);
 }
 
-@media (min-width: 1024px) {
-    .app-topbar { left: var(--size-sidebar-width); }
+@media (min-width: 64rem) {
+    .app-topbar {
+        left: var(--size-sidebar-width);
+    }
 }
 
 /* When sidebar is collapsed on desktop, topbar expands to full width */
-@media (min-width: 1024px) {
-    .app-topbar--expanded { left: 0; }
+@media (min-width: 64rem) {
+    .app-topbar--expanded {
+        left: 0;
+    }
 }
 
 /* Main content */
@@ -714,13 +1025,17 @@
     transition: margin-left var(--motion-base) var(--motion-easing);
 }
 
-@media (min-width: 1024px) {
-    .app-main { margin-left: var(--size-sidebar-width); }
+@media (min-width: 64rem) {
+    .app-main {
+        margin-left: var(--size-sidebar-width);
+    }
 }
 
 /* When sidebar is collapsed on desktop, main expands to full width */
-@media (min-width: 1024px) {
-    .app-main--expanded { margin-left: 0; }
+@media (min-width: 64rem) {
+    .app-main--expanded {
+        margin-left: 0;
+    }
 }
 
 /* User avatar in topbar */
@@ -785,7 +1100,7 @@
 }
 
 .guest-bg::before {
-    content: '';
+    content: "";
     position: absolute;
     width: 600px;
     height: 600px;
@@ -797,7 +1112,7 @@
 }
 
 .guest-bg::after {
-    content: '';
+    content: "";
     position: absolute;
     width: 400px;
     height: 400px;
@@ -847,9 +1162,10 @@
     border-radius: var(--radius-lg) !important;
     font-weight: 700 !important;
     letter-spacing: 0.02em;
-    transition: background-color var(--motion-base) var(--motion-easing),
-                box-shadow var(--motion-base) var(--motion-easing),
-                transform var(--motion-base) var(--motion-easing);
+    transition:
+        background-color var(--motion-base) var(--motion-easing),
+        box-shadow var(--motion-base) var(--motion-easing),
+        transform var(--motion-base) var(--motion-easing);
     padding: 0.75rem !important;
     cursor: pointer;
     box-shadow: var(--shadow-sm);
@@ -928,8 +1244,9 @@
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: rgba(255, 255, 255, 0.7);
     border-radius: var(--radius-lg);
-    transition: background-color var(--motion-base) var(--motion-easing),
-                color var(--motion-base) var(--motion-easing);
+    transition:
+        background-color var(--motion-base) var(--motion-easing),
+        color var(--motion-base) var(--motion-easing);
     cursor: pointer;
 }
 
@@ -1008,9 +1325,15 @@
     margin-top: var(--spacing-xs);
 }
 
-.app-stat-card__value--warning { color: var(--color-warning); }
-.app-stat-card__value--error   { color: var(--color-error); }
-.app-stat-card__value--success { color: var(--color-success); }
+.app-stat-card__value--warning {
+    color: var(--color-warning);
+}
+.app-stat-card__value--error {
+    color: var(--color-error);
+}
+.app-stat-card__value--success {
+    color: var(--color-success);
+}
 
 /* ── Icon Badge (replaces decorative `bg-secondary/10` patterns) ────
    Per Brand Guide Section 3: "Green is identity, not decoration."
@@ -1027,9 +1350,18 @@
     flex-shrink: 0;
 }
 
-.app-icon-badge--sm { width: 32px; height: 32px; }
-.app-icon-badge--lg { width: 48px; height: 48px; }
-.app-icon-badge--xl { width: 56px; height: 56px; }
+.app-icon-badge--sm {
+    width: 32px;
+    height: 32px;
+}
+.app-icon-badge--lg {
+    width: 48px;
+    height: 48px;
+}
+.app-icon-badge--xl {
+    width: 56px;
+    height: 56px;
+}
 
 .app-icon-badge--brand {
     background-color: var(--color-secondary-container);
@@ -1064,10 +1396,26 @@
     flex-shrink: 0;
 }
 
-.app-avatar--xs { width: 1.25rem; height: 1.25rem; font-size: 0.625rem; }
-.app-avatar--sm { width: 2rem; height: 2rem; font-size: 0.75rem; }
-.app-avatar--md { width: 2.25rem; height: 2.25rem; font-size: 0.875rem; }
-.app-avatar--lg { width: 3rem; height: 3rem; font-size: 1.125rem; }
+.app-avatar--xs {
+    width: 1.25rem;
+    height: 1.25rem;
+    font-size: 0.625rem;
+}
+.app-avatar--sm {
+    width: 2rem;
+    height: 2rem;
+    font-size: 0.75rem;
+}
+.app-avatar--md {
+    width: 2.25rem;
+    height: 2.25rem;
+    font-size: 0.875rem;
+}
+.app-avatar--lg {
+    width: 3rem;
+    height: 3rem;
+    font-size: 1.125rem;
+}
 
 /* ── Page Header (title + subtitle) ───────────────────────────────── */
 .app-page-header {
@@ -1100,10 +1448,10 @@
    - Optional max-width via --page-max-width (default 1280px per spec)
    - Auto horizontal centering when content < max-width */
 .app-page-container {
-    padding: var(--spacing-md) var(--spacing-md);  /* mobile: 16px L-R */
+    padding: var(--spacing-md) var(--spacing-md); /* mobile: 16px L-R */
     display: flex;
     flex-direction: column;
-    gap: var(--spacing-lg);  /* 24px between sections */
+    gap: var(--spacing-lg); /* 24px between sections */
     max-width: var(--page-max-width, 1280px);
     margin-inline: auto;
     width: 100%;
@@ -1239,16 +1587,36 @@
    MAX-WIDTH UTILITIES (preserved from original)
    ═══════════════════════════════════════════════════════════════════════ */
 @layer utilities {
-    .max-w-sm { max-width: 24rem; }
-    .max-w-md { max-width: 28rem; }
-    .max-w-lg { max-width: 32rem; }
-    .max-w-xl { max-width: 36rem; }
-    .max-w-2xl { max-width: 42rem; }
-    .sm\:max-w-sm { max-width: 24rem; }
-    .sm\:max-w-md { max-width: 28rem; }
-    .sm\:max-w-lg { max-width: 32rem; }
-    .sm\:max-w-xl { max-width: 36rem; }
-    .sm\:max-w-2xl { max-width: 42rem; }
+    .max-w-sm {
+        max-width: 24rem;
+    }
+    .max-w-md {
+        max-width: 28rem;
+    }
+    .max-w-lg {
+        max-width: 32rem;
+    }
+    .max-w-xl {
+        max-width: 36rem;
+    }
+    .max-w-2xl {
+        max-width: 42rem;
+    }
+    .sm\:max-w-sm {
+        max-width: 24rem;
+    }
+    .sm\:max-w-md {
+        max-width: 28rem;
+    }
+    .sm\:max-w-lg {
+        max-width: 32rem;
+    }
+    .sm\:max-w-xl {
+        max-width: 36rem;
+    }
+    .sm\:max-w-2xl {
+        max-width: 42rem;
+    }
 }
 
 /* ═════════════════════════════════════════════════════════════════════
@@ -1352,9 +1720,12 @@
 }
 
 /* Remove focus outline on inputs (handled by global focus-visible rule above) */
-.input:focus, .input:focus-within,
-.select:focus, .select:focus-within,
-.textarea:focus, .textarea:focus-within {
+.input:focus,
+.input:focus-within,
+.select:focus,
+.select:focus-within,
+.textarea:focus,
+.textarea:focus-within {
     outline: none;
 }
 
@@ -1364,7 +1735,9 @@
    on page load before Alpine evaluates them.
    Usage: <span x-show="submitting" x-cloak>Loading…</span>
    ════════════════════════════════════════════════════════════════════ */
-[x-cloak] { display: none !important; }
+[x-cloak] {
+    display: none !important;
+}
 
 /* ═════════════════════════════════════════════════════════════════════
    Global search bar — Cool Mode design per BRAND_PERSONALITY_GUIDE
@@ -1387,14 +1760,16 @@
     border: 1px solid var(--color-surface-border);
     border-radius: var(--radius-md, 8px);
     padding: 0 var(--spacing-sm, 8px);
-    transition: border-color var(--motion-fast, 150ms) var(--motion-easing),
-                box-shadow var(--motion-fast, 150ms) var(--motion-easing);
+    transition:
+        border-color var(--motion-fast, 150ms) var(--motion-easing),
+        box-shadow var(--motion-fast, 150ms) var(--motion-easing);
 }
 
 /* Green accent on focus — Brand Guide §3: "When you see green, it means something" */
 .app-search:focus-within {
     border-color: var(--color-secondary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-secondary) 20%, transparent);
+    box-shadow: 0 0 0 2px
+        color-mix(in srgb, var(--color-secondary) 20%, transparent);
 }
 
 .app-search__icon {
@@ -1459,8 +1834,12 @@
 }
 
 @keyframes app-search-spin {
-    from { transform: rotate(0deg); }
-    to   { transform: rotate(360deg); }
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
 }
 
 /* Respect prefers-reduced-motion — Brand Guide §6 */
@@ -1523,7 +1902,8 @@
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--color-on-surface-variant);
-    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px) var(--spacing-xs, 4px);
+    padding: var(--spacing-sm, 8px) var(--spacing-md, 16px)
+        var(--spacing-xs, 4px);
 }
 
 .app-search__item {

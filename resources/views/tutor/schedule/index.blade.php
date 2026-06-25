@@ -247,7 +247,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                     $daySchedules = $byRoom->get($classroom->name, collect())->get($d, collect());
                     $isPast       = \Carbon\Carbon::parse($date)->isPast() && !\Carbon\Carbon::parse($date)->isToday();
                 @endphp
-                <div x-show="day === '{{ $d }}'" x-cloak
+                <div x-show="day === @json($d)" x-cloak
                     class="grid gap-xs"
                     style="grid-template-columns: 140px repeat({{ count($timeBlocks) }}, 1fr)">
 
@@ -321,7 +321,7 @@ function guardSlot(dateStr, timeBlock, callback) {
         {{-- Custom Timeblock Sessions --}}
         @php $standardBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
         @foreach($days as $d)
-        <div x-show="day === '{{ $d }}'" x-cloak>
+        <div x-show="day === @json($d)" x-cloak>
             @php
                 $customSchedules = collect();
                 foreach($byRoom as $roomName => $dayGroups) {

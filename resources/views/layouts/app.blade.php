@@ -48,8 +48,9 @@
 
 {{-- DESKTOP SIDEBAR --}}
 <aside
-    class="app-sidebar {{ $sidebarIsLight ? 'app-sidebar--light' : '' }} hidden lg:flex"
+    class="app-sidebar {{ $sidebarIsLight ? 'app-sidebar--light' : '' }} hidden lg:block"
     x-show="!collapsed"
+    x-cloak
     x-transition:enter="transition ease-out duration-200"
     x-transition:enter-start="-translate-x-full opacity-0"
     x-transition:enter-end="translate-x-0 opacity-100"

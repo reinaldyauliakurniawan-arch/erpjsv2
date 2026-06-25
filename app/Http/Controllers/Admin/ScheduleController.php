@@ -7,6 +7,7 @@ use App\Models\ClassSession;
 use App\Models\RoomBooking;
 use App\Models\Schedule;
 use App\Models\Classroom;
+use App\Models\Tutor;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
