@@ -1,9 +1,9 @@
 <x-app-layout>
 <x-slot name="title">Tugas Saya</x-slot>
 <div class="p-lg space-y-md">
-    <div class="flex items-center justify-between">
-        <h1 class="text-headline-lg font-semibold text-on-surface">Tugas Practice</h1>
-        <a href="{{ route('tutor.practice.create') }}" class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
+    <div class="flex items-center justify-between gap-md">
+        <h1 class="text-headline-lg font-semibold text-on-surface min-w-0 shrink truncate">Tugas Practice</h1>
+        <a href="{{ route('tutor.practice.create') }}" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 flex-shrink-0">
             <span class="material-symbols-outlined text-base">add</span> Buat Tugas
         </a>
     </div>

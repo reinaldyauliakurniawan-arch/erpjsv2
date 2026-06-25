@@ -19,8 +19,8 @@
 
         {{-- Header --}}
         <div class="flex items-center justify-between gap-md">
-            <h3 class="text-headline-lg font-semibold text-on-surface">Journals</h3>
-            <div class="flex gap-sm">
+            <h3 class="text-headline-lg font-semibold text-on-surface min-w-0 shrink truncate">Journals</h3>
+            <div class="flex gap-sm flex-shrink-0">
                 <a href="{{ route('finance.exports.finance-template', 'journals') }}"
                     class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">download</span>

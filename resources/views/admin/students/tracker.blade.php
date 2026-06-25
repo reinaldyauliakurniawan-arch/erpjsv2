@@ -4,13 +4,13 @@
     <div class="p-lg space-y-lg" x-data="{ filter: 'all' }">
 
         {{-- Header --}}
-        <div class="flex items-center justify-between">
-            <div>
+        <div class="flex items-center justify-between gap-md">
+            <div class="min-w-0 shrink">
                 <h3 class="text-headline-md font-semibold text-on-surface">Student Tracker</h3>
                 <p class="text-body-md text-on-surface-variant">{{ $students->count() }} siswa terdaftar</p>
             </div>
             <button type="button" onclick="document.getElementById('modal-add-column').showModal()"
-                class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
+                class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm flex-shrink-0">
                 <span class="material-symbols-outlined text-[18px]">add_column_right</span>
                 Tambah Kolom
             </button>

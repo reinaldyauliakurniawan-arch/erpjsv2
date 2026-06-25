@@ -19,8 +19,8 @@
 
         {{-- Header --}}
         <div class="flex items-center justify-between gap-md">
-            <h3 class="text-headline-lg font-semibold text-on-surface">Akumulasi Jurnal Penyesuaian</h3>
-            <div class="flex gap-sm">
+            <h3 class="text-headline-lg font-semibold text-on-surface min-w-0 shrink truncate">Akumulasi Jurnal Penyesuaian</h3>
+            <div class="flex gap-sm flex-shrink-0">
                 <button type="button" onclick="document.getElementById('modal-generate').showModal()"
                     class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">autorenew</span>

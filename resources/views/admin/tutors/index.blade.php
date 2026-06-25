@@ -12,13 +12,13 @@
         @endif
 
         {{-- Header --}}
-        <div class="flex items-center justify-between">
-            <div>
+        <div class="flex items-center justify-between gap-md">
+            <div class="min-w-0 shrink">
                 <h3 class="text-headline-md font-semibold text-on-surface">Tutors</h3>
                 <p class="text-body-md text-on-surface-variant">{{ $tutors->count() }} tutor terdaftar &mdash; <span class="text-success font-semibold">{{ $activeTutorCount }} aktif</span></p>
             </div>
             <button type="button" onclick="document.getElementById('modal-add-tutor').showModal()"
-                class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
+                class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm flex-shrink-0">
                 <span class="material-symbols-outlined text-[18px]">person_add</span>
                 Tambah Tutor
             </button>

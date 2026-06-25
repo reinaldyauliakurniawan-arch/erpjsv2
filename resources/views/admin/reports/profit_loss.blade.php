@@ -3,12 +3,12 @@
 
 <div class="p-lg space-y-md">
 
-    <div class="flex items-center justify-between">
-        <div>
+    <div class="flex items-center justify-between gap-md">
+        <div class="min-w-0 shrink">
             <h1 class="text-xl font-semibold text-on-surface">Profit & Loss</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Pendapatan dan beban dalam periode tertentu</p>
         </div>
-        <button type="button" onclick="exportCSV()" class="btn btn-sm btn-ghost border border-surface-border">
+        <button type="button" onclick="exportCSV()" class="btn btn-sm btn-ghost border border-surface-border flex-shrink-0">
             <span class="material-symbols-outlined text-base">download</span>
             Export CSV
         </button>

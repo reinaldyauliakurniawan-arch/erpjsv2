@@ -20,13 +20,13 @@
         @endif
 
         {{-- Header --}}
-        <div class="flex items-center justify-between">
-            <div>
+        <div class="flex items-center justify-between gap-md">
+            <div class="min-w-0 shrink">
                 <h3 class="text-headline-lg font-semibold text-on-surface">Classrooms</h3>
                 <p class="text-body-md text-on-surface-variant mt-xs">Kelola ruang kelas yang tersedia.</p>
             </div>
             <button type="button" onclick="document.getElementById('modal-create').showModal()"
-                class="btn bg-secondary text-on-secondary border-none hover:opacity-90 gap-sm">
+                class="btn bg-secondary text-on-secondary border-none hover:opacity-90 gap-sm flex-shrink-0">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 Tambah Ruangan
             </button>

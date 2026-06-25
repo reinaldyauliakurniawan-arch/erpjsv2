@@ -16,13 +16,13 @@
             </div>
         @endif
 
-        <div class="flex items-center justify-between">
-            <div>
+        <div class="flex items-center justify-between gap-md">
+            <div class="min-w-0 shrink">
                 <h3 class="text-headline-lg font-semibold text-on-surface">Class Sessions</h3>
                 <p class="text-body-md text-on-surface-variant">{{ $classSessions->count() }} kelas terdaftar</p>
             </div>
             <a href="{{ route('admin.class-sessions.create') }}"
-                class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm">
+                class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm flex-shrink-0">
                 <span class="material-symbols-outlined text-[18px]">add</span>
                 Tambah Kelas
             </a>

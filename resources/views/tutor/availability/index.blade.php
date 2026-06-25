@@ -3,13 +3,13 @@
 
 <div class="p-lg space-y-md">
 
-    <div class="flex items-center justify-between">
-        <div>
+    <div class="flex items-center justify-between gap-md">
+        <div class="min-w-0 shrink">
             <h1 class="text-headline-lg font-semibold text-on-surface">Availabilitas</h1>
             <p class="text-sm text-on-surface-variant mt-xs">Atur slot waktu yang bisa dijadwalkan admin</p>
         </div>
         <button type="button" onclick="document.getElementById('modal-add').showModal()"
-            class="btn bg-primary-container text-on-primary border-none hover:opacity-90">
+            class="btn bg-primary-container text-on-primary border-none hover:opacity-90 flex-shrink-0">
             <span class="material-symbols-outlined text-base">add</span>
             Tambah Slot
         </button>
