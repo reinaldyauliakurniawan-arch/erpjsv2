@@ -1,7 +1,7 @@
 # Just Speak — Brand Personality & Design Guide
 
 > Internal reference for anyone (human or AI) working on the Just Speak UI.
-> Last updated: 2026-06-23
+> Last updated: 2026-06-25
 
 ---
 
@@ -306,8 +306,8 @@ Just Speak deliberately uses **mixed Indonesian and English** in its UI. This is
 
 ### Rules
 
-1. **The glassmorphism stays on auth pages only.** It is the "front door" of the app — it can be more expressive. Once inside, everything is flat and functional.
-2. **The gradient circles (`::before`, `::after`) are the maximum decoration allowed.** Do not add more floating shapes, particles, or patterns.
+1. **Auth pages use full glassmorphism** (heavy blur, semi-transparent white). This is the "front door" — it can be more expressive. Once inside the app, surfaces use **Liquid Glass** (Apple iOS 26 aesthetic) — a more restrained, subtle glass treatment. See Section 17 for the in-app Liquid Glass system.
+2. **The gradient circles (`::before`, `::after`) are the maximum decoration allowed** on auth pages. Do not add more floating shapes, particles, or patterns.
 3. **Button hover is `translateY(-1px)` + stronger shadow.** This is the single "playful" micro-interaction in the entire app. Protect it — don't overuse similar effects elsewhere.
 
 ---
@@ -392,10 +392,11 @@ Standard card pattern used across the app:
 These are the subtle signatures that, taken together, make the app recognizable even without the logo:
 
 1. **The 3px left-border active state** in the sidebar. Most apps use background highlights. We use a thin accent stripe.
-2. **The glassmorphism auth page.** It is the "wow" first impression that transitions into clean functionality inside.
+2. **The glassmorphism auth page.** It is the "wow" first impression. Inside the app, **Liquid Glass** (Section 17) carries that elegance forward in a more restrained, functional form — sidebar, topbar, stat cards, and modals all have subtle glass treatment.
 3. **The bilingual labels.** "Jadwal" next to "Class Sessions" next to "Absensi" — this mix is uniquely Just Speak.
-4. **The compact 13px body text with generous spacing.** Information-dense but not cramped, because the spacing scale (4/8/16/24/40/64px) creates breathing room between elements.
+4. **The compact 13px body text with generous spacing.** Information-dense but not cramped, because the spacing scale (4/8/16/24/32/48/64px) creates breathing room between elements.
 5. **Green as identity, not decoration.** When you see green in this app, it means something (progress, success, active, brand). It is never used randomly.
+6. **The deep dark green sidebar** (#054e3b). Not navy, not black — green. The sidebar is the app's anchor surface and it wears the brand color proudly.
 
 ---
 
@@ -416,13 +417,18 @@ These are the subtle signatures that, taken together, make the app recognizable 
 - Hardcode hex colors in Blade templates
 - Use display typography sizes (display-lg, display-md) inside the app
 - Add animations longer than 300ms
-- Use glassmorphism or gradients on pages other than auth
+- Nest glass layers (glass on top of glass) — Apple HIG explicitly forbids this
+- Apply Liquid Glass to more than 3-4 surfaces per screen (overuse dilutes the effect)
+- Place text directly on bare glass — always use a solid content layer between glass and text
+- Animate `backdrop-filter` properties (expensive, causes jank) — only animate background-color
+- Use glass on scrollable lists (performance + readability issues)
 - Use decorative illustrations on admin/CFO pages
 - Use color as the sole indicator of state
 - Add new fonts without a strong justification
 - Change the sidebar width from 240px
 - Use playful micro-interactions (bounce, wiggle, pulse) on admin pages
 - Overuse the tertiary color (#b45309) — it is a spice, not an ingredient
+- Use navy/black for the sidebar background — the sidebar is deep dark green (#054e3b)
 
 ---
 
@@ -447,3 +453,85 @@ All table styling is centralized in `app.css` under the `.tabulator` selectors. 
 1. Override the CSS selectors — never use inline styles on Tabulator columns
 2. Use `--color-primary` for active states and `--color-surface-*` for backgrounds
 3. Header columns are automatically uppercase 11px via the global Tabulator styles
+
+---
+
+## 17. Liquid Glass Design System
+
+**Reference:** Apple "Adopting Liquid Glass" (WWDC 2025, iOS 26 / iPadOS 26 / macOS Tahoe)
+
+The app uses Liquid Glass — Apple's material design language introduced at WWDC 2025. Glass surfaces refract and blur underlying content, creating depth and hierarchy. This is distinct from the heavier glassmorphism used on auth pages (Section 10).
+
+### Design Tokens
+
+All glass tokens are defined in `@theme {}` in `resources/css/app.css`:
+
+| Token | Value | Usage |
+|---|---|---|
+| `--color-glass-bg` | `rgba(255,255,255,0.07)` | Light glass background tint |
+| `--color-glass-bg-dark` | `rgba(0,0,0,0.15)` | Dark glass background tint |
+| `--color-glass-border` | `rgba(255,255,255,0.15)` | Light glass border |
+| `--color-glass-border-dark` | `rgba(255,255,255,0.08)` | Dark glass border |
+| `--color-glass-highlight` | `rgba(255,255,255,0.25)` | Inset top highlight (light edge) |
+| `--color-glass-shadow` | `rgba(0,0,0,0.08)` | Soft drop shadow |
+
+### Glass Classes
+
+| Class | Blur | Opacity | Use For |
+|---|---|---|---|
+| `.liquid-glass` | 20px, 160% sat | 7% white | Topbar, stat cards (default glass) |
+| `.liquid-glass-strong` | 32px, 180% sat | 12% white | Modal panels (heavier, content-readable) |
+| `.liquid-glass-dark` | 20px, 160% sat | 15% black | Dark surfaces (rarely used directly) |
+| `.liquid-glass-tinted` | 20px, 160% sat | keeps element bg | Colored dark surfaces (sidebar) |
+| `.glass-content-layer` | none | 85% white | Solid overlay inside glass for text |
+| `.glass-scroll-edge` | — | — | Topbar scroll-aware opacity boost |
+
+### 4 Glass Surfaces (Apple HIG max)
+
+The app applies Liquid Glass to exactly 4 surface types — within Apple's "max 3-4 glass surfaces per screen" guideline:
+
+1. **Sidebar** (`.liquid-glass-tinted`)
+   - Keeps brand dark green (#054e3b) as base background
+   - Adds blur + saturation + inset highlight + soft border
+   - Menu items inside stay solid — NO nested glass (Apple HIG rule)
+
+2. **Topbar** (`.app-topbar`)
+   - 7% white tint + 20px blur (subtle)
+   - Scroll-edge effect: becomes 95% opaque + 24px blur when content scrolls under
+   - Toggled via Alpine.js `appShell()` component (`.scrolled` class)
+
+3. **Stat Cards** (`.app-stat-card`)
+   - 7% white tint + 20px blur + inset highlight
+   - Limited to stat cards (3-4 per dashboard) — regular `.app-card` stays solid
+
+4. **Modals** (`.modal-box` + `.modal-backdrop`)
+   - Panel: 92% white + 32px blur (strong, text-readable)
+   - Backdrop: 30% black + 4px blur (dims + blurs underlying content)
+
+### Background Gradient Wash
+
+The body has subtle radial gradients (4% brand green at top-left, 3% at bottom-right) so glass surfaces have something to refract. Without this, glass on a flat solid background is invisible.
+
+### Apple HIG Rules (MUST Follow)
+
+1. **Max 3-4 glass surfaces per screen.** Overusing glass distracts from content.
+2. **Never nest glass on glass.** Glass-on-glass creates visual noise and performance issues.
+3. **Text must NOT sit on bare glass.** Use `.glass-content-layer` (85% white solid overlay) between glass and text for readability.
+4. **No glass on scrollable lists.** Performance + readability issues.
+5. **Never animate `backdrop-filter`.** Animate `background-color` instead — backdrop-filter animation is expensive and causes jank.
+6. **Blur max 32px.** Higher blur values kill performance on lower-end devices.
+7. **Light direction: top-left.** Inset highlight (`inset 0 1px 0 rgba(255,255,255,0.25)`) simulates light from top-left.
+
+### Accessibility Fallbacks
+
+All glass classes include fallbacks:
+
+- `@supports not (backdrop-filter)`: solid background (92-98% white) for older browsers
+- `prefers-reduced-transparency: reduce`: glass becomes 95% solid (white for light, black for dark)
+- `prefers-contrast: more`: border-width increases to 2px, border-color darkens
+
+### Performance
+
+- `backdrop-filter: blur()` is GPU-expensive. Keep glass surfaces to 3-4 per screen.
+- The topbar scroll-edge effect only toggles the `.scrolled` class when crossing the scroll threshold (not on every scroll event) to avoid constant backdrop-filter recalculation.
+- Test on Firefox (uses `@supports` fallback), Safari (native support), Chrome (native support).
