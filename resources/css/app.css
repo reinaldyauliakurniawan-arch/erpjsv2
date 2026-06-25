@@ -300,15 +300,17 @@
        (PASS AA). Same amber hue, just deeper. */
     --color-warning: #b45309;
 
-    /* ── Sidebar (dark by default; auto-flips text via .sidebar--light) ──
-       Accent is GREEN per Brand Guide Section 3 ("Green is our identity").
-       Never use blue here — that would dilute the brand. */
-    --color-sidebar-bg: #111827;
-    --color-sidebar-text: #9ca3af;
+    /* ── Sidebar — dark green by default per Brand Guide Section 3.
+       "Green is our identity." The sidebar is the app's anchor surface,
+       so it uses the primary dark green (#065f46) rather than a neutral
+       navy. Accent is a lighter green (#34d399) so the 3px active stripe
+       is visible against the dark green background. */
+    --color-sidebar-bg: #065f46;
+    --color-sidebar-text: #a7f3d0;
     --color-sidebar-text-active: #ffffff;
-    --color-sidebar-accent: #059669;
-    --color-sidebar-border: rgba(255, 255, 255, 0.08);
-    --color-sidebar-hover: rgba(255, 255, 255, 0.05);
+    --color-sidebar-accent: #34d399;
+    --color-sidebar-border: rgba(255, 255, 255, 0.12);
+    --color-sidebar-hover: rgba(255, 255, 255, 0.08);
 
     /* ── Topbar ── */
     --color-topbar-bg: #ffffff;

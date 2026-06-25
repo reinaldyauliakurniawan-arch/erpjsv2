@@ -147,3 +147,9 @@ server.php
 .flooignore
 tags
 .tags
+
+# ── Dev maintenance scripts ──────────────────────────────────────────
+# One-off Python/shell scripts used during refactoring (bulk find-replace,
+# code generation, etc). These are dev tooling, NOT part of the app.
+/scripts/*.py
+/scripts/*.sh

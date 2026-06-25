@@ -13,7 +13,7 @@
 
         $colorPrimary   = Setting::get('color_primary',   '#065f46');
         $colorSecondary = Setting::get('color_secondary', '#059669');
-        $colorSidebar   = Setting::get('color_sidebar',   '#111827');
+        $colorSidebar   = Setting::get('color_sidebar',   '#065f46');
 
         $hex = ltrim($colorSidebar, '#');
         if (strlen($hex) === 3) {

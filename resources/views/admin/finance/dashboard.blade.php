@@ -94,7 +94,9 @@
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))">
             <div class="app-card space-y-md">
                 <h4 class="text-headline-md font-semibold text-on-surface">Revenue vs Expense (12 Bulan)</h4>
-                <canvas id="revenueExpenseChart" height="120"></canvas>
+                <div style="position:relative;height:300px">
+                    <canvas id="revenueExpenseChart"></canvas>
+                </div>
             </div>
             <div class="app-card space-y-md">
                 <h4 class="text-headline-md font-semibold text-on-surface">Enrollment per Program</h4>
@@ -126,7 +128,9 @@
                     </div>
                 </div>
             </div>
-            <canvas id="revenueProgramChart" height="80"></canvas>
+            <div style="position:relative;height:300px">
+                <canvas id="revenueProgramChart"></canvas>
+            </div>
         </div>
 
         {{-- Overdue + Pending Rates --}}
@@ -323,6 +327,7 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { position: 'top' },
                 tooltip: {
@@ -407,6 +412,7 @@ document.addEventListener('DOMContentLoaded', function () {
         options: {
             indexAxis: 'y',
             responsive: true,
+            maintainAspectRatio: false,
             plugins: {
                 legend: { display: false },
                 tooltip: { callbacks: { label: ctx => 'Rp ' + ctx.raw.toLocaleString('id-ID') } }

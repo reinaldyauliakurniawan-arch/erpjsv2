@@ -593,8 +593,8 @@
                 <p class="text-label-lg text-on-surface-variant mt-xs">Keseluruhan siswa terdaftar</p>
             </div>
             <div class="p-lg flex flex-col gap-md">
-                <div style="position:relative;height:220px;width:100%;overflow:hidden">
-                    <canvas id="educationDonutChart" style="position:absolute;top:0;left:0;width:100%!important;height:100%!important"></canvas>
+                <div style="position:relative;height:220px;width:100%">
+                    <canvas id="educationDonutChart"></canvas>
                 </div>
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px 16px" class="text-sm text-on-surface">
                     @php
@@ -638,8 +638,8 @@
                 <span class="material-symbols-outlined text-on-surface-variant">bar_chart</span>
             </div>
             <div class="p-lg" style="flex:1;display:flex;flex-direction:column">
-                <div style="position:relative;flex:1;min-height:220px">
-                    <canvas id="distributionChart" style="position:absolute;top:0;left:0;width:100%!important;height:100%!important"></canvas>
+                <div style="position:relative;height:220px;width:100%">
+                    <canvas id="distributionChart"></canvas>
                 </div>
             </div>
         </div>
