@@ -48,15 +48,15 @@
     <div class="grid gap-md" style="grid-template-columns:1fr 1fr 1fr;">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Debit</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalDebit,0,',','.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalDebit,0,',','.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Kredit</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalCredit,0,',','.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalCredit,0,',','.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Status</p>
-            <p class="text-xl font-bold mt-xs {{ abs($totalDebit-$totalCredit)<0.001 ?'text-success' : 'text-error' }}">
+            <p class="text-headline-md font-bold mt-xs {{ abs($totalDebit-$totalCredit)<0.001 ?'text-success' : 'text-error' }}">
                 {{ abs($totalDebit-$totalCredit)<0.001 ? 'Balance ✓' : 'Tidak Balance ✗' }}
             </p>
         </div>

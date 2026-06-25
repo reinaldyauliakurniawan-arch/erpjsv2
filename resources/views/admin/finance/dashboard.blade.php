@@ -35,22 +35,22 @@
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Cash Balance</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight" style="font-size:1.1rem;word-break:break-all">Rp {{ number_format($cashBalance, 0, ',', '.') }}</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($cashBalance, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Saldo kas & bank saat ini</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Total Revenue</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight" style="font-size:1.1rem;word-break:break-all">Rp {{ number_format($revenue, 0, ',', '.') }}</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($revenue, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan dari sesi yang sudah selesai</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Total Expense</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight" style="font-size:1.1rem;word-break:break-all">Rp {{ number_format($expense, 0, ',', '.') }}</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($expense, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Biaya yang sudah dikeluarkan bulan ini</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Net Profit</p>
-                <p class="font-bold mt-xs leading-tight {{ $netProfit >= 0 ?'text-success' : 'text-error' }}" style="font-size:1.1rem;word-break:break-all">
+                <p class="font-bold mt-xs leading-tight {{ $netProfit >= 0 ?'text-success' : 'text-error' }} text-headline-md break-all">
                     Rp {{ number_format($netProfit, 0, ',', '.') }}
                 </p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Revenue dikurangi expense bulan ini</p>
@@ -61,17 +61,17 @@
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Deferred Revenue</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight" style="font-size:1.1rem;word-break:break-all">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan diterima di muka</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Tutor Payable</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight" style="font-size:1.1rem;word-break:break-all">Rp {{ number_format($tutorPayable, 0, ',', '.') }}</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($tutorPayable, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Belum dibayar ke tutor</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Collection Rate</p>
-                <p class="font-bold mt-xs leading-tight {{ $collectionRate >= 80 ?'text-success' : ($collectionRate >= 50 ? 'text-warning' : 'text-error') }}" style="font-size:1.1rem;word-break:break-all">
+                <p class="font-bold mt-xs leading-tight {{ $collectionRate >= 80 ?'text-success' : ($collectionRate >= 50 ? 'text-warning' : 'text-error') }} text-headline-md break-all">
                     {{ $collectionRate }}%
                 </p>
                 <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-xs">
@@ -82,7 +82,7 @@
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Burn Rate</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight" style="font-size:1.1rem;word-break:break-all">Rp {{ number_format($burnRate, 0, ',', '.') }}</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($burnRate, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Rata-rata pengeluaran per bulan (6 bulan terakhir)</p>
                 @if($runwayMonths !== null)
                     <p class="text-body-sm mt-xs">Tanpa pemasukan baru, bertahan: <span class="{{ $runwayMonths <= 3 ?'text-error' : ($runwayMonths <= 6 ? 'text-warning' : 'text-success') }} font-medium">{{ $runwayMonths }} bulan lagi</span></p>

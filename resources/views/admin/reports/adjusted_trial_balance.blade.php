@@ -44,19 +44,19 @@
     <div class="grid gap-md" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Saldo Pre-Adjustment</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalPreSaldo, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalPreSaldo, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Adj Debit</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalAdjDebit, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalAdjDebit, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Adj Kredit</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalAdjCredit, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalAdjCredit, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Saldo Adjusted</p>
-            <p class="text-xl font-bold mt-xs {{ abs($totalAdjDebit - $totalAdjCredit) < 0.001 ?'text-success' : 'text-error' }}">
+            <p class="text-headline-md font-bold mt-xs {{ abs($totalAdjDebit - $totalAdjCredit) < 0.001 ?'text-success' : 'text-error' }}">
                 Rp {{ number_format($totalAdjustedSaldo, 0, ',', '.') }}
             </p>
         </div>

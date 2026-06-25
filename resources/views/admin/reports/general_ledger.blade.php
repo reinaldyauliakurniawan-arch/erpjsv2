@@ -50,15 +50,15 @@
     <div class="grid gap-md no-print" style="grid-template-columns:repeat(3,1fr)">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Debet</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalDebet,0,',','.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalDebet,0,',','.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Kredit</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalKredit,0,',','.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalKredit,0,',','.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Akun Aktif</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">{{ $activeAccounts }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">{{ $activeAccounts }}</p>
         </div>
     </div>
 

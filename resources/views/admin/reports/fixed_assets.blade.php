@@ -44,15 +44,15 @@
     <div class="grid gap-md" style="grid-template-columns:repeat(3,1fr)">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Harga Perolehan</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalCost,0,',','.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalCost,0,',','.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Akumulasi Penyusutan</p>
-            <p class="text-xl font-bold text-error mt-xs">Rp {{ number_format($totalAccumulated,0,',','.') }}</p>
+            <p class="text-headline-md font-bold text-error mt-xs">Rp {{ number_format($totalAccumulated,0,',','.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Nilai Buku</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalBookValue,0,',','.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalBookValue,0,',','.') }}</p>
         </div>
     </div>
 

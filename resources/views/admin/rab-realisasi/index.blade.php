@@ -36,11 +36,11 @@
     <div class="grid gap-md" style="grid-template-columns: repeat(4, 1fr)">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Anggaran {{ $year }}</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalBudget, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalBudget, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Realisasi Saat Ini</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalReal, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalReal, 0, ',', '.') }}</p>
             <div class="mt-sm space-y-xs">
                 <div class="flex justify-between text-xs text-on-surface-variant">
                     <span>Progress</span>
@@ -54,7 +54,7 @@
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Realisasi Q{{ $currentQuarter }} (Berjalan)</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($realQCurrent, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($realQCurrent, 0, ',', '.') }}</p>
             <div class="mt-sm space-y-xs">
                 <div class="flex justify-between text-xs text-on-surface-variant">
                     <span>dari Rp {{ number_format($budgetQCurrent, 0, ',', '.') }}</span>
@@ -70,15 +70,15 @@
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Status Akun <span id="filter-reset" class="text-xs font-normal normal-case hidden cursor-pointer text-primary underline ml-1" onclick="resetStatusFilter()">(reset filter)</span><span id="filter-hint" class="text-xs font-normal normal-case">(klik untuk filter)</span></p>
             <div class="flex gap-md mt-xs">
                 <div onclick="filterByStatus('Aman')" class="cursor-pointer hover:opacity-70 transition-opacity">
-                    <p class="text-xl font-bold text-success">{{ $totalAman }}</p>
+                    <p class="text-headline-md font-bold text-success">{{ $totalAman }}</p>
                     <p class="text-xs text-on-surface-variant">Aman</p>
                 </div>
                 <div onclick="filterByStatus('Waspada')" class="cursor-pointer hover:opacity-70 transition-opacity">
-                    <p class="text-xl font-bold text-warning">{{ $rows->where('status', 'Waspada')->count() }}</p>
+                    <p class="text-headline-md font-bold text-warning">{{ $rows->where('status', 'Waspada')->count() }}</p>
                     <p class="text-xs text-on-surface-variant">Waspada</p>
                 </div>
                 <div onclick="filterByStatus('Kritis')" class="cursor-pointer hover:opacity-70 transition-opacity">
-                    <p class="text-xl font-bold text-error">{{ $totalKritis }}</p>
+                    <p class="text-headline-md font-bold text-error">{{ $totalKritis }}</p>
                     <p class="text-xs text-on-surface-variant">Kritis</p>
                 </div>
             </div>

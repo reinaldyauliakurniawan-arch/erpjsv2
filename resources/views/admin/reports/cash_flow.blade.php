@@ -50,17 +50,17 @@
     <div class="grid gap-md no-print" style="grid-template-columns:repeat(3,1fr)">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Arus Kas Bersih</p>
-            <p class="text-xl font-bold mt-xs {{ $netChange >= 0 ?'text-success' : 'text-error' }}">
+            <p class="text-headline-md font-bold mt-xs {{ $netChange >= 0 ?'text-success' : 'text-error' }}">
                 {{ $netChange >= 0 ? '' : '-' }}Rp {{ number_format(abs($netChange),0,',','.') }}
             </p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Kas Akhir Periode</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($cashEnding,0,',','.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($cashEnding,0,',','.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Aktivitas Operasi</p>
-            <p class="text-xl font-bold mt-xs {{ $netOperating >= 0 ?'text-on-surface' : 'text-error' }}">
+            <p class="text-headline-md font-bold mt-xs {{ $netOperating >= 0 ?'text-on-surface' : 'text-error' }}">
                 {{ $netOperating >= 0 ? '' : '-' }}Rp {{ number_format(abs($netOperating),0,',','.') }}
             </p>
         </div>

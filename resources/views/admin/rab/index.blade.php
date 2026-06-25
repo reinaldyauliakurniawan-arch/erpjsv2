@@ -35,11 +35,11 @@
     <div class="grid gap-md" style="grid-template-columns: repeat(2, 1fr)">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Anggaran Tahun Berjalan ({{ $year }})</p>
-            <p class="text-xl font-bold text-on-surface mt-xs" id="card-total">Rp {{ number_format($totalBudget, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs" id="card-total">Rp {{ number_format($totalBudget, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Anggaran Kuartal Berjalan (Q{{ ceil(now()->month / 3) }})</p>
-            <p class="text-xl font-bold text-on-surface mt-xs" id="card-quarter">Rp {{ number_format($budgetQuarter, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs" id="card-quarter">Rp {{ number_format($budgetQuarter, 0, ',', '.') }}</p>
         </div>
     </div>
 

@@ -39,19 +39,19 @@
     <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr 1fr;">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Aset</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalAsset, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalAsset, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Liabilitas</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalLiability, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalLiability, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Ekuitas</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalEquity, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalEquity, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Status</p>
-            <p class="text-xl font-bold mt-xs {{ $isBalance ?'text-success' : 'text-error' }}">
+            <p class="text-headline-md font-bold mt-xs {{ $isBalance ?'text-success' : 'text-error' }}">
                 {{ $isBalance ? 'Balance ✓' : 'Tidak Balance ✗' }}
             </p>
             @if(!$isBalance)

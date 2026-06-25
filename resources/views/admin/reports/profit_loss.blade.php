@@ -47,15 +47,15 @@
     <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Pendapatan</p>
-            <p class="text-xl font-bold text-success mt-xs">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-success mt-xs">Rp {{ number_format($totalRevenue, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Beban</p>
-            <p class="text-xl font-bold text-error mt-xs">Rp {{ number_format($totalExpense, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-error mt-xs">Rp {{ number_format($totalExpense, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Net Profit</p>
-            <p class="text-xl font-bold mt-xs {{ $netProfit >= 0 ?'text-success' : 'text-error' }}">
+            <p class="text-headline-md font-bold mt-xs {{ $netProfit >= 0 ?'text-success' : 'text-error' }}">
                 Rp {{ number_format($netProfit, 0, ',', '.') }}
             </p>
         </div>

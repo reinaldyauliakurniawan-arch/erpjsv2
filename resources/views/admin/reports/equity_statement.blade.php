@@ -32,24 +32,24 @@
     <div class="grid gap-md" style="grid-template-columns: repeat(4, 1fr)">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Modal Awal</p>
-            <p class="text-xl font-bold text-on-surface mt-xs">Rp {{ number_format($modalAwal, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($modalAwal, 0, ',', '.') }}</p>
             <p class="text-xs text-on-surface-variant mt-xs">Per 31 Des {{ $year - 1 }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Laba Bersih</p>
-            <p class="text-xl font-bold mt-xs {{ $labaBersih >= 0 ?'text-success' : 'text-error' }}">
+            <p class="text-headline-md font-bold mt-xs {{ $labaBersih >= 0 ?'text-success' : 'text-error' }}">
                 Rp {{ number_format($labaBersih, 0, ',', '.') }}
             </p>
             <p class="text-xs text-on-surface-variant mt-xs">Tahun {{ $year }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Prive / Drawing</p>
-            <p class="text-xl font-bold text-warning mt-xs">Rp {{ number_format($prive, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-warning mt-xs">Rp {{ number_format($prive, 0, ',', '.') }}</p>
             <p class="text-xs text-on-surface-variant mt-xs">Tahun {{ $year }}</p>
         </div>
         <div class="app-card border-2 border-primary">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Modal Akhir</p>
-            <p class="text-xl font-bold text-primary mt-xs">Rp {{ number_format($modalAkhir, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-primary mt-xs">Rp {{ number_format($modalAkhir, 0, ',', '.') }}</p>
             <p class="text-xs text-on-surface-variant mt-xs">Per 31 Des {{ $year }}</p>
         </div>
     </div>
