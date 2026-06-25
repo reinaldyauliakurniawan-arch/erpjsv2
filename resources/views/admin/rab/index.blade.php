@@ -8,11 +8,11 @@
 
     {{-- Header --}}
     <div class="flex items-center justify-between gap-md">
-        <div>
-            <h3 class="text-headline-lg font-semibold text-on-surface">Rencana Anggaran Biaya (RAB)</h3>
+        <div class="min-w-0 shrink">
+            <h3 class="text-headline-lg font-semibold text-on-surface truncate">Rencana Anggaran Biaya (RAB)</h3>
             <p class="text-sm text-on-surface-variant mt-xs">Kelola anggaran divisi per kuartal dalam satu tampilan</p>
         </div>
-        <div class="flex gap-sm items-center">
+        <div class="flex gap-sm items-center flex-shrink-0">
             <form method="GET" action="{{ route('finance.rab.index') }}" class="flex gap-sm items-center">
                 <select name="year" class="select select-sm" onchange="this.form.submit()">
                     @foreach($years as $y)

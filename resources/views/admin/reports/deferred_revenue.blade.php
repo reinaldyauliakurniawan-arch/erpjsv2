@@ -46,15 +46,15 @@
     <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Deferred Revenue</p>
-            <p class="text-2xl font-bold text-on-surface mt-xs">Rp {{ number_format($totalDeferred, 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">Rp {{ number_format($totalDeferred, 0, ',', '.') }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Jumlah Enrollment</p>
-            <p class="text-2xl font-bold text-on-surface mt-xs">{{ $enrollments->count() }}</p>
+            <p class="text-headline-md font-bold text-on-surface mt-xs">{{ $enrollments->count() }}</p>
         </div>
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Total Sudah Diakui</p>
-            <p class="text-2xl font-bold text-success mt-xs">Rp {{ number_format($enrollments->sum('recognized_amount'), 0, ',', '.') }}</p>
+            <p class="text-headline-md font-bold text-success mt-xs">Rp {{ number_format($enrollments->sum('recognized_amount'), 0, ',', '.') }}</p>
         </div>
     </div>
 
