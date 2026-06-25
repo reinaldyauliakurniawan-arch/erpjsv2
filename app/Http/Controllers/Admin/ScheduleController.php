@@ -24,7 +24,9 @@ class ScheduleController extends Controller
         ->whereNotNull('class_session_id')
         ->orderBy('day')
         ->orderBy('time_block')
-        ->get();
+        ->get()
+        ->unique(fn($s) => $s->class_session_id . '|' . $s->classroom_id . '|' . $s->day . '|' . $s->time_block)
+        ->values();
 
         $classrooms   = Classroom::all();
         $classSessions = ClassSession::with(['program', 'enrollments.student.user', 'tutors.user'])

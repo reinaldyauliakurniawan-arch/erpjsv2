@@ -1004,17 +1004,14 @@
     transition: left var(--motion-base) var(--motion-easing);
 }
 
-@media (min-width: 64rem) {
-    .app-topbar {
-        left: var(--size-sidebar-width);
-    }
+.app-topbar {
+    left: var(--size-sidebar-width);
+    transition: left var(--motion-base) var(--motion-easing);
 }
 
-/* When sidebar is collapsed on desktop, topbar expands to full width */
-@media (min-width: 64rem) {
-    .app-topbar--expanded {
-        left: 0;
-    }
+/* When sidebar is collapsed, topbar expands to full width */
+.app-topbar--expanded {
+    left: 0;
 }
 
 /* Main content */
@@ -1022,20 +1019,13 @@
     padding-top: var(--size-topbar-height);
     min-height: 100vh;
     background-color: var(--color-background);
+    margin-left: var(--size-sidebar-width);
     transition: margin-left var(--motion-base) var(--motion-easing);
 }
 
-@media (min-width: 64rem) {
-    .app-main {
-        margin-left: var(--size-sidebar-width);
-    }
-}
-
-/* When sidebar is collapsed on desktop, main expands to full width */
-@media (min-width: 64rem) {
-    .app-main--expanded {
-        margin-left: 0;
-    }
+/* When sidebar is collapsed, main expands to full width */
+.app-main--expanded {
+    margin-left: 0;
 }
 
 /* User avatar in topbar */
