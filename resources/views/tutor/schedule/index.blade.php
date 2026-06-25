@@ -151,7 +151,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                                 @endphp
                                 @if(!$alreadySkipped)
                                 <button type="button"
-                                    @click="guardSlot(@json($todayDate), @json($slot->time_block), () => { modal = true; modalType = 'skip'; selectedBlock = @json($slot->time_block); selectedDate = @json($todayDate); classroomId = @json($slot->classroom_id); selectedScheduleId = @json($slot->id); })"
+                                    @click='guardSlot(@json($todayDate), @json($slot->time_block), () => { modal = true; modalType = "skip"; selectedBlock = @json($slot->time_block); selectedDate = @json($todayDate); classroomId = @json($slot->classroom_id); selectedScheduleId = @json($slot->id); })'
                                     class="btn btn-xs btn-ghost text-warning hover:bg-yellow-50">
                                     <span class="material-symbols-outlined text-[14px]">event_busy</span>
                                     Skip
@@ -247,7 +247,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                     $daySchedules = $byRoom->get($classroom->name, collect())->get($d, collect());
                     $isPast       = \Carbon\Carbon::parse($date)->isPast() && !\Carbon\Carbon::parse($date)->isToday();
                 @endphp
-                <div x-show="day === @json($d)" x-cloak
+                <div x-show='day === @json($d)' x-cloak
                     class="grid gap-xs"
                     style="grid-template-columns: 140px repeat({{ count($timeBlocks) }}, 1fr)">
 
@@ -280,7 +280,7 @@ function guardSlot(dateStr, timeBlock, callback) {
 
                     @elseif($isMyTemp)
                         <button type="button"
-                            @click="guardSlot(@json($date), @json($block), () => { modal = true; modalType = 'cancel'; selectedRoom = @json($classroom->name); selectedBlock = @json($block); selectedDate = @json($date); bookingId = {{ $booking->id }}; bookingNotes = {{ json_encode($booking->notes ?? '') }}; })"
+                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "cancel"; selectedRoom = @json($classroom->name); selectedBlock = @json($block); selectedDate = @json($date); bookingId = {{ $booking->id }}; bookingNotes = @json($booking->notes ?? ""); })'
                             class="bg-warning/10 border border-warning/30 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-amber-100 transition-colors"
                             title="Booking saya — klik untuk cancel">
                             <span class="material-symbols-outlined text-on-tertiary-container text-sm">event_available</span>
@@ -300,7 +300,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                         </div>
                         @else
                         <button type="button"
-                            @click="guardSlot(@json($date), @json($block), () => { modal = true; modalType = 'book'; selectedRoom = @json($classroom->name); selectedBlock = @json($block); selectedDate = @json($date); classroomId = @json($classroom->id); })"
+                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "book"; selectedRoom = @json($classroom->name); selectedBlock = @json($block); selectedDate = @json($date); classroomId = @json($classroom->id); })'
                             class="{{ $isSkipped ?'bg-warning/10 border-warning/30 hover:bg-warning/20' : 'bg-success/10 border-success/30 hover:bg-success/20' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
                             <span class="material-symbols-outlined {{ $isSkipped ?'text-warning' : 'text-success' }} text-sm">add_circle</span>
                             <span class="text-[9px] font-bold {{ $isSkipped ?'text-warning' : 'text-success' }} text-center">
@@ -321,7 +321,7 @@ function guardSlot(dateStr, timeBlock, callback) {
         {{-- Custom Timeblock Sessions --}}
         @php $standardBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
         @foreach($days as $d)
-        <div x-show="day === @json($d)" x-cloak>
+        <div x-show='day === @json($d)' x-cloak>
             @php
                 $customSchedules = collect();
                 foreach($byRoom as $roomName => $dayGroups) {

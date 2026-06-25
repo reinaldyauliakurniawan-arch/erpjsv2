@@ -48,21 +48,21 @@
 
 {{-- DESKTOP SIDEBAR --}}
 <aside
-    class="app-sidebar {{ $sidebarIsLight ? 'app-sidebar--light' : '' }} hidden lg:block"
+    class="app-sidebar {{ $sidebarIsLight ? 'app-sidebar--light' : '' }}"
     x-show="!collapsed"
     x-cloak
-    x-transition:enter="transition ease-out duration-200"
-    x-transition:enter-start="-translate-x-full opacity-0"
-    x-transition:enter-end="translate-x-0 opacity-100"
+    x-transition:enter="transition ease-out duration-150"
+    x-transition:enter-start="-translate-x-full"
+    x-transition:enter-end="translate-x-0"
     x-transition:leave="transition ease-in duration-150"
-    x-transition:leave-start="translate-x-0 opacity-100"
-    x-transition:leave-end="-translate-x-full opacity-0"
+    x-transition:leave-start="translate-x-0"
+    x-transition:leave-end="-translate-x-full"
 >
     @include('partials.sidebar-nav')
 </aside>
 
 {{-- TOPBAR --}}
-<header class="app-topbar" :class="collapsed && window.innerWidth >= 1024 ? 'app-topbar--expanded' : ''">
+<header class="app-topbar" :class="collapsed ? 'app-topbar--expanded' : ''">
     <div class="flex justify-between items-center w-full gap-md">
         <div class="flex items-center gap-md flex-shrink-0">
             <button type="button" @click="toggle()"
@@ -127,7 +127,7 @@
 </div>
 
 {{-- MAIN CONTENT --}}
-<main class="app-main" :class="collapsed && window.innerWidth >= 1024 ? 'app-main--expanded' : ''">
+<main class="app-main" :class="collapsed ? 'app-main--expanded' : ''">
     {{ $slot }}
 </main>
 

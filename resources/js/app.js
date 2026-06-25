@@ -60,7 +60,7 @@ window.globalSearch = function (config) {
         url: config.url,
         placeholder: config.placeholder,
 
-        query: '',
+        query: "",
         results: {},
         loading: false,
         open: false,
@@ -69,7 +69,10 @@ window.globalSearch = function (config) {
         _abortController: null,
 
         get total() {
-            return Object.values(this.results).reduce((sum, items) => sum + items.length, 0);
+            return Object.values(this.results).reduce(
+                (sum, items) => sum + items.length,
+                0,
+            );
         },
 
         onFocus() {
@@ -102,18 +105,18 @@ window.globalSearch = function (config) {
 
             try {
                 const url = new URL(this.url, window.location.origin);
-                url.searchParams.set('q', q);
+                url.searchParams.set("q", q);
 
                 const res = await fetch(url, {
                     headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest',
+                        Accept: "application/json",
+                        "X-Requested-With": "XMLHttpRequest",
                     },
                     signal: this._abortController.signal,
                 });
 
                 if (!res.ok) {
-                    throw new Error('Search failed: ' + res.status);
+                    throw new Error("Search failed: " + res.status);
                 }
 
                 const data = await res.json();
@@ -122,8 +125,8 @@ window.globalSearch = function (config) {
                 this.cursor = this.total > 0 ? 0 : -1;
             } catch (e) {
                 // AbortError is expected when the user types more — silently ignore.
-                if (e.name !== 'AbortError') {
-                    console.error('Global search failed:', e);
+                if (e.name !== "AbortError") {
+                    console.error("Global search failed:", e);
                     this.results = {};
                     this.hasSearched = true;
                     this.cursor = -1;
@@ -184,21 +187,17 @@ window.globalSearch = function (config) {
 // Registered before Alpine.start() so it's available when the DOM is walked.
 window.appShell = function () {
     return {
-        collapsed: false,   // desktop: sidebar collapsed?
-        mobileOpen: false,  // mobile: drawer open?
+        collapsed: false, // desktop: sidebar collapsed?
+        mobileOpen: false, // mobile: drawer open?
 
         toggle() {
-            if (window.innerWidth >= 1024) {
-                this.collapsed = !this.collapsed;
-            } else {
-                this.mobileOpen = !this.mobileOpen;
-            }
+            this.collapsed = !this.collapsed;
         },
 
         init() {
             // Close mobile drawer when resizing to desktop
-            const mq = window.matchMedia('(min-width: 1024px)');
-            mq.addEventListener('change', (e) => {
+            const mq = window.matchMedia("(min-width: 1024px)");
+            mq.addEventListener("change", (e) => {
                 if (e.matches) {
                     this.mobileOpen = false;
                 }

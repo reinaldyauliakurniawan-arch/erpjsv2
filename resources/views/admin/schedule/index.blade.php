@@ -186,7 +186,7 @@
                                 $dayBookings  = $bookings->get($date, collect());
                                 $daySchedules = $byRoom->get($classroom->name, collect())->get($d, collect());
                             @endphp
-                            <div x-show="day === @json($d)" x-cloak
+                            <div x-show='day === @json($d)' x-cloak
                                 class="grid gap-xs mb-xs"
                                 style="grid-template-columns: 150px repeat(6, 1fr)">
                                 <div class="bg-primary-container text-on-primary px-sm py-sm rounded-lg text-[11px] font-bold flex items-center">
@@ -205,7 +205,7 @@
                                     @if($schedule && !$isSkipped && !$isTemp)
                                         {{-- Reguler aktif --}}
                                         <button type="button"
-                                            @click="guardSlot(@json($date), @json($block), () => { modal = true; modalType = 'skip'; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); selectedClassSessionId = @json($schedule->class_session_id); selectedScheduleId = @json($schedule->id); })"
+                                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "skip"; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); selectedClassSessionId = @json($schedule->class_session_id); selectedScheduleId = @json($schedule->id); })'
                                             class="bg-error-container border border-error/30 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-error/20 transition-colors"
                                             title="Jadwal reguler — klik untuk skip">
                                             <span class="material-symbols-outlined text-on-error-container text-sm">lock</span>
@@ -217,12 +217,12 @@
                                     @elseif($isTemp)
                                         {{-- Temporary booking --}}
                                         <button type="button"
-                                            @click="modal = true; modalType = 'temp_info';
+                                            @click='modal = true; modalType = "temp_info";
                                                 selectedRoom = @json($classroom->name);
                                                 selectedBlock = @json($block);
                                                 selectedDate = @json($date);
-                                                selectedBookingId = '{{ $booking->id }}';
-                                                bookingNotes = {{ json_encode($booking->notes ?? '') }};"
+                                                selectedBookingId = {{ $booking->id }};
+                                                bookingNotes = @json($booking->notes ?? "");'
                                             class="bg-amber-50 border border-amber-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-amber-100 transition-colors"
                                             title="Temporary booking">
                                             <span class="material-symbols-outlined text-warning text-sm">event</span>
@@ -234,7 +234,7 @@
                                     @elseif($isSkipped)
                                         {{-- Di-skip, slot available --}}
                                         <button type="button"
-                                            @click="guardSlot(@json($date), @json($block), () => { modal = true; modalType = 'temporary'; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); })"
+                                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "temporary"; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); })'
                                             class="bg-warning/10 border border-warning/30 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-warning/20 transition-colors"
                                             title="Reguler skip — tersedia untuk booking">
                                             <span class="material-symbols-outlined text-warning text-sm">event_available</span>
@@ -244,7 +244,7 @@
                                     @else
                                         {{-- Kosong --}}
                                         <button type="button"
-                                            @click="guardSlot(@json($date), @json($block), () => { modal = true; modalType = 'temporary'; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); })"
+                                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "temporary"; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); })'
                                             class="bg-success/10 border border-success/30 px-xs py-xs rounded-lg flex items-center justify-center hover:bg-success/20 transition-colors"
                                             title="Kosong — klik untuk booking">
                                             <span class="material-symbols-outlined text-success text-sm">add_circle</span>
@@ -260,7 +260,7 @@
                 {{-- Custom Timeblock Sessions --}}
                 @php $standardBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
                 @foreach($days as $d)
-                <div x-show="day === @json($d)" x-cloak>
+                <div x-show='day === @json($d)' x-cloak>
                     @php
                         $customSchedules = collect();
                         foreach($byRoom as $roomName => $dayGroups) {
@@ -441,7 +441,7 @@
                             <p class="text-[10px] font-bold uppercase tracking-widest text-on-primary-container mb-xs">Ruangan</p>
                             <h4 class="text-body-lg font-bold mb-sm">{{ $roomName }}</h4>
                             @foreach($days as $d)
-                            <div x-show="day === @json($d)" x-cloak>
+                            <div x-show='day === @json($d)' x-cloak>
                                 @php
                                     $total = isset($dayGroups[$d]) ? $dayGroups[$d]->count() : 0;
                                     $pct   = round($total / count($timeBlocks) * 100);
@@ -462,7 +462,7 @@
                 <div class="col-span-12 lg:col-span-9">
                     <div class="app-card app-card--flush">
                         @foreach($days as $d)
-                        <div x-show="day === @json($d)" x-cloak>
+                        <div x-show='day === @json($d)' x-cloak>
                             @if(isset($dayGroups[$d]) && $dayGroups[$d]->count())
                             <table class="w-full border-collapse">
                                 <thead class="bg-surface-container-low border-b border-surface-border">
@@ -593,7 +593,7 @@
                             <p class="text-[10px] font-bold uppercase tracking-widest text-on-primary-container mb-xs">Tutor</p>
                             <h4 class="text-body-lg font-bold mb-sm">{{ $tutorName }}</h4>
                             @foreach($days as $d)
-                            <div x-show="day === @json($d)" x-cloak>
+                            <div x-show='day === @json($d)' x-cloak>
                                 @php $total = isset($dayGroups[$d]) ? $dayGroups[$d]->count() : 0; @endphp
                                 <p class="text-[11px] text-on-primary-container">{{ $total }} sesi aktif hari ini</p>
                             </div>
@@ -608,7 +608,7 @@
                 <div class="col-span-12 lg:col-span-9">
                     <div class="app-card app-card--flush">
                         @foreach($days as $d)
-                        <div x-show="day === @json($d)" x-cloak>
+                        <div x-show='day === @json($d)' x-cloak>
                             @if(isset($dayGroups[$d]) && $dayGroups[$d]->count())
                             <table class="w-full border-collapse">
                                 <thead class="bg-surface-container-low border-b border-surface-border">
