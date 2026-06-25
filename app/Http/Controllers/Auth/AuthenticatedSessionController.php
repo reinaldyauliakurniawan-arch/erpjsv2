@@ -11,11 +11,8 @@ use Illuminate\Auth\AuthenticationException;
 use Illuminate\View\View;
 class AuthenticatedSessionController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('guest')->except('destroy');
-        $this->middleware('throttle:60,1')->only(['store']);
-    }
+    // Note: 'guest' and 'throttle' middleware are applied at the route level
+    // (see routes/auth.php). Controller-level middleware was removed in Laravel 12+.
     public function create(): View
     {
         return view('auth.login');

@@ -10,10 +10,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 
 class ClassroomController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-    }
+    // Note: 'auth' + role enforcement applied via the role:admin route group.
 
     public function index()
     {

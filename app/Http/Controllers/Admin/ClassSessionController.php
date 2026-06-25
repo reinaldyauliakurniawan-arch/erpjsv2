@@ -36,7 +36,6 @@ class ClassSessionController extends Controller
      */
     public function __construct(AttendanceService $attendanceService)
     {
-        $this->middleware('auth');
         $this->attendanceService = $attendanceService;
     }
 

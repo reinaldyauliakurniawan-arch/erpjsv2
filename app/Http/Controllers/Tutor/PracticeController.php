@@ -11,16 +11,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 
 class PracticeController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('auth');
-        $this->middleware(function ($request, $next) {
-            if (auth()->user() && auth()->user()->role !== 'tutor') {
-                abort(403);
-            }
-            return $next($request);
-        });
-    }
+    // Note: 'auth' + role:tutor enforced via the tutor route group.
 
     public function index()
     {

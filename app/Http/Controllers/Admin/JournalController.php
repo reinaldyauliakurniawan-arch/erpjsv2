@@ -14,7 +14,6 @@ class JournalController extends Controller
 {
     public function __construct(protected AccountingService $accountingService)
     {
-        $this->middleware('auth');
     }
 
     public function index()

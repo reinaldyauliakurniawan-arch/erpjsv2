@@ -17,11 +17,8 @@ use Illuminate\View\View;
 
 class NewPasswordController extends Controller
 {
-    public function __construct()
-    {
-        $this->middleware('guest')->only(['create', 'store']);
-        $this->middleware('throttle:60,1')->only('store');
-    }
+    // Note: 'guest' and 'throttle' middleware are applied at the route level
+    // (see routes/auth.php). Controller-level middleware was removed in Laravel 12+.
 
     /**
      * Display the password reset view.

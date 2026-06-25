@@ -24,7 +24,6 @@ class EnrollmentController extends Controller
 
     public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService)
     {
-        $this->middleware('auth');
         $this->enrollmentService = $enrollmentService;
         $this->accountingService = $accountingService;
     }
