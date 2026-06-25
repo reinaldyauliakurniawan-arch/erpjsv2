@@ -1260,6 +1260,7 @@
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
     box-shadow: var(--shadow-sm);
+    min-width: 0;
 }
 
 /* Card without internal padding — for tables, lists, anything with its own padding */
