@@ -184,11 +184,14 @@ window.globalSearch = function (config) {
 
 // ── App Shell Alpine component ──────────────────────────────────────
 // Controls sidebar visibility across desktop (collapse) and mobile (drawer).
+// Also tracks scroll position for the Liquid Glass topbar scroll-edge effect
+// (topbar becomes more opaque when content scrolls under it).
 // Registered before Alpine.start() so it's available when the DOM is walked.
 window.appShell = function () {
     return {
         collapsed: false, // desktop: sidebar collapsed?
         mobileOpen: false, // mobile: drawer open?
+        scrolled: false, // topbar scroll-edge state
 
         toggle() {
             this.collapsed = !this.collapsed;
@@ -202,6 +205,18 @@ window.appShell = function () {
                     this.mobileOpen = false;
                 }
             });
+
+            // Track scroll for topbar glass scroll-edge effect.
+            // Only toggle the class when crossing the threshold (not on
+            // every scroll event) to avoid expensive backdrop-filter recalc.
+            const onScroll = () => {
+                const isScrolled = window.scrollY > 8;
+                if (isScrolled !== this.scrolled) {
+                    this.scrolled = isScrolled;
+                }
+            };
+            window.addEventListener("scroll", onScroll, { passive: true });
+            onScroll(); // initialize state
         },
     };
 };

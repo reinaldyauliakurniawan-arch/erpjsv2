@@ -46,9 +46,9 @@
 --}}
 <div x-data="appShell()" @keydown.escape.window="mobileOpen = false">
 
-{{-- DESKTOP SIDEBAR --}}
+{{-- DESKTOP SIDEBAR — Liquid Glass dark variant on the deep green bg --}}
 <aside
-    class="app-sidebar {{ $sidebarIsLight ? 'app-sidebar--light' : '' }}"
+    class="app-sidebar liquid-glass-tinted {{ $sidebarIsLight ? 'app-sidebar--light' : '' }}"
     x-show="!collapsed"
     x-cloak
     x-transition:enter="transition ease-out duration-150"
@@ -61,8 +61,8 @@
     @include('partials.sidebar-nav')
 </aside>
 
-{{-- TOPBAR --}}
-<header class="app-topbar" :class="collapsed ? 'app-topbar--expanded' : ''">
+{{-- TOPBAR — Liquid Glass with scroll-edge effect (becomes more opaque on scroll) --}}
+<header class="app-topbar" :class="[collapsed ? 'app-topbar--expanded' : '', scrolled ? 'scrolled' : '']">
     <div class="flex justify-between items-center w-full gap-md">
         <div class="flex items-center gap-md flex-shrink-0">
             <button type="button" @click="toggle()"
@@ -105,7 +105,7 @@
 >
     <div class="absolute inset-0 bg-black/40" @click="mobileOpen = false"></div>
     <aside
-        class="app-sidebar {{ $sidebarIsLight ? 'app-sidebar--light' : '' }} absolute left-0 top-0 h-full"
+        class="app-sidebar liquid-glass-tinted {{ $sidebarIsLight ? 'app-sidebar--light' : '' }} absolute left-0 top-0 h-full"
         style="width:var(--size-sidebar-width);position:fixed;"
         @click.stop
         x-transition:enter="transition ease-out duration-200"

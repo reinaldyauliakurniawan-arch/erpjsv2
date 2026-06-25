@@ -334,6 +334,16 @@
     --color-guest-btn-bg: rgba(255, 255, 255, 0.9);
     --color-guest-btn-text: #006b5a;
 
+    /* ── Liquid Glass tokens — Apple iOS 26 / macOS Tahoe aesthetic.
+       Used SPARINGLY per Apple HIG: "Avoid overusing Liquid Glass effects."
+       Max 3-4 glass surfaces per screen. Never nest glass-on-glass. */
+    --color-glass-bg: rgba(255, 255, 255, 0.07);
+    --color-glass-bg-dark: rgba(0, 0, 0, 0.15);
+    --color-glass-border: rgba(255, 255, 255, 0.15);
+    --color-glass-border-dark: rgba(255, 255, 255, 0.08);
+    --color-glass-highlight: rgba(255, 255, 255, 0.25);
+    --color-glass-shadow: rgba(0, 0, 0, 0.08);
+
     /* Container widths */
     --container-sm: 24rem;
     --container-md: 28rem;
@@ -817,7 +827,15 @@
 
     body {
         font-family: var(--font-sans);
+        /* Subtle gradient wash so Liquid Glass surfaces have something to
+           refract. Without this, glass on a flat solid background looks
+           like nothing. The gradient is very subtle (3% brand tint) so
+           it doesn't compete with content. */
         background-color: var(--color-surface);
+        background-image:
+            radial-gradient(circle at 0% 0%, rgba(6, 95, 70, 0.04) 0%, transparent 40%),
+            radial-gradient(circle at 100% 100%, rgba(5, 150, 105, 0.03) 0%, transparent 40%);
+        background-attachment: fixed;
         color: var(--color-on-surface);
     }
 
@@ -885,7 +903,10 @@
     display: none !important;
 }
 
-/* Sidebar — dark by default. Add `.app-sidebar--light` to flip text colors. */
+/* Sidebar — uses liquid-glass-dark for the glass surface treatment.
+   The base .app-sidebar class handles layout + fallback bg. When
+   liquid-glass-dark is also applied (always, in our layout), its
+   `background:` shorthand overrides this background-color. */
 .app-sidebar {
     position: fixed;
     left: 0;
@@ -991,6 +1012,9 @@
 }
 
 /* Topbar */
+/* Topbar — Liquid Glass surface (Apple iOS 26 aesthetic).
+   Glass effect is subtle: 7% white tint + 20px blur + inset top highlight.
+   Becomes more opaque on scroll via .scrolled class (toggled by Alpine). */
 .app-topbar {
     position: fixed;
     top: 0;
@@ -1001,20 +1025,35 @@
     display: flex;
     align-items: center;
     padding-inline: var(--spacing-gutter);
-    background-color: var(--color-topbar-bg);
-    border-bottom: 1px solid var(--color-topbar-border);
-    box-shadow: var(--color-topbar-shadow);
-    transition: left var(--motion-base) var(--motion-easing);
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border-bottom: 1px solid var(--color-glass-border);
+    box-shadow: var(--shadow-sm);
+    transition: left var(--motion-base) var(--motion-easing),
+                background-color var(--motion-base) var(--motion-easing),
+                backdrop-filter var(--motion-base) var(--motion-easing);
+    @supports not (backdrop-filter: blur(20px)) {
+        background: rgba(255, 255, 255, 0.92);
+    }
 }
 
-.app-topbar {
-    left: var(--size-sidebar-width);
-    transition: left var(--motion-base) var(--motion-easing);
+/* Scrolled state — topbar becomes more opaque when content scrolls under */
+.app-topbar.scrolled {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+    box-shadow: var(--shadow-md);
 }
 
-/* When sidebar is collapsed, topbar expands to full width */
-.app-topbar--expanded {
-    left: 0;
+/* Desktop: topbar offset by sidebar width */
+@media (min-width: 1024px) {
+    .app-topbar { left: var(--size-sidebar-width); }
+}
+
+/* When sidebar is collapsed on desktop, topbar expands to full width */
+@media (min-width: 1024px) {
+    .app-topbar--expanded { left: 0; }
 }
 
 /* Main content */
@@ -1022,13 +1061,17 @@
     padding-top: var(--size-topbar-height);
     min-height: 100vh;
     background-color: var(--color-background);
-    margin-left: var(--size-sidebar-width);
     transition: margin-left var(--motion-base) var(--motion-easing);
 }
 
-/* When sidebar is collapsed, main expands to full width */
-.app-main--expanded {
-    margin-left: 0;
+/* Desktop: main content offset by sidebar width */
+@media (min-width: 1024px) {
+    .app-main { margin-left: var(--size-sidebar-width); }
+}
+
+/* When sidebar is collapsed on desktop, main expands to full width */
+@media (min-width: 1024px) {
+    .app-main--expanded { margin-left: 0; }
 }
 
 /* User avatar in topbar */
@@ -1249,6 +1292,157 @@
 }
 
 /* ══════════════════════════════════════════════════════════════════════
+   LIQUID GLASS — Apple iOS 26 / macOS Tahoe aesthetic (WWDC 2025).
+   Used SPARINGLY per Apple HIG: max 3-4 glass surfaces per screen.
+   Never nest glass-on-glass. Text must sit on solid layer, not bare glass.
+
+   Variants:
+     .liquid-glass         — default light glass (topbar, cards)
+     .liquid-glass-strong  — heavier glass (modal panels)
+     .liquid-glass-dark    — dark glass (sidebar on dark bg)
+     .glass-content-layer  — solid overlay inside glass for text readability
+     .glass-scroll-edge    — topbar scroll-aware opacity boost
+   ════════════════════════════════════════════════════════════════════ */
+
+.liquid-glass {
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--color-glass-border);
+    box-shadow:
+        0 4px 24px var(--color-glass-shadow),
+        inset 0 1px 0 var(--color-glass-highlight);
+    /* Fallback for browsers without backdrop-filter (older Firefox, etc.) */
+    @supports not (backdrop-filter: blur(20px)) {
+        background: rgba(255, 255, 255, 0.92);
+    }
+}
+
+.liquid-glass-strong {
+    background: rgba(255, 255, 255, 0.12);
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+    @supports not (backdrop-filter: blur(32px)) {
+        background: rgba(255, 255, 255, 0.96);
+    }
+}
+
+.liquid-glass-dark {
+    background: var(--color-glass-bg-dark);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--color-glass-border-dark);
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    @supports not (backdrop-filter: blur(20px)) {
+        background: rgba(0, 0, 0, 0.85);
+    }
+}
+
+/* Liquid Glass variant for colored dark surfaces (e.g. sidebar with
+   brand dark green bg). Keeps the surface's own background-color (does
+   NOT override with rgba black/white), but adds the glass treatment:
+   backdrop-filter blur + saturation, inset top highlight, soft border.
+   This is the correct way to apply glass to an already-colored surface. */
+.liquid-glass-tinted {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border-right: 1px solid var(--color-glass-border-dark);
+    box-shadow:
+        0 4px 24px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.08);
+    @supports not (backdrop-filter: blur(20px)) {
+        /* No bg override — keep the element's existing background-color */
+    }
+}
+
+/* Solid content layer inside glass — for text readability.
+   Per Apple HIG: text must NOT sit directly on glass. */
+.glass-content-layer {
+    background: rgba(255, 255, 255, 0.85);
+    border-radius: inherit;
+    padding: 1rem;
+}
+
+/* Modal panel — Liquid Glass strong variant.
+   DaisyUI's .modal-box gets a glass treatment with stronger blur (32px)
+   and a solid-ish white tint (12%) so modal content stays readable.
+   The modal backdrop (.modal-backdrop) provides the dimming layer. */
+.modal-box {
+    background: rgba(255, 255, 255, 0.92) !important;
+    backdrop-filter: blur(32px) saturate(180%);
+    -webkit-backdrop-filter: blur(32px) saturate(180%);
+    border: 1px solid var(--color-glass-border);
+    box-shadow:
+        0 8px 32px rgba(0, 0, 0, 0.12),
+        inset 0 1px 0 var(--color-glass-highlight) !important;
+    @supports not (backdrop-filter: blur(32px)) {
+        background: rgba(255, 255, 255, 0.98) !important;
+    }
+}
+
+/* Modal backdrop — dimming layer with subtle blur.
+   Per Apple HIG: modal backdrop should dim + blur underlying content
+   to focus attention on the modal. Uses bg-black/30 + 4px blur. */
+.modal-backdrop {
+    background: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    @supports not (backdrop-filter: blur(4px)) {
+        background: rgba(0, 0, 0, 0.5) !important;
+    }
+}
+
+/* Scroll-edge effect — topbar becomes more opaque when content scrolls
+   under it. Toggled via Alpine.js class binding. */
+.glass-scroll-edge {
+    transition: background-color var(--motion-base) var(--motion-easing),
+                backdrop-filter var(--motion-base) var(--motion-easing);
+}
+.glass-scroll-edge.scrolled {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(24px) saturate(160%);
+    -webkit-backdrop-filter: blur(24px) saturate(160%);
+}
+
+/* ── Accessibility: respect user preferences ────────────────────────── */
+
+/* Users who prefer reduced transparency get solid backgrounds */
+@media (prefers-reduced-transparency: reduce) {
+    .liquid-glass,
+    .liquid-glass-strong,
+    .liquid-glass-dark {
+        background: rgba(255, 255, 255, 0.95) !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+    .liquid-glass-dark {
+        background: rgba(0, 0, 0, 0.95) !important;
+    }
+    /* Tinted variant: just disable the blur, keep the element's own bg-color */
+    .liquid-glass-tinted {
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+    }
+}
+
+/* Users who prefer higher contrast get thicker, darker borders */
+@media (prefers-contrast: more) {
+    .liquid-glass,
+    .liquid-glass-strong,
+    .liquid-glass-dark,
+    .liquid-glass-tinted {
+        border-width: 2px !important;
+        border-color: rgba(0, 0, 0, 0.3) !important;
+    }
+}
+
+/* ══════════════════════════════════════════════════════════════════════
    CENTRALIZED COMPONENT CLASSES — per Brand Personality Guide Section 13.
    These are the single source of truth for the card / stat-card / icon-badge
    / page-header / empty-state patterns. Update once, applies everywhere.
@@ -1291,15 +1485,25 @@
 }
 
 /* ── Stat Card (Section 13 "Stat Cards") ──────────────────────────── */
+/* Stat Card — Liquid Glass surface for dashboard summary cards.
+   Limited to stat cards (typically 3-4 per dashboard) to stay within
+   Apple HIG's "max 3-4 glass surfaces per screen" guideline. */
 .app-stat-card {
-    background-color: var(--color-surface-bright);
-    border: 1px solid var(--color-surface-border);
+    background: var(--color-glass-bg);
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    border: 1px solid var(--color-glass-border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
-    box-shadow: var(--shadow-sm);
+    box-shadow:
+        0 4px 24px var(--color-glass-shadow),
+        inset 0 1px 0 var(--color-glass-highlight);
     display: flex;
     flex-direction: column;
     gap: var(--spacing-md);
+    @supports not (backdrop-filter: blur(20px)) {
+        background: rgba(255, 255, 255, 0.92);
+    }
 }
 
 .app-stat-card__label {
