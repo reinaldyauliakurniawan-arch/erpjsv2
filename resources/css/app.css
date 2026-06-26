@@ -839,6 +839,40 @@
         color: var(--color-on-surface);
     }
 
+    /* ── Make Interfaces Feel Better skill — typography principles ──────
+       Font smoothing: macOS renders text heavier by default. Applying
+       antialiased at the root makes all text crisper and thinner.
+       Only affects macOS; other platforms ignore these properties. */
+    html {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+
+    /* Text wrapping: balance headings for even line distribution,
+       pretty for body text to prevent orphaned words on the last line.
+       Per skill: balance only on blocks ≤6 lines (Chrome) / ≤10 (Firefox). */
+    h1, h2, h3, h4, h5, h6 {
+        text-wrap: balance;
+    }
+    p, li, figcaption, blockquote, td, th, .text-body-md, .text-body-lg {
+        text-wrap: pretty;
+    }
+
+    /* Tabular numbers: equal-width digits prevent layout shift in tables,
+       counters, and money displays. Critical for ERP with dynamic values. */
+    td, th, .font-mono, .tabular-nums {
+        font-variant-numeric: tabular-nums;
+    }
+
+    /* Image outlines: subtle 1px pure-black outline for consistent depth.
+       Per skill: color MUST be pure black rgba(0,0,0,0.1) in light mode —
+       never a tinted neutral (slate/zinc) which reads as dirt on the edge.
+       outline-offset: -1px keeps it inset so it doesn't affect layout. */
+    img {
+        outline: 1px solid rgba(0, 0, 0, 0.1);
+        outline-offset: -1px;
+    }
+
     .material-symbols-outlined {
         font-variation-settings:
             "FILL" 0,
@@ -867,6 +901,20 @@
     button:disabled,
     [aria-disabled="true"] {
         cursor: not-allowed;
+    }
+
+    /* ── Scale on press — tactile feedback for buttons ──────────────────
+       Per skill: always use scale(0.96). Never below 0.95 (feels exaggerated).
+       Uses CSS transitions for interruptibility — if user releases mid-press,
+       it smoothly returns. Applied to DaisyUI .btn and custom button classes.
+       transition-transform covers transform, translate, scale, rotate. */
+    .btn:not(:disabled):not(.btn-static) {
+        transition-property: transform, background-color, opacity, box-shadow;
+        transition-duration: var(--motion-fast);
+        transition-timing-function: var(--motion-easing);
+    }
+    .btn:not(:disabled):not(.btn-static):active {
+        scale: 0.96;
     }
 
     /* Visible focus for keyboard nav (UX checklist) */
@@ -1449,15 +1497,27 @@
    ════════════════════════════════════════════════════════════════════ */
 
 /* ── Card (Section 13 "Cards") ───────────────────────────────────────
-   bg-surface-bright on a #f3f4f6 background creates a subtle lifted effect.
-   Shadow uses --shadow-sm (layered, low-opacity) per Material 3 principles. */
+   Per "Make Interfaces Feel Better" skill: shadows over borders for
+   card depth. Replaced the 1px solid border with a layered shadow-border
+   that adapts to any background (transparent, no layout shift from border
+   width). The shadow-border is 3 layers: 1px ring + subtle lift + ambient. */
 .app-card {
     background-color: var(--color-surface-bright);
-    border: 1px solid var(--color-surface-border);
     border-radius: var(--radius-lg);
     padding: var(--spacing-lg);
-    box-shadow: var(--shadow-sm);
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.06),
+        var(--shadow-sm);
     min-width: 0;
+    transition-property: box-shadow, transform;
+    transition-duration: var(--motion-fast);
+    transition-timing-function: var(--motion-easing);
+}
+
+.app-card:hover {
+    box-shadow:
+        0 0 0 1px rgba(0, 0, 0, 0.08),
+        var(--shadow-md);
 }
 
 /* Card without internal padding — for tables, lists, anything with its own padding */
