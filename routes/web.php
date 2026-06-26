@@ -63,7 +63,7 @@ Route::middleware('auth')->group(function () {
         Route::get('enrollments/tutors/available', [EnrollmentController::class, 'availableTutors'])->name('enrollments.tutors.available');
         Route::get('/enrollments/data', [EnrollmentController::class, 'data'])->name('enrollments.data');
         Route::resource('enrollments', EnrollmentController::class);
-        Route::resource('classrooms', ClassroomController::class);
+        Route::resource('classrooms', ClassroomController::class)->except(['create', 'show']);
         Route::resource('tutors', TutorController::class);
         Route::get('/class-sessions/enrollments/{programId}', [ClassSessionController::class, 'availableEnrollments'])->name('class-sessions.available-enrollments');
         Route::resource('class-sessions', ClassSessionController::class);
