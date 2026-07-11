@@ -75,44 +75,15 @@ class ScheduleController extends Controller
             })
             ->sortBy('ratio')
             ->values();
-        $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'];
         $physicalIds = $physicalClassrooms->pluck('id');
 
-        $totalSlots = $physicalClassrooms->count() * 7 * count($timeBlocks);
+        // Reuses the exact same slot logic as ClassroomController@buildOccupancyStats
+        // so this number always matches /admin/classrooms.
+        $classroomController = app(\App\Http\Controllers\Admin\ClassroomController::class);
+        $roomOccupancyStats = $classroomController->buildOccupancyStats($weekStart, $weekEnd);
 
-        $scheduledSlots = \App\Models\Schedule::whereIn('classroom_id', $physicalIds)
-            ->select('classroom_id','day','time_block')
-            ->distinct()
-            ->get();
-
-        $skippedSlots = \App\Models\RoomBooking::whereIn('classroom_id', $physicalIds)
-            ->where('type', 'regular_skip')
-            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->select('classroom_id','time_block','date')
-            ->get();
-
-        $tempSlots = \App\Models\RoomBooking::whereIn('classroom_id', $physicalIds)
-            ->where('type', 'temporary')
-            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->select('classroom_id','time_block','date')
-            ->get();
-
-        $occupiedCount = 0;
-        foreach ($physicalClassrooms as $room) {
-            foreach ($timeBlocks as $block) {
-                foreach ($scheduledSlots->where('classroom_id', $room->id)->where('time_block', $block) as $sched) {
-                    $dayIndex = array_search($sched->day, $days);
-                    if ($dayIndex === false) continue;
-                    $date = $weekStart->copy()->addDays($dayIndex)->toDateString();
-                    $isSkipped = $skippedSlots->where('classroom_id', $room->id)->where('time_block', $block)->where('date', $date)->isNotEmpty();
-                    $isTemp    = $tempSlots->where('classroom_id', $room->id)->where('time_block', $block)->where('date', $date)->isNotEmpty();
-                    if (!$isSkipped || $isTemp) $occupiedCount++;
-                }
-                $hasTempOnly = $tempSlots->where('classroom_id', $room->id)->where('time_block', $block)->isNotEmpty();
-                $hasSchedule = $scheduledSlots->where('classroom_id', $room->id)->where('time_block', $block)->isNotEmpty();
-                if ($hasTempOnly && !$hasSchedule) $occupiedCount++;
-            }
-        }
+        $occupiedCount = array_sum(array_column($roomOccupancyStats, 'occupied'));
+        $totalSlots    = array_sum(array_column($roomOccupancyStats, 'total'));
         $occupancyRate = $totalSlots > 0 ? round($occupiedCount / $totalSlots * 100) : 0;
         $weekDates = collect($days)->mapWithKeys(function ($day, $i) use ($weekStart) {
             return [$day => $weekStart->copy()->addDays($i)->toDateString()];

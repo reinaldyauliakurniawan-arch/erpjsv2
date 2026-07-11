@@ -8,8 +8,6 @@ use App\Models\Tutor;
 use App\Models\Enrollment;
 use App\Models\Installment;
 use App\Models\Classroom;
-use App\Models\Schedule;
-use App\Models\RoomBooking;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -30,52 +28,17 @@ class DashboardController extends Controller
             })->count(),
         ];
 
-        // ── Room Occupancy (minggu ini) ───────────────────────
-        $days       = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
-        $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'];
-
+        // ── Room Occupancy (minggu ini) ────────────────────────
+        // Reuses the exact same slot logic as ClassroomController@buildOccupancyStats
+        // so the number here always matches /admin/classrooms.
         $weekStart = Carbon::now()->startOfWeek(Carbon::MONDAY);
         $weekEnd   = $weekStart->copy()->endOfWeek();
 
-        $physicalClassrooms = Classroom::where('is_at_just_speak', true)->get();
-        $physicalIds        = $physicalClassrooms->pluck('id');
+        $classroomController = app(\App\Http\Controllers\Admin\ClassroomController::class);
+        $occupancyStats = $classroomController->buildOccupancyStats($weekStart, $weekEnd);
 
-        $totalSlots = $physicalClassrooms->count() * 7 * count($timeBlocks);
-
-        $scheduledSlots = Schedule::whereIn('classroom_id', $physicalIds)
-            ->select('classroom_id', 'day', 'time_block')
-            ->distinct()
-            ->get();
-
-        $skippedSlots = RoomBooking::whereIn('classroom_id', $physicalIds)
-            ->where('type', 'regular_skip')
-            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->select('classroom_id', 'time_block', 'date')
-            ->get();
-
-        $tempSlots = RoomBooking::whereIn('classroom_id', $physicalIds)
-            ->where('type', 'temporary')
-            ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
-            ->select('classroom_id', 'time_block', 'date')
-            ->get();
-
-        $occupiedCount = 0;
-        foreach ($physicalClassrooms as $room) {
-            foreach ($timeBlocks as $block) {
-                foreach ($scheduledSlots->where('classroom_id', $room->id)->where('time_block', $block) as $sched) {
-                    $dayIndex = array_search($sched->day, $days);
-                    if ($dayIndex === false) continue;
-                    $date      = $weekStart->copy()->addDays($dayIndex)->toDateString();
-                    $isSkipped = $skippedSlots->where('classroom_id', $room->id)->where('time_block', $block)->where('date', $date)->isNotEmpty();
-                    $isTemp    = $tempSlots->where('classroom_id', $room->id)->where('time_block', $block)->where('date', $date)->isNotEmpty();
-                    if (!$isSkipped || $isTemp) $occupiedCount++;
-                }
-                $hasTempOnly = $tempSlots->where('classroom_id', $room->id)->where('time_block', $block)->isNotEmpty();
-                $hasSchedule = $scheduledSlots->where('classroom_id', $room->id)->where('time_block', $block)->isNotEmpty();
-                if ($hasTempOnly && !$hasSchedule) $occupiedCount++;
-            }
-        }
-
+        $occupiedCount = array_sum(array_column($occupancyStats, 'occupied'));
+        $totalSlots    = array_sum(array_column($occupancyStats, 'total'));
         $occupancyRate = $totalSlots > 0 ? round($occupiedCount / $totalSlots * 100) : 0;
 
         // ── Waiting List ──────────────────────────────────────

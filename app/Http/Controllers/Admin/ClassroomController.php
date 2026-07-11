@@ -44,7 +44,7 @@ class ClassroomController extends Controller
         return view('admin.classrooms.index', compact('classrooms', 'occupancyStats', 'occupancyRate', 'from', 'to'));
     }
 
-    protected function buildOccupancyStats(Carbon $from, Carbon $to): array
+    public function buildOccupancyStats(Carbon $from, Carbon $to): array
     {
         $physicalClassrooms = Classroom::where('is_at_just_speak', true)->get();
         $physicalIds = $physicalClassrooms->pluck('id');
