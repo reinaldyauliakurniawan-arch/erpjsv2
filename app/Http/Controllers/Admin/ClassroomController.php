@@ -37,7 +37,11 @@ class ClassroomController extends Controller
 
         $occupancyStats = $this->buildOccupancyStats($from, $to);
 
-        return view('admin.classrooms.index', compact('classrooms', 'occupancyStats', 'from', 'to'));
+        $totalOccupied = array_sum(array_column($occupancyStats, 'occupied'));
+        $totalSlots    = array_sum(array_column($occupancyStats, 'total'));
+        $occupancyRate = $totalSlots > 0 ? round($totalOccupied / $totalSlots * 100) : 0;
+
+        return view('admin.classrooms.index', compact('classrooms', 'occupancyStats', 'occupancyRate', 'from', 'to'));
     }
 
     protected function buildOccupancyStats(Carbon $from, Carbon $to): array
