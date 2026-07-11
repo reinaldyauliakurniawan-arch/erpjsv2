@@ -25,25 +25,28 @@
                 <h3 class="text-headline-lg font-semibold text-on-surface">Classrooms</h3>
                 <p class="text-body-md text-on-surface-variant mt-xs">Kelola ruang kelas yang tersedia.</p>
             </div>
-            <div class="flex items-center gap-sm flex-wrap flex-shrink-0">
-                <form method="GET" action="{{ route('admin.classrooms.index') }}" class="flex items-center gap-sm flex-wrap">
-                    <input type="date" name="from" value="{{ $from->toDateString() }}"
-                        class="input input-sm" />
-                    <span class="text-on-surface-variant text-body-sm">s/d</span>
-                    <input type="date" name="to" value="{{ $to->toDateString() }}"
-                        class="input input-sm" />
-                    <button type="submit" class="btn btn-sm btn-ghost gap-xs">
-                        <span class="material-symbols-outlined text-[16px]">filter_alt</span>
-                        Terapkan
-                    </button>
-                </form>
-                <button type="button" onclick="document.getElementById('modal-create').showModal()"
-                    class="btn bg-secondary text-on-secondary border-none hover:opacity-90 gap-sm">
-                    <span class="material-symbols-outlined text-[18px]">add</span>
-                    Tambah Ruangan
-                </button>
-            </div>
+            <button type="button" onclick="document.getElementById('modal-create').showModal()"
+                class="btn bg-secondary text-on-secondary border-none hover:opacity-90 gap-sm flex-shrink-0">
+                <span class="material-symbols-outlined text-[18px]">add</span>
+                Tambah Ruangan
+            </button>
         </div>
+
+        {{-- Filter Toolbar --}}
+        <form method="GET" action="{{ route('admin.classrooms.index') }}"
+            class="app-card flex items-center gap-sm flex-wrap py-sm">
+            <span class="material-symbols-outlined text-on-surface-variant text-[18px] ml-xs">date_range</span>
+            <span class="text-body-sm text-on-surface-variant mr-xs">Occupancy periode:</span>
+            <input type="date" name="from" value="{{ $from->toDateString() }}"
+                class="input input-sm" />
+            <span class="text-on-surface-variant text-body-sm">s/d</span>
+            <input type="date" name="to" value="{{ $to->toDateString() }}"
+                class="input input-sm" />
+            <button type="submit" class="btn btn-sm bg-secondary text-on-secondary border-none hover:opacity-90 gap-xs ml-auto">
+                <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+                Terapkan
+            </button>
+        </form>
 
         {{-- Summary Cards --}}
         <div class="grid grid-cols-2 lg:grid-cols-4 gap-md">
