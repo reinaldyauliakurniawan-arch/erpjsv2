@@ -54,6 +54,65 @@
             </div>
         </div>
 
+        {{-- Occupancy Rate --}}
+        <div class="app-card app-card--flush">
+            <div class="app-card__header flex-wrap gap-md">
+                <h4 class="text-title-sm font-semibold text-on-surface">Occupancy Rate</h4>
+                <form method="GET" action="{{ route('admin.classrooms.index') }}" class="flex items-center gap-sm flex-wrap">
+                    <input type="date" name="from" value="{{ $from->toDateString() }}"
+                        class="input input-sm" />
+                    <span class="text-on-surface-variant text-body-sm">s/d</span>
+                    <input type="date" name="to" value="{{ $to->toDateString() }}"
+                        class="input input-sm" />
+                    <button type="submit" class="btn btn-sm bg-secondary text-on-secondary border-none hover:opacity-90 gap-xs">
+                        <span class="material-symbols-outlined text-[16px]">filter_alt</span>
+                        Terapkan
+                    </button>
+                </form>
+            </div>
+
+            @if(empty($occupancyStats))
+                <p class="text-body-md text-on-surface-variant text-center py-lg">Tidak ada data occupancy pada rentang ini.</p>
+            @else
+                <div class="overflow-x-auto">
+                    <table class="table table-sm w-full">
+                        <thead class="bg-surface-container-high">
+                            <tr class="border-b border-surface-border">
+                                <th class="px-lg py-md text-label-lg text-on-surface-variant uppercase tracking-widest text-left font-medium">Ruangan</th>
+                                <th class="px-md py-md text-label-lg text-on-surface-variant uppercase tracking-widest text-left font-medium">Slot Terpakai</th>
+                                <th class="px-md py-md text-label-lg text-on-surface-variant uppercase tracking-widest text-left font-medium">Occupancy</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-surface-border">
+                            @foreach($occupancyStats as $stat)
+                            <tr class="hover:bg-surface-container-low transition-colors">
+                                <td class="px-lg py-md">
+                                    <div class="flex items-center gap-sm">
+                                        <div class="w-8 h-8 rounded-lg bg-primary/5 border border-primary/10 flex items-center justify-center text-primary shrink-0">
+                                            <span class="material-symbols-outlined text-[16px]">meeting_room</span>
+                                        </div>
+                                        <p class="text-body-sm font-semibold text-on-surface">{{ $stat['name'] }}</p>
+                                    </div>
+                                </td>
+                                <td class="px-md py-md">
+                                    <span class="text-body-sm text-on-surface">{{ $stat['occupied'] }}/{{ $stat['total'] }} slot</span>
+                                </td>
+                                <td class="px-md py-md">
+                                    <div class="flex items-center gap-sm">
+                                        <div class="w-24 h-2 rounded-full bg-surface-container-high overflow-hidden">
+                                            <div class="h-full bg-secondary rounded-full" style="width: {{ $stat['rate'] }}%"></div>
+                                        </div>
+                                        <span class="text-body-sm font-semibold text-on-surface">{{ $stat['rate'] }}%</span>
+                                    </div>
+                                </td>
+                            </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+
         {{-- Table --}}
         <div class="app-card app-card--flush">
             <div class="app-card__header">
