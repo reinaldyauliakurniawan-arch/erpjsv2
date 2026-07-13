@@ -18,7 +18,13 @@ class TutorController extends Controller
         // Pagination fix: previously ->get() loaded every tutor into memory.
         // With active + inactive tutors over years of operation, this grows
         // unbounded. Paginated to 20 per page.
-        $tutors = Tutor::with('user')->latest()->paginate(20);
+        // Sorted alphabetically by tutor name (join to users table — name
+        // lives on users, not tutors, so with()/latest() can't sort by it).
+        $tutors = Tutor::with('user')
+            ->join('users', 'users.id', '=', 'tutors.user_id')
+            ->orderBy('users.name', 'asc')
+            ->select('tutors.*')
+            ->paginate(20);
         $activeTutorCount = Tutor::where('status', 'active')->count();
         return view('admin.tutors.index', compact('tutors', 'activeTutorCount'));
     }
