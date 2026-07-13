@@ -81,7 +81,7 @@
                 {{-- Pagination --}}
                 @if($tutors->hasPages())
                 <div class="flex justify-center mt-md">
-                    {{ $tutors->links() }}
+                    {{ $tutors->links('vendor.pagination.tailwind-full') }}
                 </div>
                 @endif
 
