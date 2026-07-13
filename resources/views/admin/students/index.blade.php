@@ -168,14 +168,18 @@
                 </table>
                 <div class="flex items-center justify-between px-lg py-md border-t border-surface-border bg-surface-container-low">
                     <span class="text-body-sm text-on-surface-variant" x-text="'Halaman ' + page + ' dari ' + lastPage"></span>
-                    <div class="flex gap-sm">
-                        <button aria-label="Sebelumnya" @click="prevPage" :disabled="page <= 1" class="btn btn-sm btn-ghost" :class="page <= 1 ?'opacity-40' : ''">
-                            <span class="material-symbols-outlined text-[18px]">chevron_left</span>
-                        </button>
-                        <button @click="nextPage" :disabled="page >= lastPage" class="btn btn-sm btn-ghost" :class="page >= lastPage ?'opacity-40' : ''">
-                            <span class="material-symbols-outlined text-[18px]">chevron_right</span>
-                        </button>
-                    </div>
+                    <nav role="navigation" aria-label="Pagination Navigation" class="flex items-center gap-xs">
+                        <button aria-label="First" @click="goToPage(1)" :disabled="page <= 1" class="btn btn-sm" :class="page <= 1 ? 'btn-disabled' : ''">&laquo; First</button>
+                        <button aria-label="Sebelumnya" @click="prevPage" :disabled="page <= 1" class="btn btn-sm" :class="page <= 1 ? 'btn-disabled' : ''">&lsaquo; Prev</button>
+                        <template x-for="p in pageNumbers" :key="p">
+                            <button @click="goToPage(p)"
+                                class="btn btn-sm"
+                                :class="p === page ? 'bg-primary-container text-on-primary border-none' : 'btn-ghost'"
+                                x-text="p"></button>
+                        </template>
+                        <button @click="nextPage" :disabled="page >= lastPage" class="btn btn-sm" :class="page >= lastPage ? 'btn-disabled' : ''">Next &rsaquo;</button>
+                        <button aria-label="Last" @click="goToPage(lastPage)" :disabled="page >= lastPage" class="btn btn-sm" :class="page >= lastPage ? 'btn-disabled' : ''">Last &raquo;</button>
+                    </nav>
                 </div>
             </div>
         </div>
@@ -299,6 +303,19 @@
 
             nextPage() {
                 if (this.page < this.lastPage) { this.page++; this.fetchData(); }
+            },
+
+            goToPage(p) {
+                if (p >= 1 && p <= this.lastPage && p !== this.page) { this.page = p; this.fetchData(); }
+            },
+
+            get pageNumbers() {
+                const range = 2;
+                const start = Math.max(1, this.page - range);
+                const end = Math.min(this.lastPage, this.page + range);
+                const nums = [];
+                for (let i = start; i <= end; i++) nums.push(i);
+                return nums;
             },
 
             openEditModal(id, name, email, notes, educationLevel) {

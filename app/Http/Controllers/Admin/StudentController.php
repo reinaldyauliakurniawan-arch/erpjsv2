@@ -32,7 +32,7 @@ public function data(Request $request)
         $query->whereHas('enrollments.installments', fn($q) => $q->whereNull('paid_at')->where('due_date', '<', now()));
     }
 
-    $students = $query->paginate(50);
+    $students = $query->orderByDesc('students.created_at')->paginate(50);
 
     $today = now();
 
