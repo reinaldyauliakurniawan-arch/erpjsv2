@@ -53,12 +53,11 @@
                                 <td class="font-semibold text-on-surface">{{ $tutor->user->name }}</td>
                                 <td class="text-on-surface-variant">{{ $tutor->user->email }}</td>
                                 <td style="max-width:140px">
-                                    <span class="badge badge-soft" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;cursor:default"
-                                        onmouseenter="showTooltip(event, @json($tutor->persona))"
-                                        onmouseleave="hideTooltip()">{{ $tutor->persona }}</span>
+                                    <span class="badge badge-soft persona-badge" style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block;vertical-align:middle;cursor:default"
+                                        data-persona="{{ $tutor->persona }}">{{ $tutor->persona }}</span>
                                 </td>
                                 <td>
-                                    <span class="badge badge-soft {{ $tutor->status ==='active' ? 'badge-success' : 'badge-error' }}">
+                                    <span class="badge badge-soft {{ $tutor->status ==='active' ? 'badge-success' : 'badge-error' }}" style="white-space:nowrap;display:inline-block;">
                                         {{ $tutor->status ?? 'active' }}
                                     </span>
                                 </td>
@@ -157,6 +156,12 @@ function showTooltip(e, text) {
 function hideTooltip() {
     document.getElementById('global-tooltip').style.display = 'none';
 }
+document.querySelectorAll('.persona-badge').forEach(function (badge) {
+    badge.addEventListener('mouseenter', function (e) {
+        showTooltip(e, badge.dataset.persona);
+    });
+    badge.addEventListener('mouseleave', hideTooltip);
+});
 </script>
 
 </x-app-layout>
