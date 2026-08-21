@@ -24,6 +24,10 @@
         selectedSessionId: '',
         selectedSession: null,
         privateClassroomId: '',
+        privateSessionMode: 'new',
+        privateExistingSessions: [],
+        privateSessionLoading: false,
+        selectedPrivateSessionId: '',
         get selectedDay() { return this.scheduleSlots[0]?.day || '' },
         get selectedTimeBlock() { return this.scheduleSlots[0]?.time_block || '' },
         addScheduleSlot() {
@@ -79,6 +83,22 @@
             this.selectedStudent = s;
             this.studentQuery = s.name;
             this.showDropdown = false;
+            this.fetchPrivateExistingSessions();
+        },
+        async fetchPrivateExistingSessions() {
+            this.privateExistingSessions = [];
+            this.privateSessionMode = 'new';
+            this.selectedPrivateSessionId = '';
+            if (this.selectedType !== 'private' || this.mode !== 'existing' || !this.selectedStudent || !this.selectedProgramId) return;
+            this.privateSessionLoading = true;
+            try {
+                const p = new URLSearchParams({ student_id: this.selectedStudent.id, program_id: this.selectedProgramId });
+                const res = await fetch(`{{ route('admin.enrollments.sessions.private-existing') }}?${p}`, {
+                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
+                });
+                this.privateExistingSessions = await res.json();
+                if (this.privateExistingSessions.length > 0) this.privateSessionMode = 'existing';
+            } finally { this.privateSessionLoading = false; }
         },
         async fetchSessions() {
             if (this.selectedDay && this.selectedTimeBlock) this.fetchTutors();
@@ -118,6 +138,7 @@
                 if (program) {
                     this.totalAmountOverride = program.price;
                 }
+                this.fetchPrivateExistingSessions();
             });
             this.$watch('selectedSession', (val) => {
                 if (this.scheduleSlots[0]) this.scheduleSlots[0].classroom_id = val?.classroom_id ?? '';
@@ -424,18 +445,59 @@
 
                         {{-- Private --}}
                         <div x-show="selectedType === 'private' && selectedDay && selectedTimeBlock && !sessionLoading" x-cloak>
-                            <div class="flex items-center gap-sm p-sm bg-surface-container-low border border-surface-border rounded-lg mb-md">
-                                <span class="material-symbols-outlined text-secondary text-[18px]">info</span>
-                                <p class="text-body-sm text-on-surface-variant">Sesi private baru dibuat otomatis atas nama siswa.</p>
-                            </div>
-                            <div class="fieldset">
-                                <label class="fieldset-legend text-on-surface">Ruangan</label>
-                                <select class="select w-full" x-model="privateClassroomId">
-                                    <option value="">Pilih ruangan...</option>
-                                    @foreach($classrooms as $room)
-                                        <option value="{{ $room->id }}">{{ $room->name }} ({{ $room->capacity }} pax)</option>
-                                    @endforeach
-                                </select>
+                            <input type="hidden" name="class_session_id" :value="privateSessionMode === 'existing' ? selectedPrivateSessionId : ''">
+
+                            <template x-if="privateExistingSessions.length > 0">
+                                <div class="mb-md">
+                                    <div class="flex items-center gap-sm p-sm bg-secondary/10 border border-secondary rounded-lg mb-md">
+                                        <span class="material-symbols-outlined text-secondary text-[18px]">history</span>
+                                        <p class="text-body-sm text-on-surface-variant">Murid ini sudah punya sesi private untuk program ini.</p>
+                                    </div>
+                                    <div class="inline-flex rounded-lg overflow-hidden border border-primary-container mb-md">
+                                        <button type="button" @click="privateSessionMode = 'existing'"
+                                            :class="privateSessionMode === 'existing' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container'"
+                                            class="px-md py-sm text-body-md font-semibold transition-all">
+                                            Lanjutkan Sesi Lama
+                                        </button>
+                                        <button type="button" @click="privateSessionMode = 'new'; selectedPrivateSessionId = ''"
+                                            :class="privateSessionMode === 'new' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container'"
+                                            class="px-md py-sm text-body-md font-semibold border-l border-primary-container transition-all">
+                                            Buat Sesi Baru
+                                        </button>
+                                    </div>
+
+                                    <div x-show="privateSessionMode === 'existing'" class="space-y-sm">
+                                        <template x-for="sess in privateExistingSessions" :key="sess.id">
+                                            <button type="button"
+                                                @click="selectedPrivateSessionId = sess.id; selectedTutorIds = sess.tutors.map(t => t.id)"
+                                                :class="selectedPrivateSessionId == sess.id ? 'border-primary-container ring-2 ring-primary-container bg-surface-container-low' : 'border-surface-border hover:border-primary'"
+                                                class="w-full text-left p-md rounded-lg border transition-all">
+                                                <p class="text-body-md font-semibold text-on-surface" x-text="sess.name"></p>
+                                                <div class="flex gap-xs flex-wrap mt-xs">
+                                                    <template x-for="t in sess.tutors" :key="t.id">
+                                                        <span class="text-label-lg px-xs py-0.5 rounded-md bg-surface-container text-on-surface-variant" x-text="t.name"></span>
+                                                    </template>
+                                                </div>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </template>
+
+                            <div x-show="privateSessionMode === 'new'">
+                                <div class="flex items-center gap-sm p-sm bg-surface-container-low border border-surface-border rounded-lg mb-md">
+                                    <span class="material-symbols-outlined text-secondary text-[18px]">info</span>
+                                    <p class="text-body-sm text-on-surface-variant">Sesi private baru dibuat otomatis atas nama siswa.</p>
+                                </div>
+                                <div class="fieldset">
+                                    <label class="fieldset-legend text-on-surface">Ruangan</label>
+                                    <select class="select w-full" x-model="privateClassroomId">
+                                        <option value="">Pilih ruangan...</option>
+                                        @foreach($classrooms as $room)
+                                            <option value="{{ $room->id }}">{{ $room->name }} ({{ $room->capacity }} pax)</option>
+                                        @endforeach
+                                    </select>
+                                </div>
                             </div>
                         </div>
 
@@ -619,14 +681,17 @@
                             <template x-if="(selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId">
                                 <p class="text-body-sm text-error mb-sm font-semibold">Pilih salah satu sesi kelas di atas sebelum menyimpan.</p>
                             </template>
-                            <template x-if="selectedType === 'private' && selectedDay && selectedTimeBlock && !privateClassroomId">
+                            <template x-if="selectedType === 'private' && selectedDay && selectedTimeBlock && privateSessionMode === 'new' && !privateClassroomId">
                                 <p class="text-body-sm text-error mb-sm font-semibold">Pilih ruangan untuk kelas private sebelum menyimpan.</p>
+                            </template>
+                            <template x-if="selectedType === 'private' && selectedDay && selectedTimeBlock && privateSessionMode === 'existing' && !selectedPrivateSessionId">
+                                <p class="text-body-sm text-error mb-sm font-semibold">Pilih sesi private lama, atau ganti ke "Buat Sesi Baru".</p>
                             </template>
                             <template x-if="scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)">
                                 <p class="text-body-sm text-error mb-sm font-semibold">Lengkapi ruangan untuk setiap jadwal tambahan sebelum menyimpan.</p>
                             </template>
                             <button type="submit"
-                                :disabled="submitting || ((selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId) || (selectedType === 'private' && selectedDay && selectedTimeBlock && !privateClassroomId) || scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)"
+                                :disabled="submitting || ((selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId) || (selectedType === 'private' && selectedDay && selectedTimeBlock && privateSessionMode === 'new' && !privateClassroomId) || (selectedType === 'private' && selectedDay && selectedTimeBlock && privateSessionMode === 'existing' && !selectedPrivateSessionId) || scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)"
                                 :class="{ 'loading': submitting }"
                                 class="w-full py-md bg-secondary-container text-on-secondary-container rounded-lg font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
                                 <span x-show="!submitting">Simpan Enrollment</span>

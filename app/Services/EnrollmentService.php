@@ -95,23 +95,30 @@ class EnrollmentService
             $data['student_id'] = $student->id;
 
             if ($classType === ClassType::PRIVATE) {
-                $firstName      = explode(' ', trim($user->name))[0];
-                $tutorFirstName = null;
-                if (!empty($data['tutor_ids'])) {
-                    $tutor          = Tutor::with('user')->find($data['tutor_ids'][0]);
-                    $tutorFirstName = $tutor ? explode(' ', trim($tutor->user->name))[0] : null;
+                if (!empty($data['class_session_id'])) {
+                    $classSession = ClassSession::where('id', $data['class_session_id'])
+                        ->where('program_id', $program->id)
+                        ->where('class_type', ClassType::PRIVATE->value)
+                        ->firstOrFail();
+                } else {
+                    $firstName      = explode(' ', trim($user->name))[0];
+                    $tutorFirstName = null;
+                    if (!empty($data['tutor_ids'])) {
+                        $tutor          = Tutor::with('user')->find($data['tutor_ids'][0]);
+                        $tutorFirstName = $tutor ? explode(' ', trim($tutor->user->name))[0] : null;
+                    }
+
+                    $sessionName = $tutorFirstName
+                        ? "{$tutorFirstName}_{$firstName}"
+                        : "Private_{$firstName}";
+
+                    $classSession = ClassSession::create([
+                        'name'       => $sessionName,
+                        'program_id' => $program->id,
+                        'class_type' => $classType->value,
+                        'status'     => 'active',
+                    ]);
                 }
-
-                $sessionName = $tutorFirstName
-                    ? "{$tutorFirstName}_{$firstName}"
-                    : "Private_{$firstName}";
-
-                $classSession = ClassSession::create([
-                    'name'       => $sessionName,
-                    'program_id' => $program->id,
-                    'class_type' => $classType->value,
-                    'status'     => 'active',
-                ]);
                 $enrollmentStatus = 'active';
 
             } else {

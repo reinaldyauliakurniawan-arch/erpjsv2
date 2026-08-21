@@ -60,6 +60,7 @@ Route::middleware('auth')->group(function () {
         Route::resource('programs', ProgramController::class);
         Route::get('enrollments/students/search', [EnrollmentController::class, 'searchStudents'])->name('enrollments.students.search');
         Route::get('enrollments/sessions/eligible', [EnrollmentController::class, 'eligibleSessions'])->name('enrollments.sessions.eligible');
+        Route::get('enrollments/sessions/private-existing', [EnrollmentController::class, 'privateExistingSessions'])->name('enrollments.sessions.private-existing');
         Route::get('enrollments/tutors/available', [EnrollmentController::class, 'availableTutors'])->name('enrollments.tutors.available');
         Route::get('/enrollments/data', [EnrollmentController::class, 'data'])->name('enrollments.data');
         Route::resource('enrollments', EnrollmentController::class);

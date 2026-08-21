@@ -141,6 +141,38 @@ class EnrollmentController extends Controller
     return response()->json($students);
 }
 
+public function privateExistingSessions(Request $request)
+{
+    $this->authorize('viewAny', Enrollment::class);
+
+    $request->validate([
+        'student_id' => 'required|exists:students,id',
+        'program_id' => 'required|exists:programs,id',
+    ]);
+
+    $sessions = \App\Models\ClassSession::with(['schedules.classroom', 'tutors.user'])
+        ->where('program_id', $request->program_id)
+        ->where('class_type', \App\Enums\ClassType::PRIVATE->value)
+        ->where('status', 'active')
+        ->whereHas('enrollments', function ($q) use ($request) {
+            $q->where('student_id', $request->student_id)
+              ->whereIn('status', ['active', 'waitlist']);
+        })
+        ->get()
+        ->map(fn($s) => [
+            'id'        => $s->id,
+            'name'      => $s->name,
+            'schedules' => $s->schedules->map(fn($sc) => [
+                'day'        => $sc->day,
+                'time_block' => $sc->time_block,
+                'classroom'  => $sc->classroom?->name,
+            ]),
+            'tutors'    => $s->tutors->map(fn($t) => ['id' => $t->id, 'name' => $t->user->name]),
+        ]);
+
+    return response()->json($sessions);
+}
+
 public function eligibleSessions(Request $request)
 {
     $this->authorize('viewAny', Enrollment::class);
