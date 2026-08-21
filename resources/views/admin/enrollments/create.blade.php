@@ -132,6 +132,19 @@
                 <span>{{ $errors->first('error') }}</span>
             </div>
         @endif
+        @if($errors->any() && !$errors->has('error'))
+            <div role="alert" class="alert alert-error alert-soft">
+                <span class="material-symbols-outlined">error</span>
+                <div>
+                    <p class="font-semibold">Enrollment gagal disimpan. Periksa kembali:</p>
+                    <ul class="list-disc list-inside">
+                        @foreach($errors->all() as $message)
+                            <li>{{ $message }}</li>
+                        @endforeach
+                    </ul>
+                </div>
+            </div>
+        @endif
 
         {{-- Header --}}
         <div class="flex flex-col md:flex-row md:items-end justify-between gap-lg">
