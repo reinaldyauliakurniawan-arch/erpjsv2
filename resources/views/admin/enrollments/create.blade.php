@@ -18,7 +18,7 @@
         programs: {{ $programs->map(fn($p) => ['id' => $p->id, 'price' => $p->price, 'type' => $p->type])->toJson() }},
 
         // Session — bisa lebih dari satu hari/jam
-        scheduleSlots: [{ day: '', time_block: '' }],
+        scheduleSlots: [{ day: '', time_block: '', classroom_id: '' }],
         eligibleSessions: [],
         sessionLoading: false,
         selectedSessionId: '',
@@ -26,7 +26,10 @@
         privateClassroomId: '',
         get selectedDay() { return this.scheduleSlots[0]?.day || '' },
         get selectedTimeBlock() { return this.scheduleSlots[0]?.time_block || '' },
-        addScheduleSlot() { this.scheduleSlots.push({ day: '', time_block: '' }) },
+        addScheduleSlot() {
+            const defaultClassroom = this.selectedType === 'private' ? this.privateClassroomId : (this.selectedSession?.classroom_id ?? '');
+            this.scheduleSlots.push({ day: '', time_block: '', classroom_id: defaultClassroom });
+        },
         removeScheduleSlot(i) { if (this.scheduleSlots.length > 1) this.scheduleSlots.splice(i, 1); this.fetchSessions() },
 
         // Tutor
@@ -115,6 +118,12 @@
                 if (program) {
                     this.totalAmountOverride = program.price;
                 }
+            });
+            this.$watch('selectedSession', (val) => {
+                if (this.scheduleSlots[0]) this.scheduleSlots[0].classroom_id = val?.classroom_id ?? '';
+            });
+            this.$watch('privateClassroomId', (val) => {
+                if (this.scheduleSlots[0]) this.scheduleSlots[0].classroom_id = val ?? '';
             });
         },
     }">
@@ -361,29 +370,40 @@
 
                         <div class="space-y-sm mb-md">
                             <template x-for="(slot, idx) in scheduleSlots" :key="idx">
-                                <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-md items-end">
-                                    <div class="fieldset">
-                                        <label class="fieldset-legend text-on-surface" x-show="idx === 0">Hari <span class="text-on-surface-variant font-normal">(kosong = waitlist)</span></label>
-                                        <select class="select w-full" x-model="slot.day" @change="fetchSessions()">
-                                            <option value="">— Pilih hari —</option>
-                                            @foreach(['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] as $day)
-                                                <option value="{{ $day }}">{{ $day }}</option>
+                                <div class="space-y-xs">
+                                    <div class="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-md items-end">
+                                        <div class="fieldset">
+                                            <label class="fieldset-legend text-on-surface" x-show="idx === 0">Hari <span class="text-on-surface-variant font-normal">(kosong = waitlist)</span></label>
+                                            <select class="select w-full" x-model="slot.day" @change="fetchSessions()">
+                                                <option value="">— Pilih hari —</option>
+                                                @foreach(['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] as $day)
+                                                    <option value="{{ $day }}">{{ $day }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="fieldset">
+                                            <label class="fieldset-legend text-on-surface" x-show="idx === 0">Time Block <span class="text-on-surface-variant font-normal">(kosong = waitlist)</span></label>
+                                            <select class="select w-full" x-model="slot.time_block" @change="fetchSessions()">
+                                                <option value="">— Pilih time block —</option>
+                                                @foreach(['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'] as $block)
+                                                    <option value="{{ $block }}">{{ $block }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <button type="button" x-show="scheduleSlots.length > 1" @click="removeScheduleSlot(idx)"
+                                            class="btn btn-ghost btn-sm text-error shrink-0">
+                                            <span class="material-symbols-outlined text-[18px]">delete</span>
+                                        </button>
+                                    </div>
+                                    <div class="fieldset" x-show="idx > 0 && slot.day && slot.time_block">
+                                        <label class="fieldset-legend text-on-surface-variant">Ruangan untuk hari ini <span class="font-normal">(default sama, bisa diubah)</span></label>
+                                        <select class="select w-full select-sm" x-model="slot.classroom_id">
+                                            <option value="">Pilih ruangan...</option>
+                                            @foreach($classrooms as $room)
+                                                <option value="{{ $room->id }}">{{ $room->name }} ({{ $room->capacity }} pax)</option>
                                             @endforeach
                                         </select>
                                     </div>
-                                    <div class="fieldset">
-                                        <label class="fieldset-legend text-on-surface" x-show="idx === 0">Time Block <span class="text-on-surface-variant font-normal">(kosong = waitlist)</span></label>
-                                        <select class="select w-full" x-model="slot.time_block" @change="fetchSessions()">
-                                            <option value="">— Pilih time block —</option>
-                                            @foreach(['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'] as $block)
-                                                <option value="{{ $block }}">{{ $block }}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <button type="button" x-show="scheduleSlots.length > 1" @click="removeScheduleSlot(idx)"
-                                        class="btn btn-ghost btn-sm text-error shrink-0">
-                                        <span class="material-symbols-outlined text-[18px]">delete</span>
-                                    </button>
                                 </div>
                             </template>
                             <button type="button" @click="addScheduleSlot()"
@@ -487,7 +507,7 @@
                             <div>
                                 <input type="hidden" :name="`schedules[${idx}][day]`" :value="slot.day">
                                 <input type="hidden" :name="`schedules[${idx}][time_block]`" :value="slot.time_block">
-                                <input type="hidden" :name="`schedules[${idx}][classroom_id]`" :value="selectedType === 'private' ? privateClassroomId : (selectedSession?.classroom_id ?? '')">
+                                <input type="hidden" :name="`schedules[${idx}][classroom_id]`" :value="slot.classroom_id">
                             </div>
                         </template>
                     </template>
@@ -596,8 +616,17 @@
                                     <span class="text-body-md font-semibold text-on-primary" x-text="summaryTutors"></span>
                                 </div>
                             </div>
+                            <template x-if="(selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId">
+                                <p class="text-body-sm text-error mb-sm font-semibold">Pilih salah satu sesi kelas di atas sebelum menyimpan.</p>
+                            </template>
+                            <template x-if="selectedType === 'private' && selectedDay && selectedTimeBlock && !privateClassroomId">
+                                <p class="text-body-sm text-error mb-sm font-semibold">Pilih ruangan untuk kelas private sebelum menyimpan.</p>
+                            </template>
+                            <template x-if="scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)">
+                                <p class="text-body-sm text-error mb-sm font-semibold">Lengkapi ruangan untuk setiap jadwal tambahan sebelum menyimpan.</p>
+                            </template>
                             <button type="submit"
-                                :disabled="submitting"
+                                :disabled="submitting || ((selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId) || (selectedType === 'private' && selectedDay && selectedTimeBlock && !privateClassroomId) || scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)"
                                 :class="{ 'loading': submitting }"
                                 class="w-full py-md bg-secondary-container text-on-secondary-container rounded-lg font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
                                 <span x-show="!submitting">Simpan Enrollment</span>
