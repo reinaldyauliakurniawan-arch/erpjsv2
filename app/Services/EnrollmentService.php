@@ -35,7 +35,7 @@ class EnrollmentService
             );
             if ($note) $roomNotes[] = $note;
         }
-        return DB::transaction(function () use ($data, $program, $classType) {
+        return DB::transaction(function () use ($data, $program, $classType, $roomNotes) {
 
             if (!empty($data['schedules']) && !empty($data['existing_student_id'])) {
                 foreach ($data['schedules'] as $schedule) {
