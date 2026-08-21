@@ -300,7 +300,7 @@
                             <div class="flex gap-sm flex-wrap">
                                 @foreach(['private','semi-private','group'] as $t)
                                 <button type="button"
-                                    @click="selectedType = '{{ $t }}'; selectedProgramId = ''; selectedSessionId = ''; selectedSession = null"
+                                    @click="selectedType = '{{ $t }}'; selectedProgramId = ''; selectedSessionId = ''; selectedSession = null; scheduleSlots = [{ day: '', time_block: '', classroom_id: '' }]; privateClassroomId = ''"
                                     :class="selectedType ==='{{ $t }}' ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface-container-lowest text-on-surface border-surface-border hover:border-primary'"
                                     class="px-md py-sm rounded-lg border text-body-md font-semibold capitalize transition-all">
                                     {{ $t }}
