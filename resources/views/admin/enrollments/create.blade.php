@@ -598,7 +598,7 @@
                         <div class="space-y-md">
                             <div class="flex gap-md">
                                 <div class="w-2 h-2 rounded-full bg-secondary mt-sm shrink-0"></div>
-                                <p class="text-body-md text-on-surface-variant italic">Password default student: <strong>password123</strong>. Minta student untuk reset setelah login.</p>
+                                <p class="text-body-md text-on-surface-variant italic">Password murid baru dibuat acak & dicatat di log sistem. Admin perlu bagikan manual atau trigger reset password.</p>
                             </div>
                             <div class="flex gap-md">
                                 <div class="w-2 h-2 rounded-full bg-secondary mt-sm shrink-0"></div>
