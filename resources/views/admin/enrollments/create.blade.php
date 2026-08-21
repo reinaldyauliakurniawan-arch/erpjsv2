@@ -520,7 +520,8 @@
                                 </select>
                             </div>
 
-                            <div x-show="paymentMethod === 'installment'" x-cloak class="space-y-sm">
+                            <template x-if="paymentMethod === 'installment'">
+                            <div class="space-y-sm">
                                 <template x-for="(inst, i) in installments" :key="i">
                                     <div class="grid gap-md items-end" style="grid-template-columns: 1fr 1fr 1fr auto">
                                         <div class="fieldset">
@@ -548,6 +549,7 @@
                                     </div>
                                 </template>
                             </div>
+                            </template>
                         </div>
                     </section>
 
