@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Class Sessions</x-slot>
 
-    <div class="p-lg space-y-lg" x-data="{ filter: 'all' }">
+    <div class="p-lg space-y-lg">
 
         @if(session('success'))
             <div role="alert" class="alert alert-success alert-soft">
@@ -31,14 +31,12 @@
         {{-- Toggle Filter --}}
         <div class="inline-flex rounded-lg overflow-hidden border border-surface-border">
             @foreach(['all' => 'Semua', 'private' => 'Private', 'semi-private' => 'Semi-Private', 'group' => 'Group'] as $val => $label)
-                <button type="button"
-                    @click="filter = '{{ $val }}'"
-                    :class="filter ==='{{ $val }}'
+                <a href="{{ route('admin.class-sessions.index', ['filter' => $val]) }}"
+                    class="px-md py-sm text-body-md font-semibold transition-all border-r border-surface-border last:border-r-0 {{ $filter === $val
                         ? 'bg-primary-container text-on-primary'
-                        : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface'"
-                    class="px-md py-sm text-body-md font-semibold transition-all border-r border-surface-border last:border-r-0">
+                        : 'bg-surface-container-lowest text-on-surface-variant hover:bg-surface' }}">
                     {{ $label }}
-                </button>
+                </a>
             @endforeach
         </div>
 
@@ -64,8 +62,7 @@
                         </thead>
                         <tbody>
                             @foreach($classSessions as $cs)
-                            <tr class="border-b border-surface-border last:border-0 hover:bg-surface"
-                                x-show="filter === 'all' || filter === '{{ $cs->class_type }}'">
+                            <tr class="border-b border-surface-border last:border-0 hover:bg-surface">
                                 <td class="font-semibold text-on-surface">{{ $cs->name }}</td>
                                 <td class="text-on-surface-variant">{{ $cs->program->name }}</td>
                                 <td><span class="badge badge-soft">{{ ucfirst($cs->class_type) }}</span></td>
@@ -87,6 +84,11 @@
                         </tbody>
                     </table>
 </div>
+                @if($classSessions->hasPages())
+                <div class="flex justify-center mt-md">
+                    {{ $classSessions->links('vendor.pagination.tailwind-full') }}
+                </div>
+                @endif
                 </div>
             @endif
         </div>

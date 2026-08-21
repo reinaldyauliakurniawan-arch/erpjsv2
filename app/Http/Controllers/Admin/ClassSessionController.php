@@ -44,16 +44,20 @@ class ClassSessionController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function index()
+    public function index(Request $request)
     {
         $this->authorize('viewAny', ClassSession::class);
 
+        $filter = $request->query('filter', 'all');
+
         $classSessions = ClassSession::with('program')
             ->withCount('enrollments')
+            ->when($filter !== 'all', fn($q) => $q->where('class_type', $filter))
             ->orderBy('name')
-            ->paginate(15);
+            ->paginate(15)
+            ->withQueryString();
 
-        return view('admin.class_sessions.index', compact('classSessions'));
+        return view('admin.class_sessions.index', compact('classSessions', 'filter'));
     }
 
     /**
