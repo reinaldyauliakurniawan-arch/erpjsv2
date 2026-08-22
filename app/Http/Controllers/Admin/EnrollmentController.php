@@ -196,7 +196,7 @@ public function eligibleSessions(Request $request)
         $capacity    = $schedule?->classroom?->capacity ?? 999;
 
         if (!$isPrivate && $activeCount >= $capacity) return null;
-        if ($finished > 8) return null;
+        if (!$isPrivate && $finished > 8) return null;
 
         return [
             'id'                => $session->id,
