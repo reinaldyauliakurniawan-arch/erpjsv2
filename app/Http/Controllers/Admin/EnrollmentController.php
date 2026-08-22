@@ -172,7 +172,7 @@ public function eligibleSessions(Request $request)
         ->where('program_id', $programId)
         ->where('status', 'active');
 
-    if ($day && $timeBlock) {
+    if (!$isPrivate && $day && $timeBlock) {
         $query->whereHas('schedules', fn($q) => $q->where('day', $day)->where('time_block', $timeBlock));
     }
 
