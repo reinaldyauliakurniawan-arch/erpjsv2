@@ -120,7 +120,6 @@ class EnrollmentService
                     ]);
                 }
                 $enrollmentStatus = 'active';
-
             } else {
     if (!empty($data['class_session_id'])) {
         $classSession = ClassSession::with('program')

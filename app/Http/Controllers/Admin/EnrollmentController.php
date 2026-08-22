@@ -141,38 +141,6 @@ class EnrollmentController extends Controller
     return response()->json($students);
 }
 
-public function privateExistingSessions(Request $request)
-{
-    $this->authorize('viewAny', Enrollment::class);
-
-    $request->validate([
-        'student_id' => 'required|exists:students,id',
-        'program_id' => 'required|exists:programs,id',
-    ]);
-
-    $sessions = \App\Models\ClassSession::with(['schedules.classroom', 'tutors.user'])
-        ->where('program_id', $request->program_id)
-        ->where('class_type', \App\Enums\ClassType::PRIVATE->value)
-        ->where('status', 'active')
-        ->whereHas('enrollments', function ($q) use ($request) {
-            $q->where('student_id', $request->student_id)
-              ->whereIn('status', ['active', 'waitlist']);
-        })
-        ->get()
-        ->map(fn($s) => [
-            'id'        => $s->id,
-            'name'      => $s->name,
-            'schedules' => $s->schedules->map(fn($sc) => [
-                'day'        => $sc->day,
-                'time_block' => $sc->time_block,
-                'classroom'  => $sc->classroom?->name,
-            ]),
-            'tutors'    => $s->tutors->map(fn($t) => ['id' => $t->id, 'name' => $t->user->name]),
-        ]);
-
-    return response()->json($sessions);
-}
-
 public function eligibleSessions(Request $request)
 {
     $this->authorize('viewAny', Enrollment::class);
@@ -186,24 +154,27 @@ public function eligibleSessions(Request $request)
     $programId = $request->program_id;
     $day       = $request->day;
     $timeBlock = $request->time_block;
+    $program   = \App\Models\Program::find($programId);
+    $isPrivate = $program && $program->type === \App\Enums\ClassType::PRIVATE->value;
 
-    // Kalau hari/timeblock kosong → return empty (student masuk waitlist)
-    if (!$day || !$timeBlock) {
+    // Untuk group/semi-private: kalau hari/timeblock kosong → return empty (student masuk waitlist)
+    // Untuk private: hari/jam tidak wajib, search jalan berdasarkan program saja
+    if (!$isPrivate && (!$day || !$timeBlock)) {
         return response()->json([]);
     }
 
-    // N+1 fix: previously 2 queries per session inside ->map() (one for
-    // active count, one for finished count). With 50 sessions that's 100
-    // extra queries. Now we use withCount + a single subquery for
-    // finished meetings, reducing to 1 query for all sessions.
-    $sessions = \App\Models\ClassSession::with(['schedules.classroom', 'tutors.user'])
+    $query = \App\Models\ClassSession::with(['schedules.classroom', 'tutors.user'])
         ->withCount([
             'enrollments as active_count' => fn($q) => $q->whereIn('status', ['active', 'waitlist']),
         ])
         ->where('program_id', $programId)
-        ->where('status', 'active')
-        ->whereHas('schedules', fn($q) => $q->where('day', $day)->where('time_block', $timeBlock))
-        ->get();
+        ->where('status', 'active');
+
+    if ($day && $timeBlock) {
+        $query->whereHas('schedules', fn($q) => $q->where('day', $day)->where('time_block', $timeBlock));
+    }
+
+    $sessions = $query->get();
 
     // Single query for all sessions' finished-meeting counts
     $sessionIds   = $sessions->pluck('id')->all();
@@ -212,20 +183,20 @@ public function eligibleSessions(Request $request)
         ->groupBy('class_session_id')
         ->pluck('finished', 'class_session_id');
 
-    $result = $sessions->map(function ($session) use ($day, $timeBlock, $finishedMap) {
+    $result = $sessions->map(function ($session) use ($day, $timeBlock, $finishedMap, $isPrivate) {
         $activeCount = $session->active_count;
         $finished    = $finishedMap->get($session->id, 0);
         $schedule    = $session->schedules->first();
         $capacity    = $schedule?->classroom?->capacity ?? 999;
 
-        if ($activeCount >= $capacity) return null;
+        if (!$isPrivate && $activeCount >= $capacity) return null;
         if ($finished > 8) return null;
 
         return [
             'id'                => $session->id,
             'name'              => $session->name,
-            'day'               => $day,
-            'time_block'        => $timeBlock,
+            'day'               => $schedule?->day ?? $day,
+            'time_block'        => $schedule?->time_block ?? $timeBlock,
             'classroom'         => $schedule?->classroom?->name,
             'capacity'          => $schedule?->classroom?->capacity,
             'enrolled_count'    => $activeCount,

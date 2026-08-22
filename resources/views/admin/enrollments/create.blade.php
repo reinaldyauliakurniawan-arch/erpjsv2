@@ -24,10 +24,7 @@
         selectedSessionId: '',
         selectedSession: null,
         privateClassroomId: '',
-        privateSessionMode: 'new',
-        privateExistingSessions: [],
-        privateSessionLoading: false,
-        selectedPrivateSessionId: '',
+        sessionSearchQuery: '',
         get selectedDay() { return this.scheduleSlots[0]?.day || '' },
         get selectedTimeBlock() { return this.scheduleSlots[0]?.time_block || '' },
         addScheduleSlot() {
@@ -83,26 +80,11 @@
             this.selectedStudent = s;
             this.studentQuery = s.name;
             this.showDropdown = false;
-            this.fetchPrivateExistingSessions();
-        },
-        async fetchPrivateExistingSessions() {
-            this.privateExistingSessions = [];
-            this.privateSessionMode = 'new';
-            this.selectedPrivateSessionId = '';
-            if (this.selectedType !== 'private' || this.mode !== 'existing' || !this.selectedStudent || !this.selectedProgramId) return;
-            this.privateSessionLoading = true;
-            try {
-                const p = new URLSearchParams({ student_id: this.selectedStudent.id, program_id: this.selectedProgramId });
-                const res = await fetch(`{{ route('admin.enrollments.sessions.private-existing') }}?${p}`, {
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
-                });
-                this.privateExistingSessions = await res.json();
-                if (this.privateExistingSessions.length > 0) this.privateSessionMode = 'existing';
-            } finally { this.privateSessionLoading = false; }
         },
         async fetchSessions() {
             if (this.selectedDay && this.selectedTimeBlock) this.fetchTutors();
-            if (!this.selectedProgramId || !this.selectedDay || !this.selectedTimeBlock || this.selectedType === 'private') {
+            const requiresSchedule = this.selectedType !== 'private';
+            if (!this.selectedProgramId || (requiresSchedule && (!this.selectedDay || !this.selectedTimeBlock))) {
                 this.eligibleSessions = [];
                 this.selectedSessionId = '';
                 this.selectedSession = null;
@@ -112,12 +94,17 @@
             this.selectedSessionId = '';
             this.selectedSession = null;
             try {
-                const p = new URLSearchParams({ program_id: this.selectedProgramId, day: this.selectedDay, time_block: this.selectedTimeBlock });
+                const p = new URLSearchParams({ program_id: this.selectedProgramId, day: this.selectedDay || '', time_block: this.selectedTimeBlock || '' });
                 const res = await fetch(`{{ route('admin.enrollments.sessions.eligible') }}?${p}`, {
                     headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
                 });
                 this.eligibleSessions = await res.json();
             } finally { this.sessionLoading = false; }
+        },
+        get filteredEligibleSessions() {
+            if (!this.sessionSearchQuery) return this.eligibleSessions;
+            const q = this.sessionSearchQuery.toLowerCase();
+            return this.eligibleSessions.filter(s => s.name.toLowerCase().includes(q));
         },
         async fetchTutors() {
             this.tutorLoading = true;
@@ -138,7 +125,7 @@
                 if (program) {
                     this.totalAmountOverride = program.price;
                 }
-                this.fetchPrivateExistingSessions();
+                this.fetchSessions();
             });
             this.$watch('selectedSession', (val) => {
                 if (this.scheduleSlots[0]) this.scheduleSlots[0].classroom_id = val?.classroom_id ?? '';
@@ -321,7 +308,7 @@
                             <div class="flex gap-sm flex-wrap">
                                 @foreach(['private','semi-private','group'] as $t)
                                 <button type="button"
-                                    @click="selectedType = '{{ $t }}'; selectedProgramId = ''; selectedSessionId = ''; selectedSession = null; scheduleSlots = [{ day: '', time_block: '', classroom_id: '' }]; privateClassroomId = ''"
+                                    @click="selectedType = '{{ $t }}'; selectedProgramId = ''; selectedSessionId = ''; selectedSession = null; scheduleSlots = [{ day: '', time_block: '', classroom_id: '' }]; privateClassroomId = ''; eligibleSessions = []; sessionSearchQuery = ''"
                                     :class="selectedType ==='{{ $t }}' ? 'bg-primary-container text-on-primary border-primary-container' : 'bg-surface-container-lowest text-on-surface border-surface-border hover:border-primary'"
                                     class="px-md py-sm rounded-lg border text-body-md font-semibold capitalize transition-all">
                                     {{ $t }}
@@ -443,48 +430,50 @@
 
                         <div x-show="sessionLoading" class="text-body-sm text-on-surface-variant py-sm">Memuat sesi...</div>
 
-                        {{-- Private --}}
-                        <div x-show="selectedType === 'private' && selectedDay && selectedTimeBlock && !sessionLoading" x-cloak>
-                            <input type="hidden" name="class_session_id" :value="privateSessionMode === 'existing' ? selectedPrivateSessionId : ''">
+                        {{-- Pilihan Class Session — universal untuk private/semi-private/group --}}
+                        <div x-show="selectedType === 'private' ? selectedProgramId : (selectedDay && selectedTimeBlock)" x-cloak>
+                            <input type="hidden" name="class_session_id" :value="selectedSessionId">
 
-                            <template x-if="privateExistingSessions.length > 0">
-                                <div class="mb-md">
-                                    <div class="flex items-center gap-sm p-sm bg-secondary/10 border border-secondary rounded-lg mb-md">
-                                        <span class="material-symbols-outlined text-secondary text-[18px]">history</span>
-                                        <p class="text-body-sm text-on-surface-variant">Murid ini sudah punya sesi private untuk program ini.</p>
-                                    </div>
-                                    <div class="inline-flex rounded-lg overflow-hidden border border-primary-container mb-md">
-                                        <button type="button" @click="privateSessionMode = 'existing'"
-                                            :class="privateSessionMode === 'existing' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container'"
-                                            class="px-md py-sm text-body-md font-semibold transition-all">
-                                            Lanjutkan Sesi Lama
-                                        </button>
-                                        <button type="button" @click="privateSessionMode = 'new'; selectedPrivateSessionId = ''"
-                                            :class="privateSessionMode === 'new' ? 'bg-primary-container text-on-primary' : 'bg-surface-container-lowest text-primary-container'"
-                                            class="px-md py-sm text-body-md font-semibold border-l border-primary-container transition-all">
-                                            Buat Sesi Baru
-                                        </button>
-                                    </div>
+                            <div class="fieldset mb-md">
+                                <label class="fieldset-legend text-on-surface">Cari Class Session <span class="text-on-surface-variant font-normal">(kosongkan untuk buat sesi baru otomatis)</span></label>
+                                <input type="text" class="input w-full" x-model="sessionSearchQuery"
+                                    placeholder="Ketik nama sesi untuk mencari..." />
+                            </div>
 
-                                    <div x-show="privateSessionMode === 'existing'" class="space-y-sm">
-                                        <template x-for="sess in privateExistingSessions" :key="sess.id">
-                                            <button type="button"
-                                                @click="selectedPrivateSessionId = sess.id; selectedTutorIds = sess.tutors.map(t => t.id)"
-                                                :class="selectedPrivateSessionId == sess.id ? 'border-primary-container ring-2 ring-primary-container bg-surface-container-low' : 'border-surface-border hover:border-primary'"
-                                                class="w-full text-left p-md rounded-lg border transition-all">
+                            <div x-show="sessionLoading" class="text-body-sm text-on-surface-variant py-sm">Memuat sesi...</div>
+
+                            <div x-show="!sessionLoading && filteredEligibleSessions.length === 0"
+                                class="p-sm bg-surface-container-low border border-surface-border rounded-lg text-body-sm text-on-surface-variant mb-md">
+                                Tidak ada sesi ditemukan. Kosongkan pencarian untuk buat sesi baru otomatis.
+                            </div>
+
+                            <div class="space-y-sm" x-show="!sessionLoading">
+                                <template x-for="sess in filteredEligibleSessions" :key="sess.id">
+                                    <button type="button"
+                                        @click="selectedSessionId == sess.id ? (selectedSessionId = '', selectedSession = null) : (selectedSessionId = sess.id, selectedSession = sess, selectedTutorIds = sess.tutors.map(t => t.id))"
+                                        :class="selectedSessionId == sess.id ?'border-primary-container ring-2 ring-primary-container bg-surface-container-low'
+                                            : 'border-surface-border hover:border-primary'"
+                                        class="w-full text-left p-md rounded-lg border transition-all">
+                                        <div class="flex items-start justify-between gap-sm">
+                                            <div>
                                                 <p class="text-body-md font-semibold text-on-surface" x-text="sess.name"></p>
+                                                <p class="text-body-sm text-on-surface-variant" x-show="sess.day" x-text="(sess.classroom ?? '—') + ' · ' + sess.day + ' ' + sess.time_block"></p>
+                                                <p class="text-body-sm text-on-surface-variant">Pertemuan berjalan: <span class="font-semibold" x-text="sess.finished_meetings"></span></p>
                                                 <div class="flex gap-xs flex-wrap mt-xs">
                                                     <template x-for="t in sess.tutors" :key="t.id">
                                                         <span class="text-label-lg px-xs py-0.5 rounded-md bg-surface-container text-on-surface-variant" x-text="t.name"></span>
                                                     </template>
                                                 </div>
-                                            </button>
-                                        </template>
-                                    </div>
-                                </div>
-                            </template>
+                                            </div>
+                                            <span class="text-body-sm font-semibold shrink-0" x-show="selectedType !== 'private'"
+                                                :class="sess.enrolled_count >= sess.capacity ?'text-error' : 'text-secondary'"
+                                                x-text="sess.enrolled_count + '/' + sess.capacity + ' siswa'"></span>
+                                        </div>
+                                    </button>
+                                </template>
+                            </div>
 
-                            <div x-show="privateSessionMode === 'new'">
+                            <div x-show="selectedType === 'private' && !selectedSessionId" class="mt-md">
                                 <div class="flex items-center gap-sm p-sm bg-surface-container-low border border-surface-border rounded-lg mb-md">
                                     <span class="material-symbols-outlined text-secondary text-[18px]">info</span>
                                     <p class="text-body-sm text-on-surface-variant">Sesi private baru dibuat otomatis atas nama siswa.</p>
@@ -498,44 +487,6 @@
                                         @endforeach
                                     </select>
                                 </div>
-                            </div>
-                        </div>
-
-                        {{-- Group / Semi-private --}}
-                        <div x-show="(selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !sessionLoading" x-cloak>
-                            <template x-if="selectedType === 'group' || selectedType === 'semi-private'">
-                                <input type="hidden" name="class_session_id" :value="selectedSessionId">
-                            </template>
-
-                            <div x-show="eligibleSessions.length === 0 && !sessionLoading"
-                                class="p-sm bg-surface-container-low border border-surface-border rounded-lg text-body-sm text-on-surface-variant mb-md">
-                                Tidak ada sesi eligible untuk slot ini.
-                            </div>
-
-                            <div class="space-y-sm">
-                                <template x-for="sess in eligibleSessions" :key="sess.id">
-                                    <button type="button"
-                                        @click="selectedSessionId = sess.id; selectedSession = sess; selectedTutorIds = sess.tutors.map(t => t.id)"
-                                        :class="selectedSessionId == sess.id ?'border-primary-container ring-2 ring-primary-container bg-surface-container-low'
-                                            : 'border-surface-border hover:border-primary'"
-                                        class="w-full text-left p-md rounded-lg border transition-all">
-                                        <div class="flex items-start justify-between gap-sm">
-                                            <div>
-                                                <p class="text-body-md font-semibold text-on-surface" x-text="sess.name"></p>
-                                                <p class="text-body-sm text-on-surface-variant" x-text="sess.classroom + ' · ' + sess.day + ' ' + sess.time_block"></p>
-                                                <p class="text-body-sm text-on-surface-variant">Pertemuan berjalan: <span class="font-semibold" x-text="sess.finished_meetings"></span></p>
-                                                <div class="flex gap-xs flex-wrap mt-xs">
-                                                    <template x-for="t in sess.tutors" :key="t.id">
-                                                        <span class="text-label-lg px-xs py-0.5 rounded-md bg-surface-container text-on-surface-variant" x-text="t.name"></span>
-                                                    </template>
-                                                </div>
-                                            </div>
-                                            <span class="text-body-sm font-semibold shrink-0"
-                                                :class="sess.enrolled_count >= sess.capacity ?'text-error' : 'text-secondary'"
-                                                x-text="sess.enrolled_count + '/' + sess.capacity + ' siswa'"></span>
-                                        </div>
-                                    </button>
-                                </template>
                             </div>
                         </div>
 
@@ -679,19 +630,16 @@
                                 </div>
                             </div>
                             <template x-if="(selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId">
-                                <p class="text-body-sm text-error mb-sm font-semibold">Pilih salah satu sesi kelas di atas sebelum menyimpan.</p>
+                                <p class="text-body-sm text-error mb-sm font-semibold">Pilih salah satu sesi kelas di atas, atau kosongkan pencarian untuk buat baru.</p>
                             </template>
-                            <template x-if="selectedType === 'private' && selectedDay && selectedTimeBlock && privateSessionMode === 'new' && !privateClassroomId">
-                                <p class="text-body-sm text-error mb-sm font-semibold">Pilih ruangan untuk kelas private sebelum menyimpan.</p>
-                            </template>
-                            <template x-if="selectedType === 'private' && selectedDay && selectedTimeBlock && privateSessionMode === 'existing' && !selectedPrivateSessionId">
-                                <p class="text-body-sm text-error mb-sm font-semibold">Pilih sesi private lama, atau ganti ke "Buat Sesi Baru".</p>
+                            <template x-if="selectedType === 'private' && selectedProgramId && !selectedSessionId && !privateClassroomId">
+                                <p class="text-body-sm text-error mb-sm font-semibold">Pilih sesi lama dari pencarian, atau pilih ruangan untuk sesi baru.</p>
                             </template>
                             <template x-if="scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)">
                                 <p class="text-body-sm text-error mb-sm font-semibold">Lengkapi ruangan untuk setiap jadwal tambahan sebelum menyimpan.</p>
                             </template>
                             <button type="submit"
-                                :disabled="submitting || ((selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId) || (selectedType === 'private' && selectedDay && selectedTimeBlock && privateSessionMode === 'new' && !privateClassroomId) || (selectedType === 'private' && selectedDay && selectedTimeBlock && privateSessionMode === 'existing' && !selectedPrivateSessionId) || scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)"
+                                :disabled="submitting || ((selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId) || (selectedType === 'private' && selectedProgramId && !selectedSessionId && !privateClassroomId) || scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)"
                                 :class="{ 'loading': submitting }"
                                 class="w-full py-md bg-secondary-container text-on-secondary-container rounded-lg font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
                                 <span x-show="!submitting">Simpan Enrollment</span>
