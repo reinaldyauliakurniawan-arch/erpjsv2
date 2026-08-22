@@ -433,8 +433,11 @@
                                             <span class="material-symbols-outlined text-[18px]">delete</span>
                                         </button>
                                     </div>
-                                    <div class="fieldset" x-show="idx > 0 && slot.day && slot.time_block">
-                                        <label class="fieldset-legend text-on-surface-variant">Ruangan untuk hari ini <span class="font-normal">(default sama, bisa diubah)</span></label>
+                                    <div class="fieldset" x-show="slot.day && slot.time_block">
+                                        <label class="fieldset-legend text-on-surface-variant">Ruangan untuk hari ini
+                                            <span class="font-normal" x-show="idx === 0">(terisi otomatis dari sesi terpilih, bisa diubah manual)</span>
+                                            <span class="font-normal" x-show="idx > 0">(default sama, bisa diubah)</span>
+                                        </label>
                                         <select class="select w-full select-sm" x-model="slot.classroom_id">
                                             <option value="">Pilih ruangan...</option>
                                             @foreach($classrooms as $room)
@@ -675,11 +678,11 @@
                             <template x-if="selectedType === 'private' && selectedProgramId && !selectedSessionId && !privateClassroomId">
                                 <p class="text-body-sm text-error mb-sm font-semibold">Pilih sesi lama dari pencarian, atau pilih ruangan untuk sesi baru.</p>
                             </template>
-                            <template x-if="scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)">
-                                <p class="text-body-sm text-error mb-sm font-semibold">Lengkapi ruangan untuk setiap jadwal tambahan sebelum menyimpan.</p>
+                            <template x-if="scheduleSlots.some((s) => s.day && s.time_block && !s.classroom_id)">
+                                <p class="text-body-sm text-error mb-sm font-semibold">Lengkapi ruangan untuk setiap jadwal yang punya hari & jam sebelum menyimpan.</p>
                             </template>
                             <button type="submit"
-                                :disabled="submitting || ((selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId) || (selectedType === 'private' && selectedProgramId && !selectedSessionId && !privateClassroomId) || scheduleSlots.some((s, i) => i > 0 && s.day && s.time_block && !s.classroom_id)"
+                                :disabled="submitting || ((selectedType === 'group' || selectedType === 'semi-private') && selectedDay && selectedTimeBlock && !selectedSessionId) || (selectedType === 'private' && selectedProgramId && !selectedSessionId && !privateClassroomId) || scheduleSlots.some((s) => s.day && s.time_block && !s.classroom_id)"
                                 :class="{ 'loading': submitting }"
                                 class="w-full py-md bg-secondary-container text-on-secondary-container rounded-lg font-bold hover:opacity-90 transition-all active:scale-95 disabled:opacity-60 disabled:cursor-not-allowed">
                                 <span x-show="!submitting">Simpan Enrollment</span>
