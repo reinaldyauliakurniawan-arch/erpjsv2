@@ -149,11 +149,13 @@ public function eligibleSessions(Request $request)
         'program_id' => 'required|exists:programs,id',
         'day'        => 'nullable|string',
         'time_block' => 'nullable|string',
+        'q'          => 'nullable|string',
     ]);
 
     $programId = $request->program_id;
     $day       = $request->day;
     $timeBlock = $request->time_block;
+    $search    = $request->q;
     $program   = \App\Models\Program::find($programId);
     $isPrivate = $program && $program->type === \App\Enums\ClassType::PRIVATE->value;
 
@@ -174,7 +176,11 @@ public function eligibleSessions(Request $request)
         $query->whereHas('schedules', fn($q) => $q->where('day', $day)->where('time_block', $timeBlock));
     }
 
-    $sessions = $query->get();
+    if ($search) {
+        $query->where('name', 'like', '%' . $search . '%');
+    }
+
+    $sessions = $query->limit(20)->get();
 
     // Single query for all sessions' finished-meeting counts
     $sessionIds   = $sessions->pluck('id')->all();

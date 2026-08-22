@@ -25,6 +25,7 @@
         selectedSession: null,
         privateClassroomId: '',
         sessionSearchQuery: '',
+        sessionSearchDebounce: null,
         get selectedDay() { return this.scheduleSlots[0]?.day || '' },
         get selectedTimeBlock() { return this.scheduleSlots[0]?.time_block || '' },
         addScheduleSlot() {
@@ -90,21 +91,33 @@
                 this.selectedSession = null;
                 return;
             }
-            this.sessionLoading = true;
             this.selectedSessionId = '';
             this.selectedSession = null;
+            await this.runSessionSearch();
+        },
+        async runSessionSearch() {
+            const requiresSchedule = this.selectedType !== 'private';
+            if (!this.selectedProgramId || (requiresSchedule && (!this.selectedDay || !this.selectedTimeBlock))) {
+                this.eligibleSessions = [];
+                return;
+            }
+            this.sessionLoading = true;
             try {
-                const p = new URLSearchParams({ program_id: this.selectedProgramId, day: this.selectedDay || '', time_block: this.selectedTimeBlock || '' });
+                const p = new URLSearchParams({
+                    program_id: this.selectedProgramId,
+                    day: this.selectedDay || '',
+                    time_block: this.selectedTimeBlock || '',
+                    q: this.sessionSearchQuery || '',
+                });
                 const res = await fetch(`{{ route('admin.enrollments.sessions.eligible') }}?${p}`, {
                     headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content }
                 });
                 this.eligibleSessions = await res.json();
             } finally { this.sessionLoading = false; }
         },
-        get filteredEligibleSessions() {
-            if (!this.sessionSearchQuery) return this.eligibleSessions;
-            const q = this.sessionSearchQuery.toLowerCase();
-            return this.eligibleSessions.filter(s => s.name.toLowerCase().includes(q));
+        onSessionSearchInput() {
+            clearTimeout(this.sessionSearchDebounce);
+            this.sessionSearchDebounce = setTimeout(() => this.runSessionSearch(), 300);
         },
         async fetchTutors() {
             this.tutorLoading = true;
@@ -437,18 +450,19 @@
                             <div class="fieldset mb-md">
                                 <label class="fieldset-legend text-on-surface">Cari Class Session <span class="text-on-surface-variant font-normal">(kosongkan untuk buat sesi baru otomatis)</span></label>
                                 <input type="text" class="input w-full" x-model="sessionSearchQuery"
+                                    @input="onSessionSearchInput()"
                                     placeholder="Ketik nama sesi untuk mencari..." />
                             </div>
 
                             <div x-show="sessionLoading" class="text-body-sm text-on-surface-variant py-sm">Memuat sesi...</div>
 
-                            <div x-show="!sessionLoading && filteredEligibleSessions.length === 0"
+                            <div x-show="!sessionLoading && eligibleSessions.length === 0"
                                 class="p-sm bg-surface-container-low border border-surface-border rounded-lg text-body-sm text-on-surface-variant mb-md">
                                 Tidak ada sesi ditemukan. Kosongkan pencarian untuk buat sesi baru otomatis.
                             </div>
 
                             <div class="space-y-sm" x-show="!sessionLoading">
-                                <template x-for="sess in filteredEligibleSessions" :key="sess.id">
+                                <template x-for="sess in eligibleSessions" :key="sess.id">
                                     <button type="button"
                                         @click="selectedSessionId == sess.id ? (selectedSessionId = '', selectedSession = null) : (selectedSessionId = sess.id, selectedSession = sess, selectedTutorIds = sess.tutors.map(t => t.id))"
                                         :class="selectedSessionId == sess.id ?'border-primary-container ring-2 ring-primary-container bg-surface-container-low'
