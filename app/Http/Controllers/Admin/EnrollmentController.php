@@ -159,12 +159,10 @@ public function eligibleSessions(Request $request)
     $program   = \App\Models\Program::find($programId);
     $isPrivate = $program && $program->type === \App\Enums\ClassType::PRIVATE->value;
 
-    // Untuk group/semi-private: kalau hari/timeblock kosong → return empty (student masuk waitlist)
-    // Untuk private: hari/jam tidak wajib, search jalan berdasarkan program saja
-    if (!$isPrivate && (!$day || !$timeBlock)) {
-        return response()->json([]);
-    }
-
+    // Selalu tampilkan semua class session milik program ini (jenis program
+    // otomatis konsisten lewat program_id). Hari & time block, kalau diisi,
+    // cuma jadi filter tambahan opsional — bukan syarat wajib — supaya admin
+    // bisa lihat & pilih sesi yang sudah ada tanpa harus isi hari/jam dulu.
     $query = \App\Models\ClassSession::with(['schedules.classroom', 'tutors.user'])
         ->withCount([
             'enrollments as active_count' => fn($q) => $q->whereIn('status', ['active', 'waitlist']),
@@ -204,6 +202,7 @@ public function eligibleSessions(Request $request)
             'day'               => $schedule?->day ?? $day,
             'time_block'        => $schedule?->time_block ?? $timeBlock,
             'classroom'         => $schedule?->classroom?->name,
+            'classroom_id'      => $schedule?->classroom_id,
             'capacity'          => $schedule?->classroom?->capacity,
             'enrolled_count'    => $activeCount,
             'finished_meetings' => $finished,

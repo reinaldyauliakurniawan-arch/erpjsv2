@@ -161,8 +161,21 @@ if ($quotaMet && $hasTutor) {
     }
 }
     } else {
-        $classSession     = null;
-        $enrollmentStatus = 'waitlist';
+        $firstSchedule = $data['schedules'][0] ?? null;
+        if (!empty($firstSchedule['day']) && !empty($firstSchedule['time_block'])) {
+            // Admin tidak pilih class session — buat sesi baru otomatis
+            // untuk group/semi-private, sama seperti perilaku kelas private.
+            $classSession = ClassSession::create([
+                'name'       => "{$program->name}_{$firstSchedule['day']}_{$firstSchedule['time_block']}",
+                'program_id' => $program->id,
+                'class_type' => $classType->value,
+                'status'     => 'active',
+            ]);
+            $enrollmentStatus = 'waitlist';
+        } else {
+            $classSession     = null;
+            $enrollmentStatus = 'waitlist';
+        }
     }
 }
 

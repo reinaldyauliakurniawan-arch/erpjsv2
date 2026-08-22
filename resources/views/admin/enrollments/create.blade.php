@@ -21,6 +21,7 @@
         scheduleSlots: [{ day: '', time_block: '', classroom_id: '' }],
         eligibleSessions: [],
         sessionLoading: false,
+        showSessionDropdown: false,
         selectedSessionId: '',
         selectedSession: null,
         privateClassroomId: '',
@@ -84,8 +85,7 @@
         },
         async fetchSessions() {
             if (this.selectedDay && this.selectedTimeBlock) this.fetchTutors();
-            const requiresSchedule = this.selectedType !== 'private';
-            if (!this.selectedProgramId || (requiresSchedule && (!this.selectedDay || !this.selectedTimeBlock))) {
+            if (!this.selectedProgramId) {
                 this.eligibleSessions = [];
                 this.selectedSessionId = '';
                 this.selectedSession = null;
@@ -93,11 +93,11 @@
             }
             this.selectedSessionId = '';
             this.selectedSession = null;
+            this.sessionSearchQuery = '';
             await this.runSessionSearch();
         },
         async runSessionSearch() {
-            const requiresSchedule = this.selectedType !== 'private';
-            if (!this.selectedProgramId || (requiresSchedule && (!this.selectedDay || !this.selectedTimeBlock))) {
+            if (!this.selectedProgramId) {
                 this.eligibleSessions = [];
                 return;
             }
@@ -116,8 +116,21 @@
             } finally { this.sessionLoading = false; }
         },
         onSessionSearchInput() {
+            this.showSessionDropdown = true;
             clearTimeout(this.sessionSearchDebounce);
             this.sessionSearchDebounce = setTimeout(() => this.runSessionSearch(), 300);
+        },
+        selectSession(sess) {
+            this.selectedSessionId = sess.id;
+            this.selectedSession = sess;
+            this.selectedTutorIds = sess.tutors.map(t => t.id);
+            this.sessionSearchQuery = sess.name;
+            this.showSessionDropdown = false;
+        },
+        clearSession() {
+            this.selectedSessionId = '';
+            this.selectedSession = null;
+            this.sessionSearchQuery = '';
         },
         async fetchTutors() {
             this.tutorLoading = true;
@@ -142,6 +155,10 @@
             });
             this.$watch('selectedSession', (val) => {
                 if (this.scheduleSlots[0]) this.scheduleSlots[0].classroom_id = val?.classroom_id ?? '';
+                if (val && this.selectedType !== 'private') {
+                    if (val.day) this.scheduleSlots[0].day = val.day;
+                    if (val.time_block) this.scheduleSlots[0].time_block = val.time_block;
+                }
             });
             this.$watch('privateClassroomId', (val) => {
                 if (this.scheduleSlots[0]) this.scheduleSlots[0].classroom_id = val ?? '';
@@ -444,47 +461,56 @@
                         <div x-show="sessionLoading" class="text-body-sm text-on-surface-variant py-sm">Memuat sesi...</div>
 
                         {{-- Pilihan Class Session — universal untuk private/semi-private/group --}}
-                        <div x-show="selectedType === 'private' ? selectedProgramId : (selectedDay && selectedTimeBlock)" x-cloak>
+                        <div x-show="selectedProgramId" x-cloak>
                             <input type="hidden" name="class_session_id" :value="selectedSessionId">
 
-                            <div class="fieldset mb-md">
+                            <div class="fieldset mb-md relative">
                                 <label class="fieldset-legend text-on-surface">Cari Class Session <span class="text-on-surface-variant font-normal">(kosongkan untuk buat sesi baru otomatis)</span></label>
-                                <input type="text" class="input w-full" x-model="sessionSearchQuery"
-                                    @input="onSessionSearchInput()"
-                                    placeholder="Ketik nama sesi untuk mencari..." />
-                            </div>
-
-                            <div x-show="sessionLoading" class="text-body-sm text-on-surface-variant py-sm">Memuat sesi...</div>
-
-                            <div x-show="!sessionLoading && eligibleSessions.length === 0"
-                                class="p-sm bg-surface-container-low border border-surface-border rounded-lg text-body-sm text-on-surface-variant mb-md">
-                                Tidak ada sesi ditemukan. Kosongkan pencarian untuk buat sesi baru otomatis.
-                            </div>
-
-                            <div class="space-y-sm" x-show="!sessionLoading">
-                                <template x-for="sess in eligibleSessions" :key="sess.id">
-                                    <button type="button"
-                                        @click="selectedSessionId == sess.id ? (selectedSessionId = '', selectedSession = null) : (selectedSessionId = sess.id, selectedSession = sess, selectedTutorIds = sess.tutors.map(t => t.id))"
-                                        :class="selectedSessionId == sess.id ?'border-primary-container ring-2 ring-primary-container bg-surface-container-low'
-                                            : 'border-surface-border hover:border-primary'"
-                                        class="w-full text-left p-md rounded-lg border transition-all">
-                                        <div class="flex items-start justify-between gap-sm">
-                                            <div>
-                                                <p class="text-body-md font-semibold text-on-surface" x-text="sess.name"></p>
-                                                <p class="text-body-sm text-on-surface-variant" x-show="sess.day" x-text="(sess.classroom ?? '—') + ' · ' + sess.day + ' ' + sess.time_block"></p>
-                                                <p class="text-body-sm text-on-surface-variant">Pertemuan berjalan: <span class="font-semibold" x-text="sess.finished_meetings"></span></p>
-                                                <div class="flex gap-xs flex-wrap mt-xs">
-                                                    <template x-for="t in sess.tutors" :key="t.id">
-                                                        <span class="text-label-lg px-xs py-0.5 rounded-md bg-surface-container text-on-surface-variant" x-text="t.name"></span>
-                                                    </template>
-                                                </div>
-                                            </div>
-                                            <span class="text-body-sm font-semibold shrink-0" x-show="selectedType !== 'private'"
-                                                :class="sess.enrolled_count >= sess.capacity ?'text-error' : 'text-secondary'"
-                                                x-text="sess.enrolled_count + '/' + sess.capacity + ' siswa'"></span>
-                                        </div>
+                                <div class="relative">
+                                    <input type="text" class="input w-full" x-model="sessionSearchQuery"
+                                        @input="onSessionSearchInput()"
+                                        @focus="showSessionDropdown = true; if (eligibleSessions.length === 0) runSessionSearch()"
+                                        @click.away="showSessionDropdown = false"
+                                        placeholder="Ketik nama sesi, atau klik untuk lihat semua sesi program ini..." />
+                                    <button type="button" x-show="selectedSessionId" @click="clearSession()"
+                                        class="absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-error transition-colors">
+                                        <span class="material-symbols-outlined text-[18px]">close</span>
                                     </button>
-                                </template>
+                                    <div x-show="showSessionDropdown" x-cloak
+                                        class="absolute z-50 w-full mt-xs bg-surface-container-lowest border border-surface-border rounded-lg shadow-lg max-h-80 overflow-y-auto">
+                                        <div x-show="sessionLoading" class="px-md py-sm text-body-sm text-on-surface-variant">Memuat sesi...</div>
+                                        <div x-show="!sessionLoading && eligibleSessions.length === 0"
+                                            class="px-md py-sm text-body-sm text-on-surface-variant">
+                                            Tidak ada sesi ditemukan. Kosongkan pencarian untuk buat sesi baru otomatis.
+                                        </div>
+                                        <template x-for="sess in eligibleSessions" :key="sess.id">
+                                            <button type="button" @click="selectSession(sess)"
+                                                :class="selectedSessionId == sess.id ? 'bg-surface-container' : ''"
+                                                class="w-full text-left px-md py-sm hover:bg-surface-container border-b border-surface-border last:border-0 transition-colors">
+                                                <div class="flex items-start justify-between gap-sm">
+                                                    <div>
+                                                        <p class="text-body-md font-semibold text-on-surface" x-text="sess.name"></p>
+                                                        <p class="text-body-sm text-on-surface-variant" x-show="sess.day" x-text="(sess.classroom ?? '—') + ' · ' + sess.day + ' ' + sess.time_block"></p>
+                                                        <p class="text-body-sm text-on-surface-variant">Pertemuan berjalan: <span class="font-semibold" x-text="sess.finished_meetings"></span></p>
+                                                        <div class="flex gap-xs flex-wrap mt-xs">
+                                                            <template x-for="t in sess.tutors" :key="t.id">
+                                                                <span class="text-label-lg px-xs py-0.5 rounded-md bg-surface-container text-on-surface-variant" x-text="t.name"></span>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                    <span class="text-body-sm font-semibold shrink-0" x-show="selectedType !== 'private'"
+                                                        :class="sess.enrolled_count >= sess.capacity ? 'text-error' : 'text-secondary'"
+                                                        x-text="sess.enrolled_count + '/' + sess.capacity + ' siswa'"></span>
+                                                </div>
+                                            </button>
+                                        </template>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div x-show="selectedSession" class="mt-sm p-sm bg-surface-container-low border border-surface-border rounded-lg mb-md">
+                                <p class="text-body-md font-semibold text-on-surface" x-text="selectedSession?.name"></p>
+                                <p class="text-body-sm text-on-surface-variant" x-show="selectedSession?.day" x-text="(selectedSession?.classroom ?? '—') + ' · ' + selectedSession?.day + ' ' + selectedSession?.time_block"></p>
                             </div>
 
                             <div x-show="selectedType === 'private' && !selectedSessionId" class="mt-md">
