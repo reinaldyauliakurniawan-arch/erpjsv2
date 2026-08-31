@@ -60,6 +60,11 @@
         {{-- Row 2: Kewajiban & Risiko --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
             <div class="app-card flex flex-col justify-center min-h-[120px]">
+                <p class="text-body-sm text-on-surface-variant">Piutang Customer</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($accountsReceivable, 0, ',', '.') }}</p>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Revenue diakui, belum dibayar</p>
+            </div>
+            <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Deferred Revenue</p>
                 <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan diterima di muka</p>
@@ -173,6 +178,42 @@
                             </tbody>
                         </table>
 </div>
+                    </div>
+                @endif
+            </div>
+
+            <div class="app-card space-y-md flex flex-col" style="max-height: 400px;">
+                <div class="flex items-center justify-between flex-shrink-0">
+                    <h4 class="text-headline-md font-semibold text-on-surface">Private Class - Belum Bayar</h4>
+                    @if($privateUnpaidWarnings->count())
+                        <span class="badge badge-soft badge-error whitespace-nowrap">Rp {{ number_format($privateUnpaidWarningsTotal, 0, ',', '.') }}</span>
+                    @endif
+                </div>
+                @if($privateUnpaidWarnings->isEmpty())
+                    <p class="text-body-sm text-on-surface-variant">Tidak ada siswa private class yang menunggak.</p>
+                @else
+                    <p class="text-body-sm text-on-surface-variant flex-shrink-0">Siswa private class yang sudah diabsen tapi pembayarannya belum menutupi revenue yang diakui.</p>
+                    <div class="overflow-y-auto flex-1">
+                        <div class="app-table-wrapper">
+                            <table class="table table-sm">
+                                <thead>
+                                    <tr class="border-b border-surface-border text-on-surface-variant">
+                                        <th>Student</th>
+                                        <th>Program</th>
+                                        <th class="text-right">Piutang</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach($privateUnpaidWarnings as $row)
+                                        <tr class="border-b border-surface-border">
+                                            <td class="text-on-surface">{{ $row['student_name'] }}</td>
+                                            <td class="text-on-surface-variant text-body-sm">{{ $row['program_name'] }}</td>
+                                            <td class="text-right text-on-surface">Rp {{ number_format($row['outstanding'], 0, ',', '.') }}</td>
+                                        </tr>
+                                    @endforeach
+                                </tbody>
+                            </table>
+                        </div>
                     </div>
                 @endif
             </div>

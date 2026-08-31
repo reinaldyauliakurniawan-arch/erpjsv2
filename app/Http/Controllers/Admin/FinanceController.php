@@ -180,10 +180,58 @@ class FinanceController extends Controller
         $chartProgramRevenueLabels = $revenueByProgram->pluck('name')->toArray();
         $chartProgramRevenueData   = $revenueByProgram->pluck('total')->map(fn($v) => (float)$v)->toArray();
 
+        // GAP #14 poin 4: warning pasif untuk private class yang punya
+        // Piutang outstanding (siswa belum/kurang bayar padahal sudah
+        // diabsen). Dihitung on-the-fly, tidak disimpan sebagai flag
+        // terpisah. Group/semi-private class sengaja tidak masuk warning
+        // ini (dianggap wajar bayar belakangan, sudah dikonfirmasi user).
+        // Discope dulu ke enrollment aktif di kelas private yang sudah
+        // punya minimal 1 baris attendance_student, supaya tidak looping
+        // semua enrollment di sistem.
+        $privateReceivableCandidates = Enrollment::with(['student.user', 'program', 'classSession'])
+            ->where('status', 'active')
+            ->whereHas('classSession', fn ($q) => $q->where('class_type', 'private'))
+            ->whereHas('program', fn ($q) => $q->where('total_meetings', '>', 0))
+            ->whereExists(function ($query) {
+                $query->select(DB::raw(1))
+                    ->from('attendance_student')
+                    ->whereColumn('attendance_student.enrollment_id', 'enrollments.id');
+            })
+            ->get();
+
+        $revenueRecognitionService = app(\App\Services\RevenueRecognitionService::class);
+        $privateUnpaidWarnings = $privateReceivableCandidates
+            ->map(function ($enrollment) use ($revenueRecognitionService) {
+                $outstanding = $revenueRecognitionService->outstandingReceivable($enrollment);
+
+                return [
+                    'enrollment_id'   => $enrollment->id,
+                    'student_name'    => $enrollment->student->user->name,
+                    'program_name'    => $enrollment->program->name,
+                    'session_name'    => $enrollment->classSession->name,
+                    'outstanding'     => (float) $outstanding,
+                ];
+            })
+            ->filter(fn ($row) => $row['outstanding'] > 0)
+            ->sortByDesc('outstanding')
+            ->values();
+
+        $privateUnpaidWarningsTotal = $privateUnpaidWarnings->sum('outstanding');
+
+        // Saldo Piutang Customer (akun 1003) secara keseluruhan, untuk
+        // visibility CFO (sebelumnya cuma deferredRevenue & tutorPayable
+        // yang ditampilkan).
+        $accountsReceivable = DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->where('accounts.code', AccountCode::ACCOUNTS_RECEIVABLE->value)
+            ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as balance')
+            ->value('balance') ?? 0;
+
         return view('admin.finance.dashboard', compact(
             'revenue', 'expense', 'netProfit',
             'cashBalance', 'collectionRate', 'burnRate', 'runwayMonths',
-            'deferredRevenue', 'tutorPayable',
+            'deferredRevenue', 'tutorPayable', 'accountsReceivable',
+            'privateUnpaidWarnings', 'privateUnpaidWarningsTotal',
             'journals', 'month',
             'overdueInstallments', 'overdueTotalAmount',
             'pendingRates',
