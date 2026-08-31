@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\RoomBooking;
+use App\Models\Schedule;
 use Illuminate\Http\Request;
 
 class RoomBookingController extends Controller
@@ -28,7 +29,7 @@ class RoomBookingController extends Controller
         }
         // Cegah duplikat
         $exists = RoomBooking::where('classroom_id', $request->classroom_id)
-            ->where('date', $request->date)
+            ->whereDate('date', $request->date)
             ->where('time_block', $request->time_block)
             ->where('type', $request->type)
             ->exists();
@@ -36,7 +37,7 @@ class RoomBookingController extends Controller
         // Boleh temporary booking di slot yang sudah di-skip
         if ($request->type === 'temporary') {
             $exists = RoomBooking::where('classroom_id', $request->classroom_id)
-                ->where('date', $request->date)
+                ->whereDate('date', $request->date)
                 ->where('time_block', $request->time_block)
                 ->where('type', 'temporary')
                 ->exists();
@@ -44,6 +45,28 @@ class RoomBookingController extends Controller
 
         if ($exists) {
             return back()->withErrors(['error' => 'Booking ini sudah ada.']);
+        }
+
+        // Kalau mau booking temporary, pastikan tidak bentrok dengan kelas reguler aktif yang belum di-skip
+        if ($request->type === 'temporary') {
+            $dayName = \Carbon\Carbon::parse($request->date)->format('l'); // 'Monday', dst
+            $hasActiveRegularSchedule = Schedule::where('classroom_id', $request->classroom_id)
+                ->where('day', $dayName)
+                ->where('time_block', $request->time_block)
+                ->whereHas('classSession', fn($q) => $q->where('status', 'active'))
+                ->exists();
+
+            if ($hasActiveRegularSchedule) {
+                $isSkipped = RoomBooking::where('classroom_id', $request->classroom_id)
+                    ->whereDate('date', $request->date)
+                    ->where('time_block', $request->time_block)
+                    ->where('type', 'regular_skip')
+                    ->exists();
+
+                if (!$isSkipped) {
+                    return back()->withErrors(['error' => 'Slot ini sedang dipakai kelas reguler. Skip jadwal reguler terlebih dahulu sebelum booking.']);
+                }
+            }
         }
 
         try {
