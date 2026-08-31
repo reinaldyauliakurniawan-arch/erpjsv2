@@ -29,13 +29,33 @@ class RoomBookingController extends Controller
 
         // Cek slot tidak conflict
         $conflict = RoomBooking::where('classroom_id', $request->classroom_id)
-            ->where('date', $request->date)
+            ->whereDate('date', $request->date)
             ->where('time_block', $request->time_block)
             ->whereIn('type', ['temporary'])
             ->exists();
 
         if ($conflict) {
             return back()->with('error', 'Slot ini sudah dibooking.');
+        }
+
+        // Cek apakah ada jadwal kelas reguler aktif di slot ini tanpa regular_skip
+        $dayName = \Carbon\Carbon::parse($request->date)->format('l'); // 'Monday', 'Tuesday', dst — sesuai App\Enums\DayOfWeek
+        $hasActiveRegularSchedule = \App\Models\Schedule::where('classroom_id', $request->classroom_id)
+            ->where('day', $dayName)
+            ->where('time_block', $request->time_block)
+            ->whereHas('classSession', fn($q) => $q->where('status', 'active'))
+            ->exists();
+
+        if ($hasActiveRegularSchedule) {
+            $isSkipped = RoomBooking::where('classroom_id', $request->classroom_id)
+                ->whereDate('date', $request->date)
+                ->where('time_block', $request->time_block)
+                ->where('type', 'regular_skip')
+                ->exists();
+
+            if (!$isSkipped) {
+                return back()->with('error', 'Slot ini sedang dipakai kelas reguler. Skip jadwal reguler terlebih dahulu sebelum booking.');
+            }
         }
 
         // Kalau ada regular_skip, slot ini memang available — boleh book

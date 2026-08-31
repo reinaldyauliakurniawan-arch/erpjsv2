@@ -173,6 +173,25 @@ class TutorController extends Controller
                     ->with('error', 'Tutor tidak bisa dihapus karena masih ada hutang fee yang belum dibayar. Selesaikan payroll terlebih dahulu.');
             }
 
+            $hasPendingRateAttendance = DB::table('attendance_tutor')
+                ->where('tutor_id', $tutor->id)
+                ->where('pending_rate', true)
+                ->exists();
+
+            if ($hasPendingRateAttendance) {
+                return redirect()->route('admin.tutors.index')
+                    ->with('error', 'Tutor tidak bisa dihapus karena masih ada presensi yang rate-nya belum di-assign oleh CFO.');
+            }
+
+            $hasAnyAttendanceRecord = DB::table('attendance_tutor')
+                ->where('tutor_id', $tutor->id)
+                ->exists();
+
+            if ($hasAnyAttendanceRecord) {
+                return redirect()->route('admin.tutors.index')
+                    ->with('error', 'Tutor tidak bisa dihapus karena masih memiliki riwayat presensi (sudah dibayar). Riwayat presensi harus tetap ada untuk keperluan audit.');
+            }
+
             $user  = $tutor->user;
             $tutor->enrollments()->detach();
             $tutor->classSessions()->detach();

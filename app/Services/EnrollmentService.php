@@ -134,7 +134,8 @@ class EnrollmentService
 
         $newCount         = $currentCount + 1;
         $quotaMet = $newCount >= $program->min_quota;
-$hasTutor = $classSession->tutors()->wherePivot('status', 'confirmed')->exists();
+$hasTutor = $classSession->tutors()->wherePivot('status', 'confirmed')->exists()
+    || (isset($data['tutor_ids']) && !empty($data['tutor_ids']));
 $enrollmentStatus = ($quotaMet && $hasTutor) ? 'active' : 'waitlist';
 
         // Re-check kapasitas ruangan di dalam transaction setelah lock

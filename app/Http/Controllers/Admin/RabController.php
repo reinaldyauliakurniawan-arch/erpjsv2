@@ -34,7 +34,7 @@ class RabController extends Controller
             'rows.*.division'       => 'required|string|max:100',
             'rows.*.account_name'   => 'required|string|max:100',
             'rows.*.activity'       => 'nullable|string|max:255',
-            'rows.*.account_code'   => 'nullable|string|max:20',
+            'rows.*.account_code'   => 'required|string|max:20|exists:accounts,code',
             'rows.*.q1'             => 'required|integer|min:0',
             'rows.*.q2'             => 'required|integer|min:0',
             'rows.*.q3'             => 'required|integer|min:0',

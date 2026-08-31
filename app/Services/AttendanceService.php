@@ -230,6 +230,15 @@ class AttendanceService
     public function reverseAttendance(Attendance $attendance): void
     {
         DB::transaction(function () use ($attendance) {
+            // Lock the attendance_tutor rows first so a concurrent assignRate()
+            // (which also runs inside its own DB::transaction) can't slip in
+            // new journal_id/payable_amount data between our read and our
+            // reversal writes below.
+            DB::table('attendance_tutor')
+                ->where('attendance_id', $attendance->id)
+                ->lockForUpdate()
+                ->get();
+
             $attendance->load([
                 'students.program',
                 'students.student.user',

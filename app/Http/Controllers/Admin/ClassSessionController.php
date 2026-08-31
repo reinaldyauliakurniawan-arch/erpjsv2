@@ -399,9 +399,30 @@ class ClassSessionController extends Controller
 
         $request->validate(['status' => 'required|in:pending,confirmed']);
 
-        $classSession->tutors()->updateExistingPivot($tutorId, [
-            'status' => $request->status,
-        ]);
+        DB::transaction(function () use ($classSession, $tutorId, $request) {
+            $classSession->tutors()->updateExistingPivot($tutorId, [
+                'status' => $request->status,
+            ]);
+
+            if ($request->status === 'confirmed' && $classSession->program) {
+                $hasConfirmedTutor = $classSession->tutors()->wherePivot('status', 'confirmed')->exists();
+                $activeCount = Enrollment::where('class_session_id', $classSession->id)
+                    ->whereIn('status', ['active', 'waitlist'])
+                    ->lockForUpdate()
+                    ->count();
+                $quotaMet = $activeCount >= $classSession->program->min_quota;
+
+                if ($hasConfirmedTutor && $quotaMet) {
+                    Enrollment::where('class_session_id', $classSession->id)
+                        ->where('status', 'waitlist')
+                        ->update(['status' => 'active']);
+
+                    if ($classSession->status !== 'active') {
+                        $classSession->update(['status' => 'active']);
+                    }
+                }
+            }
+        });
 
         return back()->with('success', 'Tutor status updated successfully.');
     }
