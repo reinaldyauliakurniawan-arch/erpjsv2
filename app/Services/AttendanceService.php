@@ -16,10 +16,12 @@ use App\Models\TutorAvailability;
 class AttendanceService
 {
     protected $accountingService;
+    protected $revenueRecognitionService;
 
-    public function __construct(AccountingService $accountingService)
+    public function __construct(AccountingService $accountingService, RevenueRecognitionService $revenueRecognitionService)
     {
         $this->accountingService = $accountingService;
+        $this->revenueRecognitionService = $revenueRecognitionService;
     }
 
     public function markAttendance(array $data): Attendance
@@ -72,6 +74,17 @@ class AttendanceService
                     ];
                 }
 
+                // GAP #14 fix: snapshot jumlah meeting yang sudah recognized
+                // SEBELUM attach() di bawah ini menambah baris attendance_student
+                // untuk meeting yang sedang diproses. Kalau diambil setelah
+                // attach(), meetingsRecognizedSoFar() akan off-by-one (ikut
+                // menghitung meeting yang sedang diproses ini sendiri).
+                $meetingsRecognizedBeforeThis = [];
+                foreach (array_keys($studentAttachData) as $enrollmentId) {
+                    $meetingsRecognizedBeforeThis[$enrollmentId] = $this->revenueRecognitionService
+                        ->meetingsRecognizedSoFar($enrollments->get($enrollmentId));
+                }
+
                 // Batch attach semua siswa sekaligus
                 $attendance->students()->attach($studentAttachData);
 
@@ -107,22 +120,32 @@ class AttendanceService
                         }
                     }
 
-                    $paidAmount = $enrollment->payment_method === 'full upfront'
-                        ? (float) $enrollment->total_amount
-                        : (float) $enrollment->installments->whereNotNull('paid_at')->sum('amount');
-                    $revenueAmount = $enrollment->program->total_meetings > 0
-                        ? bcdiv((string) $paidAmount, (string) $enrollment->program->total_meetings, 2)
-                        : '0';
+                    // GAP #14 fix: revenue per meeting = total_amount kontrak /
+                    // total_meetings (FIXED), bukan paidAmount saat itu yang
+                    // fluktuatif mengikuti progress cicilan. Porsi yang belum
+                    // ada saldo Deferred Revenue-nya (siswa belum/kurang bayar
+                    // sampai meeting ini) dicatat sebagai Piutang, bukan
+                    // memaksa Deferred Revenue jadi minus.
+                    $split = $this->revenueRecognitionService->splitForNextMeeting(
+                        $enrollment,
+                        $meetingsRecognizedBeforeThis[$enrollment->id] ?? 0
+                    );
+
+                    $journalItems = [];
+                    if (bccomp($split['fromDeferredRevenue'], '0', 2) > 0) {
+                        $journalItems[] = ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => $split['fromDeferredRevenue'], 'credit' => 0];
+                    }
+                    if (bccomp($split['fromReceivable'], '0', 2) > 0) {
+                        $journalItems[] = ['account_code' => AccountCode::ACCOUNTS_RECEIVABLE->value, 'debit' => $split['fromReceivable'], 'credit' => 0];
+                    }
+                    $journalItems[] = ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $split['revenueThisMeeting']];
 
                     try {
                         $this->accountingService->createJournal(
                             $data['date'],
                             "Revenue Recognition: {$enrollment->student->user->name}, Session: {$attendance->id}",
                             "REV-REC-{$attendance->id}-{$enrollment->id}",
-                            [
-                                ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $revenueAmount, 'credit' => 0],
-                                ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $revenueAmount],
-                            ],
+                            $journalItems,
                             'revenue_recognition',
                             $classSession->program_id
                         );

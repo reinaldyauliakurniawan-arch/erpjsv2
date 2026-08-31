@@ -9,6 +9,7 @@ use App\Models\ClassSession;
 use App\Models\Classroom;
 use App\Services\EnrollmentService;
 use App\Services\AccountingService;
+use App\Services\RevenueRecognitionService;
 use App\Http\Requests\Admin\StoreEnrollmentRequest;
 use App\Enums\AccountCode;
 use App\Enums\PaymentStatus;
@@ -21,11 +22,13 @@ class EnrollmentController extends Controller
 {
     protected $enrollmentService;
     protected $accountingService;
+    protected $revenueRecognitionService;
 
-    public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService)
+    public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService, RevenueRecognitionService $revenueRecognitionService)
     {
         $this->enrollmentService = $enrollmentService;
         $this->accountingService = $accountingService;
+        $this->revenueRecognitionService = $revenueRecognitionService;
     }
 
     public function index()
@@ -276,7 +279,7 @@ public function availableTutors(Request $request)
         // the final `payment_status` (should be `full`).
         return DB::transaction(function () use ($enrollmentId, $installmentId) {
             // Lock the enrollment + the target installment + all sibling installments
-            $enrollment = Enrollment::lockForUpdate()->findOrFail($enrollmentId);
+            $enrollment = Enrollment::with('program')->lockForUpdate()->findOrFail($enrollmentId);
 
             $installment = Installment::where('id', $installmentId)
                 ->where('enrollment_id', $enrollmentId)
@@ -290,14 +293,31 @@ public function availableTutors(Request $request)
             // Lock all sibling installments so the unpaid-count below is consistent
             Installment::where('enrollment_id', $enrollmentId)->lockForUpdate()->get();
 
+            // GAP #14 fix: kalau ada meeting yang sudah diabsen & revenue-nya
+            // sudah diakui SEBELUM pembayaran ini masuk (siswa nunggak lalu
+            // bayar belakangan), uang yang masuk sekarang melunasi Piutang itu
+            // dulu. Sisanya (kalau ada, untuk meeting-meeting masa depan)
+            // masuk ke Deferred Revenue seperti biasa. Dihitung SEBELUM
+            // installment ini di-mark paid_at, supaya outstandingReceivable()
+            // belum menghitung pembayaran yang sedang diproses ini sendiri.
+            $split = $this->revenueRecognitionService->splitForNewPayment($enrollment, (string) $installment->amount);
+
+            $cashAccount = $installment->payment_channel === 'bank' ? AccountCode::BANK->value : AccountCode::CASH->value;
+            $journalItems = [
+                ['account_code' => $cashAccount, 'debit' => $installment->amount, 'credit' => 0],
+            ];
+            if (bccomp($split['toReceivable'], '0', 2) > 0) {
+                $journalItems[] = ['account_code' => AccountCode::ACCOUNTS_RECEIVABLE->value, 'debit' => 0, 'credit' => $split['toReceivable']];
+            }
+            if (bccomp($split['toDeferredRevenue'], '0', 2) > 0) {
+                $journalItems[] = ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => 0, 'credit' => $split['toDeferredRevenue']];
+            }
+
             $this->accountingService->createJournal(
                 now()->toDateString(),
                 "Installment Payment - Enrollment #{$enrollmentId}",
                 "INSTALLMENT-{$installmentId}",
-                [
-                    ['account_code' => $installment->payment_channel === 'bank' ? AccountCode::BANK->value : AccountCode::CASH->value, 'debit' => $installment->amount, 'credit' => 0],
-                    ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => 0, 'credit' => $installment->amount],
-                ]
+                $journalItems
             );
 
             $installment->update(['paid_at' => now()]);
@@ -332,15 +352,18 @@ public function availableTutors(Request $request)
                 return back()->withErrors(['error' => 'Enrollment tidak aktif.']);
             }
 
-            $paidAmount        = $enrollment->payment_method === 'full upfront'
-                ? (float) $enrollment->total_amount
-                : (float) $enrollment->installments()->whereNotNull('paid_at')->sum('amount');
-            $perMeetingPrice   = $enrollment->program->total_meetings > 0
-                ? bcdiv((string) $paidAmount, (string) $enrollment->program->total_meetings, 2)
-                : '0';
-            $remainingDeferred = bcmul((string) $enrollment->remaining_meetings, $perMeetingPrice, 2);
+            // GAP #14 fix: write off saldo Deferred Revenue yang BENAR-BENAR
+            // tersedia sekarang (totalPaid - totalRevenueRecognizedSoFar),
+            // bukan remaining_meetings * (paidAmount lama / total_meetings).
+            // Formula lama mengasumsikan semua sisa meeting akan dibayar
+            // lunas dengan rate paidAmount SAAT ITU — salah untuk kontrak
+            // installment yang paidAmount-nya berubah-ubah. Kalau ada
+            // Piutang outstanding (siswa nunggak, revenue sudah diakui
+            // duluan), itu TIDAK di-write-off di sini — itu tetap piutang
+            // yang harus ditagih terpisah, bukan bagian dari Deferred Revenue.
+            $remainingDeferred = $this->revenueRecognitionService->availableDeferredRevenue($enrollment);
 
-            if ($remainingDeferred > 0) {
+            if (bccomp($remainingDeferred, '0', 2) > 0) {
                 try {
                     $this->accountingService->createJournal(
                         now()->toDateString(),

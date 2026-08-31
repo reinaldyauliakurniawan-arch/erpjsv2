@@ -6,6 +6,7 @@ enum AccountCode: string
 {
     case CASH = '1001';
     case BANK = '1002';
+    case ACCOUNTS_RECEIVABLE = '1003';
     case DEFERRED_REVENUE = '2002';
     case TUTOR_PAYABLE = '2003';
     case REVENUE_TUITION_FEES = '4101';
