@@ -104,7 +104,7 @@ class ScheduleController extends Controller
 
         if ($hasActiveRegularSchedule) {
             $isSkipped = RoomBooking::where('classroom_id', $request->classroom_id)
-                ->where('date', $request->date)
+                ->whereDate('date', $request->date)
                 ->where('time_block', $request->time_block)
                 ->where('type', 'regular_skip')
                 ->exists();
