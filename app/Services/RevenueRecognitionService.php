@@ -1,147 +1,179 @@
 <?php
-namespace Database\Seeders;
-use Illuminate\Database\Seeder;
+
+namespace App\Services;
+
+use App\Models\Enrollment;
 use Illuminate\Support\Facades\DB;
-use App\Enums\AccountCode;
 
-class ChartOfAccountsSeeder extends Seeder
+/**
+ * GAP #14 fix.
+ *
+ * Sub-ledger untuk revenue recognition per-enrollment. Semua angka di sini
+ * DIHITUNG ULANG setiap kali dari data operasional (installments +
+ * attendance_student), bukan disimpan sebagai state terpisah. Ini sengaja:
+ * journal_items tidak punya kolom enrollment_id (hanya program_id, yang
+ * general per-program, bukan per-enrollment), dan kita menghindari 2
+ * pendekatan yang sama-sama buruk:
+ *   - parsing journals.reference (string) untuk cari enrollment_id -> rapuh,
+ *     silently salah kalau ada developer lain lupa ikuti format reference.
+ *   - migration kolom baru -> ditolak oleh user untuk fix ini.
+ * installments.enrollment_id dan attendance_student.enrollment_id sudah
+ * native (foreign key asli, bukan string), jadi keduanya cukup jadi source
+ * of truth untuk posisi piutang/deferred revenue tanpa risiko rapuh di atas.
+ *
+ * Definisi:
+ *   - revenuePerMeeting = total_amount kontrak / total_meetings (FIXED,
+ *     tidak lagi ikut paidAmount yang fluktuatif — ini core dari GAP #14).
+ *   - totalPaid = akumulasi uang yang benar-benar diterima dari siswa
+ *     (installment yang paid_at IS NOT NULL, atau total_amount penuh untuk
+ *     full-upfront).
+ *   - totalRevenueRecognized = jumlah meeting yang sudah diproses attendance
+ *     (baris di attendance_student) dikali revenuePerMeeting.
+ *   - Saldo Deferred Revenue tersedia = max(0, totalPaid - totalRevenueRecognized)
+ *     -> uang sudah masuk lebih besar dari revenue yang wajib diakui sejauh
+ *        ini (siswa bayar duluan, kasus normal).
+ *   - Saldo Piutang outstanding = max(0, totalRevenueRecognized - totalPaid)
+ *     -> revenue yang wajib diakui sejauh ini lebih besar dari uang yang
+ *        masuk (siswa nunggak, revenue tetap diakui di depan / accrual).
+ */
+class RevenueRecognitionService
 {
-    public function run(): void
+    // KONTRAK CONCURRENCY: semua method di service ini HARUS dipanggil
+    // setelah caller sudah lockForUpdate() row Enrollment yang bersangkutan,
+    // di dalam DB::transaction yang sama. Method di sini sendiri tidak
+    // lock apa-apa (query installments/attendance_student polos) — mereka
+    // mengandalkan lock di parent Enrollment row untuk menjamin request
+    // kedua untuk enrollment yang sama diblok sampai transaction pertama
+    // commit, sehingga data yang dibaca di sini selalu konsisten.
+
+    /**
+     * revenue per meeting = total_amount kontrak / total_meetings. FIXED,
+     * tidak berubah mengikuti progress pembayaran cicilan.
+     */
+    public function revenuePerMeeting(Enrollment $enrollment): string
     {
-        $accounts = [
-            [
-                'code' => AccountCode::CASH->value,
-                'name' => 'Cash',
-                'type' => 'Asset',
-                'cash_flow_category' => 'cash',
-            ],
-            [
-                'code' => AccountCode::BANK->value,
-                'name' => 'Bank',
-                'type' => 'Asset',
-                'cash_flow_category' => 'cash',
-            ],
-            [
-                'code' => AccountCode::ACCOUNTS_RECEIVABLE->value,
-                'name' => 'Piutang Customer',
-                'type' => 'Asset',
-                'cash_flow_category' => 'operating',
-            ],
-            [
-                'code' => AccountCode::DEFERRED_REVENUE->value,
-                'name' => 'Deferred Revenue',
-                'type' => 'Liability',
-                'cash_flow_category' => 'operating',
-            ],
-            [
-                'code' => AccountCode::TUTOR_PAYABLE->value,
-                'name' => 'Tutor Payable',
-                'type' => 'Liability',
-                'cash_flow_category' => 'operating',
-            ],
-            [
-                'code' => AccountCode::REVENUE_TUITION_FEES->value,
-                'name' => 'Revenue - Tuition Fees',
-                'type' => 'Revenue',
-                'cash_flow_category' => 'operating',
-            ],
-            [
-                'code' => AccountCode::REVENUE_ADMIN_FEE->value,
-                'name' => 'Revenue - Admin Fee',
-                'type' => 'Revenue',
-                'cash_flow_category' => 'operating',
-            ],
-            [
-                'code' => AccountCode::EXPENSE_TUTOR_FEE->value,
-                'name' => 'Expense - Tutor Fee',
-                'type' => 'Expense',
-                'cash_flow_category' => 'operating',
-            ],
-            [
-                'code' => AccountCode::EXPENSE_DISCOUNT_PROMO->value,
-                'name' => 'Expense - Discount/Promo',
-                'type' => 'Expense',
-                'cash_flow_category' => 'operating',
-            ],
-            [
-                'code' => AccountCode::EXPENSE_REFUND->value,
-                'name' => 'Expense - Refund',
-                'type' => 'Expense',
-                'cash_flow_category' => 'operating',
-            ],
-            [
-                'code' => '1006',
-                'name' => 'Akumulasi Penyusutan Aset Tetap',
-                'type' => 'Asset',
-                'cash_flow_category' => 'investing',
-            ],
-            [
-                'code' => '5108',
-                'name' => 'Beban Penyusutan',
-                'type' => 'Expense',
-                'cash_flow_category' => 'investing',
-            ],
-        ];
+        $totalMeetings = $enrollment->program->total_meetings;
 
-        // Update cash_flow_category untuk semua akun yang sudah ada di DB
-        $categoryMap = [
-            // Asset - Operating
-            '1001' => 'operating', '1002' => 'operating', '1003' => 'operating',
-            '1003a'=> 'operating', '1004' => 'operating', '1007' => 'operating',
-            '1008' => 'operating', '1009' => 'operating',
-            // Asset - Investing
-            '1005' => 'investing', '1101' => 'investing', '1102' => 'investing',
-            '1006' => 'investing',
-            // Liability - Operating
-            '2001' => 'operating', '2002' => 'operating', '2003' => 'operating',
-            '2004' => 'operating', '2005' => 'operating',
-            // Equity
-            '3001' => 'financing', '3002' => 'financing', '3003' => 'financing',
-            // Revenue - Operating
-            '4000b'=> 'operating', '4010' => 'operating', '4011' => 'operating',
-            '4020' => 'operating', '4021' => 'operating', '4030' => 'operating',
-            '4031' => 'operating', '4040' => 'operating', '4041' => 'operating',
-            '4050' => 'operating', '4051' => 'operating', '4060' => 'operating',
-            '4061' => 'operating', '4070' => 'operating', '4080' => 'operating',
-            '4081' => 'operating', '4090' => 'operating', '4101' => 'operating',
-            '4102' => 'operating', '4111' => 'operating', '4200' => 'operating',
-            '4201' => 'operating', '4202' => 'operating', '4203' => 'operating',
-            '4901' => 'operating', '4902' => 'operating', '4903' => 'operating',
-            '4911' => 'operating', '4912' => 'operating', '4913' => 'operating',
-            '4921' => 'operating', '4922' => 'operating', '4923' => 'operating',
-            '4931' => 'operating', '4932' => 'operating', '4933' => 'operating',
-            '4941' => 'operating', '4942' => 'operating', '4943' => 'operating',
-            '4944' => 'operating', '4951' => 'operating', '4952' => 'operating',
-            '4953' => 'operating', '4961' => 'operating', '4962' => 'operating',
-            '4963' => 'operating', '4971' => 'operating', '4972' => 'operating',
-            '4973' => 'operating', '4981' => 'operating', '4982' => 'operating',
-            '4983' => 'operating', '4990' => 'operating', '4991' => 'operating',
-            '4992' => 'operating', '4993' => 'operating', '4994' => 'operating',
-            // Expense - Operating
-            '5000b'=> 'operating', '5001' => 'operating', '5002' => 'operating',
-            '5003' => 'operating', '5004' => 'operating', '5005' => 'operating',
-            '5006' => 'operating', '5101' => 'operating', '5102' => 'operating',
-            '5103' => 'operating', '5104' => 'operating', '5105' => 'operating',
-            '5106' => 'operating', '5107' => 'operating', '5109' => 'operating',
-            '5201' => 'operating', '5202' => 'operating', '5203' => 'operating',
-            '5204' => 'operating', '5205' => 'operating', '5206' => 'operating',
-            '5207' => 'operating', '5301' => 'operating', '5302' => 'operating',
-            '5303' => 'operating', '5401' => 'operating', '5402' => 'operating',
-            '5403' => 'operating', '5501' => 'operating', '5502' => 'operating',
-            // Expense - Non-cash (investing related)
-            '5108' => 'investing', '5110' => 'investing',
-        ];
+        return $totalMeetings > 0
+            ? bcdiv((string) $enrollment->total_amount, (string) $totalMeetings, 2)
+            : '0';
+    }
 
-        foreach ($accounts as $account) {
-            DB::table('accounts')->updateOrInsert(
-                ['code' => $account['code']],
-                array_merge($account, ['created_at' => now(), 'updated_at' => now()])
-            );
+    /**
+     * Total uang yang benar-benar sudah diterima dari siswa untuk enrollment ini.
+     */
+    public function totalPaid(Enrollment $enrollment): string
+    {
+        if ($enrollment->payment_method === 'full upfront') {
+            return (string) $enrollment->total_amount;
         }
 
-        // Update cash_flow_category untuk semua akun di DB
-        foreach ($categoryMap as $code => $category) {
-            DB::table('accounts')->where('code', (string)$code)->update(['cash_flow_category' => $category]);
-        }
+        $sum = $enrollment->installments()->whereNotNull('paid_at')->sum('amount');
+
+        return (string) $sum;
+    }
+
+    /**
+     * Jumlah meeting yang sudah diproses (tercatat di attendance_student)
+     * untuk enrollment ini, TERLEPAS dari is_present (konsisten dengan
+     * feature yang sudah dikonfirmasi: siswa absen tetap diakui revenue).
+     */
+    public function meetingsRecognizedSoFar(Enrollment $enrollment): int
+    {
+        return DB::table('attendance_student')->where('enrollment_id', $enrollment->id)->count();
+    }
+
+    /**
+     * Total revenue yang WAJIB sudah diakui sejauh ini (berdasarkan jumlah
+     * meeting yang sudah diproses attendance, dikali revenue per meeting).
+     *
+     * @param int|null $meetingsOverride Kalau diisi, dipakai alih-alih query
+     *   ulang ke attendance_student. Wajib dipakai oleh caller yang sudah
+     *   attach() baris attendance_student untuk meeting yang SEDANG diproses
+     *   SEBELUM memanggil method ini — supaya tidak off-by-one (ikut
+     *   menghitung meeting yang sedang diproses).
+     */
+    public function totalRevenueRecognizedSoFar(Enrollment $enrollment, ?int $meetingsOverride = null): string
+    {
+        $meetings = $meetingsOverride ?? $this->meetingsRecognizedSoFar($enrollment);
+
+        return bcmul((string) $meetings, $this->revenuePerMeeting($enrollment), 2);
+    }
+
+    /**
+     * Saldo Deferred Revenue yang tersedia (uang masuk yang belum "dipakai"
+     * untuk cover revenue recognition). Tidak pernah negatif.
+     */
+    public function availableDeferredRevenue(Enrollment $enrollment, ?int $meetingsOverride = null): string
+    {
+        $diff = bcsub($this->totalPaid($enrollment), $this->totalRevenueRecognizedSoFar($enrollment, $meetingsOverride), 2);
+
+        return bccomp($diff, '0', 2) > 0 ? $diff : '0';
+    }
+
+    /**
+     * Saldo Piutang (Accounts Receivable) yang outstanding (revenue yang
+     * sudah wajib diakui tapi uangnya belum diterima). Tidak pernah negatif.
+     */
+    public function outstandingReceivable(Enrollment $enrollment, ?int $meetingsOverride = null): string
+    {
+        $diff = bcsub($this->totalRevenueRecognizedSoFar($enrollment, $meetingsOverride), $this->totalPaid($enrollment), 2);
+
+        return bccomp($diff, '0', 2) > 0 ? $diff : '0';
+    }
+
+    /**
+     * Split porsi revenue SATU meeting yang baru saja terjadi antara
+     * Deferred Revenue (sejauh saldo tersedia) dan Piutang (sisanya).
+     * Dipanggil SEBELUM baris attendance_student untuk meeting ini dibuat
+     * (jadi meetingsRecognizedSoFar() masih menghitung N-1 meeting
+     * sebelumnya, belum termasuk meeting yang sedang diproses).
+     *
+     * @param int|null $meetingsOverride Lihat totalRevenueRecognizedSoFar().
+     *   Isi dengan jumlah meeting SEBELUM meeting yang sedang diproses ini,
+     *   kalau caller sudah attach() baris attendance_student-nya duluan.
+     * @return array{fromDeferredRevenue: string, fromReceivable: string, revenueThisMeeting: string}
+     */
+    public function splitForNextMeeting(Enrollment $enrollment, ?int $meetingsOverride = null): array
+    {
+        $revenueThisMeeting = $this->revenuePerMeeting($enrollment);
+        $availableDR        = $this->availableDeferredRevenue($enrollment, $meetingsOverride);
+
+        $fromDR = bccomp($availableDR, $revenueThisMeeting, 2) >= 0
+            ? $revenueThisMeeting
+            : $availableDR;
+
+        $fromReceivable = bcsub($revenueThisMeeting, $fromDR, 2);
+
+        return [
+            'fromDeferredRevenue' => $fromDR,
+            'fromReceivable'      => $fromReceivable,
+            'revenueThisMeeting'  => $revenueThisMeeting,
+        ];
+    }
+
+    /**
+     * Split satu pembayaran yang baru masuk antara pelunasan Piutang
+     * outstanding (prioritas pertama) dan sisanya ke Deferred Revenue untuk
+     * meeting-meeting masa depan. Dipanggil SEBELUM installment/payment ini
+     * di-mark paid_at (jadi outstandingReceivable() & totalPaid() masih
+     * dihitung tanpa payment yang sedang diproses).
+     *
+     * @return array{toReceivable: string, toDeferredRevenue: string}
+     */
+    public function splitForNewPayment(Enrollment $enrollment, string $paymentAmount): array
+    {
+        $outstandingReceivable = $this->outstandingReceivable($enrollment);
+
+        $toReceivable = bccomp($outstandingReceivable, $paymentAmount, 2) >= 0
+            ? $paymentAmount
+            : $outstandingReceivable;
+
+        $toDeferredRevenue = bcsub($paymentAmount, $toReceivable, 2);
+
+        return [
+            'toReceivable'      => $toReceivable,
+            'toDeferredRevenue' => $toDeferredRevenue,
+        ];
     }
 }
