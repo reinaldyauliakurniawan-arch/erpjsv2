@@ -292,16 +292,29 @@ class ClassSessionController extends Controller
      */
     public function assignEnrollment(Request $request, $id)
     {
-        $classSession = ClassSession::findOrFail($id);
+        $classSession = ClassSession::with('schedules.classroom')->findOrFail($id);
 
         $this->authorize('update', $classSession);
 
         $request->validate(['enrollment_id' => 'required|exists:enrollments,id']);
 
-        Enrollment::where('id', $request->enrollment_id)
-            ->update(['class_session_id' => $id]);
+        return DB::transaction(function () use ($request, $id, $classSession) {
+            $currentCount = Enrollment::where('class_session_id', $id)
+                ->whereIn('status', ['active', 'waitlist'])
+                ->lockForUpdate()
+                ->count();
 
-        return back()->with('success', 'Student assigned to class session successfully.');
+            $classroom = $classSession->schedules->first()?->classroom;
+
+            if ($classroom && $currentCount >= $classroom->capacity) {
+                return back()->withErrors(['error' => "Kelas {$classSession->name} sudah penuh (kapasitas {$classroom->capacity} orang). Tidak bisa menambah siswa."]);
+            }
+
+            Enrollment::where('id', $request->enrollment_id)
+                ->update(['class_session_id' => $id]);
+
+            return back()->with('success', 'Student assigned to class session successfully.');
+        });
     }
 
     /**
