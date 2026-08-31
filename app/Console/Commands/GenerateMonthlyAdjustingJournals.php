@@ -39,7 +39,15 @@ class GenerateMonthlyAdjustingJournals extends Command
             ->get();
 
         foreach ($assets as $asset) {
-            if ($asset->status === 'fully_depreciated') continue;
+            // Fix: jangan pakai $asset->status (dihitung dari now()) untuk cek
+            // fully-depreciated, karena itu bikin backfill --period=<masa lalu>
+            // salah skip aset yang HARI INI sudah lewat useful_life padahal
+            // di $period yang diminta secara historis belum fully depreciated.
+            $monthsElapsedAtPeriod = min(
+                (int) $asset->acquired_at->diffInMonths($period),
+                $asset->useful_life
+            );
+            if ($monthsElapsedAtPeriod >= $asset->useful_life) continue;
 
             $exists = AdjustingJournal::where('source_id', $asset->id)
                 ->where('source_type', FixedAsset::class)
