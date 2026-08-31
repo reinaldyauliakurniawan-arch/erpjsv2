@@ -211,14 +211,18 @@ if ($quotaMet && $hasTutor) {
                 }
             }
 
+            $firstInstallment = null;
             if ($data['payment_method'] === 'installment') {
-                foreach ($data['installments'] as $inst) {
-                    Installment::create([
+                foreach ($data['installments'] as $index => $inst) {
+                    $createdInstallment = Installment::create([
                         'enrollment_id' => $enrollment->id,
                         'amount'        => $inst['amount'],
                         'due_date'      => $inst['due_date'],
                         'payment_channel' => $inst['payment_channel'] ?? $data['payment_channel'],
                     ]);
+                    if ($index === 0) {
+                        $firstInstallment = $createdInstallment;
+                    }
                 }
             }
 
@@ -259,6 +263,17 @@ if ($quotaMet && $hasTutor) {
                     'payment',
                     $program->id
                 );
+
+                // GAP #13 fix: cicilan pertama = DP yang dibayar saat enrollment
+                // (dikonfirmasi kebijakan bisnis), jadi harus langsung ditandai
+                // lunas di sini. Sebelumnya paid_at tidak pernah di-set meski
+                // jurnalnya sudah dibuat, jadi installment ini masih kelihatan
+                // "belum dibayar" dan admin bisa mark-paid lagi lewat
+                // markInstallmentPaid() -> jurnal kedua dibuat -> revenue &
+                // kas tercatat 2x untuk cicilan yang sama.
+                if ($data['payment_method'] === 'installment' && $firstInstallment) {
+                    $firstInstallment->update(['paid_at' => $data['enrollment_date']]);
+                }
             }
 
             return [$enrollment, $roomNotes];
