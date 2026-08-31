@@ -190,7 +190,7 @@ if ($quotaMet && $hasTutor) {
                 'total_amount'       => $data['total_amount'] ?? $program->price,
                 'payment_status'     => $data['payment_method'] === 'full upfront' ? PaymentStatus::FULL->value : PaymentStatus::PARTIAL->value,
                 'status'             => $enrollmentStatus,
-                'remaining_meetings' => ($data['remaining_meetings'] !== null && $data['remaining_meetings'] !== '') ? (int) $data['remaining_meetings'] : $program->total_meetings,
+                'remaining_meetings' => (($data['remaining_meetings'] ?? null) !== null && ($data['remaining_meetings'] ?? '') !== '') ? (int) $data['remaining_meetings'] : $program->total_meetings,
             ]);
 
             foreach ($data['schedules'] ?? [] as $s) {

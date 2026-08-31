@@ -97,6 +97,12 @@ final class Money implements JsonSerializable, Stringable
         } elseif ($hasComma) {
             // Only comma — treat as decimal separator
             $normalized = str_replace(',', '.', $normalized);
+        } elseif ($hasDot) {
+            // Only dot(s) — if more than one dot, they're thousand separators (Indonesian style)
+            if (substr_count($normalized, '.') > 1) {
+                $normalized = str_replace('.', '', $normalized);
+            }
+            // else: single dot, treat as-is (could be decimal, e.g. "500000.00")
         }
         // Strip any remaining non-numeric chars except dot and minus
         $normalized = preg_replace('/[^0-9.\-]/', '', $normalized);

@@ -1,9 +1,9 @@
 <?php
 
 namespace Database\Seeders\Traits;
-use IlluminateSupportFacadesDB;
-use CarbonCarbon;
-use IlluminateSupportFacadesHash;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\Hash;
 
 
 trait HasStudentSeeders

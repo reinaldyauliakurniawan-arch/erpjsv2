@@ -1,8 +1,8 @@
 <?php
 
 namespace Database\Seeders\Traits;
-use IlluminateSupportFacadesDB;
-use CarbonCarbon;
+use Illuminate\Support\Facades\DB;
+use Carbon\Carbon;
 
 
 trait HasSeederHelpers
@@ -192,6 +192,4 @@ trait HasSeederHelpers
             default     => 0,                               // waitlist = belum mulai
         };
     }
-}
-
 }
