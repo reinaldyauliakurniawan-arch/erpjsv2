@@ -2,12 +2,12 @@
 
 namespace App\Services;
 
+use App\Exceptions\AccountNotFoundException;
+use App\Exceptions\BalanceMismatchException;
+use App\Exceptions\IdempotencyException;
 use App\Models\Account;
 use App\Models\Journal;
 use App\Models\JournalItem;
-use App\Exceptions\BalanceMismatchException;
-use App\Exceptions\AccountNotFoundException;
-use App\Exceptions\IdempotencyException;
 use Illuminate\Support\Facades\DB;
 
 class AccountingService
@@ -15,16 +15,13 @@ class AccountingService
     /**
      * Create a journal entry.
      *
-     * @param string $date
-     * @param string $description
-     * @param string $reference
-     * @param array $items Array of ['account_code' => string, 'debit' => float, 'credit' => float]
-     * @return Journal
+     * @param  array  $items  Array of ['account_code' => string, 'debit' => float, 'credit' => float]
+     *
      * @throws BalanceMismatchException
      * @throws AccountNotFoundException
      * @throws IdempotencyException
      */
-    public function createJournal(string $date, string $description, string $reference, array $items, string $type = 'general', ?int $programId = null): Journal
+    public function createJournal(string $date, string $description, string $reference, array $items, string $type = 'general', ?int $programId = null, ?int $enrollmentId = null): Journal
     {
         // 1. Validate balance
         $totalDebit = collect($items)->sum('debit');
@@ -34,7 +31,7 @@ class AccountingService
             throw new BalanceMismatchException("Total debit ({$totalDebit}) does not equal total credit ({$totalCredit}).");
         }
 
-        return DB::transaction(function () use ($date, $description, $reference, $items, $totalDebit, $type, $programId) {
+        return DB::transaction(function () use ($date, $description, $reference, $items, $totalDebit, $type, $programId, $enrollmentId) {
             // 2. Idempotency check di dalam transaction untuk cegah race condition
             if (Journal::where('reference', $reference)->lockForUpdate()->exists()) {
                 throw new IdempotencyException("Journal with reference {$reference} already exists.");
@@ -46,12 +43,13 @@ class AccountingService
                 'reference' => $reference,
                 'total_amount' => $totalDebit,
                 'type' => $type,
+                'enrollment_id' => $enrollmentId,
             ]);
 
             foreach ($items as $item) {
                 $account = Account::where('code', $item['account_code'])->first();
 
-                if (!$account) {
+                if (! $account) {
                     throw new AccountNotFoundException("Account with code {$item['account_code']} not found.");
                 }
 

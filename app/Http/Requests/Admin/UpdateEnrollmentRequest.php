@@ -31,7 +31,9 @@ class UpdateEnrollmentRequest extends FormRequest
             'payment_method' => 'required|in:full upfront,installment',
             'payment_channel' => 'required|in:cash,bank',
             'total_amount' => 'required|numeric|min:0',
-            'payment_status' => 'required|in:pending,partial,full',
+            // payment_status diturunkan otomatis di controller (dari kas yg masuk),
+            // bukan dari input admin.
+            'payment_status' => 'nullable|in:pending,partial,full',
             'status' => 'required|in:active,waitlist,graduate,expired,cancelled,refunded',
             'remaining_meetings' => 'required|integer|min:0',
 

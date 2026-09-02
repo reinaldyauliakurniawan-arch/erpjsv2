@@ -21,6 +21,7 @@ use App\Models\RoomBooking;
 use App\Models\Student;
 use App\Models\Tutor;
 use App\Services\AccountingService;
+use App\Services\EnrollmentLedgerService;
 use App\Services\EnrollmentService;
 use App\Services\RevenueRecognitionService;
 use Illuminate\Http\Request;
@@ -34,11 +35,14 @@ class EnrollmentController extends Controller
 
     protected $revenueRecognitionService;
 
-    public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService, RevenueRecognitionService $revenueRecognitionService)
+    protected $ledgerService;
+
+    public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService, RevenueRecognitionService $revenueRecognitionService, EnrollmentLedgerService $ledgerService)
     {
         $this->enrollmentService = $enrollmentService;
         $this->accountingService = $accountingService;
         $this->revenueRecognitionService = $revenueRecognitionService;
+        $this->ledgerService = $ledgerService;
     }
 
     public function index()
@@ -161,89 +165,61 @@ class EnrollmentController extends Controller
     public function update(UpdateEnrollmentRequest $request, $id)
     {
         $data = $request->validated();
+        $syncJournal = null;
 
         try {
-            DB::transaction(function () use ($id, $data) {
+            DB::transaction(function () use ($id, $data, &$syncJournal) {
                 $enrollment = Enrollment::with('program')->lockForUpdate()->findOrFail($id);
                 Installment::where('enrollment_id', $id)->lockForUpdate()->get();
 
                 $recognized = DB::table('attendance_student')->where('enrollment_id', $id)->count();
 
-                // Guard dependency akuntansi: begitu ada pertemuan yang revenue-nya
-                // sudah diakui, mengubah tarif revenue-per-meeting (total_amount /
-                // program) atau atribusi siswa bikin buku tidak konsisten. Blokir
-                // di sini — koreksi lewat jurnal penyesuaian.
-                if ($recognized > 0) {
-                    $locked = [];
-                    if ((int) $data['program_id'] !== (int) $enrollment->program_id) {
-                        $locked[] = 'program';
-                    }
-                    if (bccomp((string) $data['total_amount'], (string) $enrollment->total_amount, 2) !== 0) {
-                        $locked[] = 'total biaya';
-                    }
-                    if ((int) $data['student_id'] !== (int) $enrollment->student_id) {
-                        $locked[] = 'siswa';
-                    }
-                    if ($locked) {
-                        throw new DomainException(
-                            "Enrollment ini sudah punya {$recognized} pertemuan yang revenue-nya diakui. "
-                            .'Tidak bisa mengubah: '.implode(', ', $locked).'. '
-                            .'Gunakan jurnal penyesuaian untuk koreksi nilai.'
-                        );
-                    }
+                // Ganti siswa = ganti atribusi. Kalau revenue sudah diakui atas
+                // nama siswa lama, ini bukan sesuatu yang bisa dibereskan jurnal
+                // penyesuaian — attendance & pengakuannya harus ikut pindah dulu.
+                if ($recognized > 0 && (int) $data['student_id'] !== (int) $enrollment->student_id) {
+                    throw new DomainException(
+                        "Enrollment ini sudah punya {$recognized} pertemuan yang revenue-nya diakui atas nama siswa saat ini. "
+                        .'Reassign siswa harus dilakukan sebelum ada attendance.'
+                    );
                 }
 
-                // --- Rekonsiliasi baris cicilan ---
+                // --- Rekonsiliasi baris cicilan (data operasional) ---
                 $submitted = collect($data['installments'] ?? []);
                 $submittedIds = $submitted->pluck('id')->filter()->map(fn ($v) => (int) $v)->all();
 
-                $toDelete = Installment::where('enrollment_id', $id)
+                Installment::where('enrollment_id', $id)
                     ->when($data['payment_method'] === 'installment', fn ($q) => $q->whereNotIn('id', $submittedIds))
-                    ->get();
-                foreach ($toDelete as $inst) {
-                    if (Journal::where('reference', 'INSTALLMENT-'.$inst->id)->exists()) {
-                        throw new DomainException(
-                            "Cicilan #{$inst->id} sudah punya jurnal pembayaran resmi dan tidak bisa dihapus dari sini. "
-                            .'Gunakan flow refund yang proper.'
-                        );
-                    }
-                    $inst->delete();
-                }
+                    ->get()
+                    ->each->delete();
 
                 if ($data['payment_method'] === 'installment') {
                     foreach ($submitted as $row) {
+                        $markPaid = ! empty($row['paid']);
                         $attrs = [
                             'amount' => $row['amount'],
                             'due_date' => $row['due_date'],
                             'payment_channel' => $row['payment_channel'] ?? $data['payment_channel'],
                         ];
-                        $markPaid = ! empty($row['paid']);
 
                         if (! empty($row['id'])) {
                             $inst = Installment::where('enrollment_id', $id)->find($row['id']);
                             if (! $inst) {
                                 continue;
                             }
-                            // Pertahankan timestamp paid_at asli kalau statusnya tidak berubah.
-                            if ($markPaid) {
-                                $attrs['paid_at'] = $inst->paid_at ?: ($row['due_date']);
-                            } else {
-                                if ($inst->paid_at && Journal::where('reference', 'INSTALLMENT-'.$inst->id)->exists()) {
-                                    throw new DomainException(
-                                        "Cicilan #{$inst->id} punya jurnal pembayaran resmi — tidak bisa ditandai belum lunas dari sini."
-                                    );
-                                }
-                                $attrs['paid_at'] = null;
-                            }
+                            // Pertahankan timestamp paid_at asli kalau tetap lunas.
+                            $attrs['paid_at'] = $markPaid ? ($inst->paid_at ?: $row['due_date']) : null;
                             $inst->update($attrs);
                         } else {
-                            $attrs['paid_at'] = $markPaid ? ($row['due_date']) : null;
+                            $attrs['paid_at'] = $markPaid ? $row['due_date'] : null;
                             Installment::create(['enrollment_id' => $id] + $attrs);
                         }
                     }
                 }
 
-                $enrollment->update([
+                // payment_status diturunkan dari data, bukan diisi bebas admin —
+                // supaya flag ini selalu sinkron dg kas yang benar-benar masuk.
+                $enrollment->fill([
                     'student_id' => $data['student_id'],
                     'program_id' => $data['program_id'],
                     'class_session_id' => $data['class_session_id'] ?? null,
@@ -252,16 +228,51 @@ class EnrollmentController extends Controller
                     'payment_method' => $data['payment_method'],
                     'payment_channel' => $data['payment_channel'],
                     'total_amount' => $data['total_amount'],
-                    'payment_status' => $data['payment_status'],
                     'status' => $data['status'],
                     'remaining_meetings' => $data['remaining_meetings'],
                 ]);
+                $enrollment->payment_status = $this->derivePaymentStatus($enrollment);
+                $enrollment->save();
+
+                // --- Sinkronisasi buku besar: posting jurnal penyesuaian selisih ---
+                $syncJournal = $this->ledgerService->reconcile(
+                    $enrollment->refresh()->load('program'),
+                    $data['enrollment_date'],
+                    'Edit enrollment oleh admin'
+                );
             });
         } catch (DomainException $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
 
-        return redirect()->route('admin.enrollments.show', $id)->with('success', 'Enrollment berhasil diperbarui.');
+        $msg = 'Enrollment berhasil diperbarui.';
+        if ($syncJournal) {
+            $msg .= " Jurnal penyesuaian {$syncJournal->reference} (Rp ".number_format($syncJournal->total_amount, 0, ',', '.').') diposting agar buku besar sinkron.';
+        }
+
+        return redirect()->route('admin.enrollments.show', $id)->with('success', $msg);
+    }
+
+    /**
+     * Turunkan payment_status dari kas yang benar-benar sudah masuk vs total
+     * biaya kontrak. Untuk full upfront, "kas masuk" = total_amount (semantik
+     * yg dipakai RevenueRecognitionService).
+     */
+    private function derivePaymentStatus(Enrollment $enrollment): string
+    {
+        $total = (string) ($enrollment->total_amount ?? '0');
+        $paid = $enrollment->payment_method === 'installment'
+            ? (string) $enrollment->installments()->whereNotNull('paid_at')->sum('amount')
+            : $total;
+
+        if (bccomp($paid, '0.01', 2) < 0) {
+            return PaymentStatus::PENDING->value;
+        }
+        if (bccomp($paid, bcsub($total, '0.01', 2), 2) >= 0) {
+            return PaymentStatus::FULL->value;
+        }
+
+        return PaymentStatus::PARTIAL->value;
     }
 
     public function searchStudents(Request $request)
@@ -472,7 +483,10 @@ class EnrollmentController extends Controller
                 now()->toDateString(),
                 "Installment Payment - Enrollment #{$enrollmentId}",
                 "INSTALLMENT-{$installmentId}",
-                $journalItems
+                $journalItems,
+                'payment',
+                $enrollment->program_id,
+                (int) $enrollmentId
             );
 
             $installment->update(['paid_at' => now()]);
@@ -529,7 +543,8 @@ class EnrollmentController extends Controller
                             ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $remainingDeferred],
                         ],
                         'revenue_recognition',
-                        $enrollment->program_id
+                        $enrollment->program_id,
+                        $enrollment->id
                     );
                 } catch (IdempotencyException $e) {
                     // Journal sudah ada — lanjut update status

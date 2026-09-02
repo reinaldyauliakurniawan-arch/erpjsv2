@@ -8,10 +8,16 @@ use Illuminate\Database\Eloquent\Model;
 class Journal extends Model
 {
     use HasFactory;
-    protected $fillable = ['date', 'description', 'reference', 'total_amount', 'approved_by'];
+
+    protected $fillable = ['date', 'description', 'reference', 'total_amount', 'approved_by', 'enrollment_id'];
 
     public function items()
     {
         return $this->hasMany(JournalItem::class);
+    }
+
+    public function enrollment()
+    {
+        return $this->belongsTo(Enrollment::class);
     }
 }

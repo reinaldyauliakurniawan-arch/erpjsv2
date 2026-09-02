@@ -4,9 +4,10 @@
     @php
         $sessionsByProgram = $classSessions->groupBy('program_id')
             ->map(fn ($g) => $g->map(fn ($s) => ['id' => $s->id, 'name' => $s->name])->values());
-        // class session milik program lain (kalau program diganti, daftar diisi ulang via endpoint tak ada —
-        // jadi kita kirim semua sesi yang program-nya = program saat ini saja; ganti program => "buat baru / kosong").
-        $locked = $recognizedMeetings > 0;
+        // Revenue sudah diakui (ada attendance)? Kalau ya, ganti SISWA dikunci
+        // (atribusi tak bisa dibereskan jurnal). Ubah program / total biaya tetap
+        // boleh — sistem otomatis posting jurнal penyesuaian selisih saat simpan.
+        $revenueRecognized = $recognizedMeetings > 0;
     @endphp
 
     <div class="p-lg space-y-lg" style="max-width: 60rem"
@@ -70,26 +71,19 @@
             </div>
         @endif
 
-        {{-- Dependency notices --}}
-        @if($locked)
-            <div role="alert" class="alert alert-warning alert-soft">
-                <span class="material-symbols-outlined">lock</span>
-                <span>
-                    Enrollment ini sudah punya <strong>{{ $recognizedMeetings }}</strong> pertemuan yang revenue-nya diakui.
-                    Field <strong>program</strong>, <strong>total biaya</strong>, dan <strong>siswa</strong> dikunci —
-                    koreksi nilai lewat jurnal penyesuaian.
-                </span>
-            </div>
-        @elseif($hasEnrollPaymentJournal)
-            <div role="alert" class="alert alert-info alert-soft">
-                <span class="material-symbols-outlined">info</span>
-                <span>
-                    Enrollment ini punya jurnal pembayaran (<code>PAYMENT-ENROLL-{{ $enrollment->id }}</code>).
-                    Mengubah total biaya / cicilan di sini <strong>tidak</strong> otomatis menyesuaikan jurnal kas —
-                    lakukan penyesuaian akuntansi terpisah bila perlu.
-                </span>
-            </div>
-        @endif
+        {{-- Dependency notice --}}
+        <div role="alert" class="alert alert-info alert-soft">
+            <span class="material-symbols-outlined">sync_alt</span>
+            <span>
+                Perubahan nilai keuangan (total biaya, metode, cicilan, program) otomatis
+                menyinkronkan buku besar — sistem memposting <strong>jurnal penyesuaian selisih</strong>
+                saat disimpan. <code>payment_status</code> juga dihitung ulang dari kas yang benar-benar masuk.
+                @if($revenueRecognized)
+                    <br>Enrollment ini sudah punya <strong>{{ $recognizedMeetings }}</strong> pertemuan
+                    yang revenue-nya diakui, jadi <strong>ganti siswa dikunci</strong> (atribusi tak bisa dijurnal-penyesuaian).
+                @endif
+            </span>
+        </div>
 
         <form method="POST" action="{{ route('admin.enrollments.update', $enrollment->id) }}" class="space-y-lg">
             @csrf
@@ -101,26 +95,25 @@
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-md">
                     <div class="fieldset">
                         <label class="fieldset-legend text-on-surface">Siswa</label>
-                        <select name="student_id" class="select w-full" @disabled($locked)>
+                        <select name="student_id" class="select w-full" @disabled($revenueRecognized)>
                             @foreach($students as $s)
                                 <option value="{{ $s->id }}" @selected(old('student_id', $enrollment->student_id) == $s->id)>
                                     {{ $s->user->name }} ({{ $s->user->email }})
                                 </option>
                             @endforeach
                         </select>
-                        @if($locked)<input type="hidden" name="student_id" value="{{ $enrollment->student_id }}">@endif
+                        @if($revenueRecognized)<input type="hidden" name="student_id" value="{{ $enrollment->student_id }}">@endif
                     </div>
 
                     <div class="fieldset">
                         <label class="fieldset-legend text-on-surface">Program</label>
-                        <select name="program_id" class="select w-full" x-model="programId" @disabled($locked)>
+                        <select name="program_id" class="select w-full" x-model="programId">
                             @foreach($programs as $p)
                                 <option value="{{ $p->id }}" @selected(old('program_id', $enrollment->program_id) == $p->id)>
                                     {{ $p->name }} — Rp {{ number_format($p->price, 0, ',', '.') }} ({{ $p->total_meetings }}x)
                                 </option>
                             @endforeach
                         </select>
-                        @if($locked)<input type="hidden" name="program_id" value="{{ $enrollment->program_id }}">@endif
                     </div>
 
                     <div class="fieldset">
@@ -200,16 +193,12 @@
                     <div class="fieldset">
                         <label class="fieldset-legend text-on-surface">Total Biaya (IDR)</label>
                         <input type="number" name="total_amount" min="0" step="1" class="input w-full"
-                            value="{{ old('total_amount', (int) $enrollment->total_amount) }}" @disabled($locked)>
-                        @if($locked)<input type="hidden" name="total_amount" value="{{ (int) $enrollment->total_amount }}">@endif
+                            value="{{ old('total_amount', (int) $enrollment->total_amount) }}">
                     </div>
                     <div class="fieldset">
                         <label class="fieldset-legend text-on-surface">Status Bayar</label>
-                        <select name="payment_status" class="select w-full">
-                            @foreach(['pending','partial','full'] as $ps)
-                                <option value="{{ $ps }}" @selected(old('payment_status', $enrollment->payment_status) === $ps)>{{ ucfirst($ps) }}</option>
-                            @endforeach
-                        </select>
+                        <input type="text" class="input w-full" value="{{ ucfirst($enrollment->payment_status) }}" disabled>
+                        <p class="label text-on-surface-variant">Otomatis dari kas yang masuk saat simpan.</p>
                     </div>
                 </div>
 

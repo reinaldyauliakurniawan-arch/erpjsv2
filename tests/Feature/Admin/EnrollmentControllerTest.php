@@ -8,7 +8,10 @@ use App\Models\Classroom;
 use App\Models\Enrollment;
 use App\Models\Installment;
 use App\Models\Program;
+use App\Models\Student;
 use App\Models\User;
+use App\Services\AccountingService;
+use App\Services\EnrollmentLedgerService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -26,10 +29,16 @@ class EnrollmentControllerTest extends TestCase
 
         $this->admin = User::factory()->create(['role' => 'admin']);
 
-        // Akun wajib
-        Account::factory()->create(['code' => '1101', 'name' => 'Cash/Bank']);
-        Account::factory()->create(['code' => '2201', 'name' => 'Deferred Revenue']);
-        Account::factory()->create(['code' => '4101', 'name' => 'Tuition Fees Revenue']);
+        // Akun wajib — kode harus cocok dengan App\Enums\AccountCode
+        foreach ([
+            '1001' => 'Kas di tangan',
+            '1002' => 'Kas di Bank',
+            '1003' => 'Piutang Customer',
+            '2002' => 'Pendapatan Diterima Dimuka',
+            '4101' => 'Pendapatan B2B (Class)',
+        ] as $code => $name) {
+            Account::factory()->create(['code' => $code, 'name' => $name]);
+        }
     }
 
     // =========================================================
@@ -79,6 +88,8 @@ class EnrollmentControllerTest extends TestCase
                 'enrollment_date' => '2025-01-10',
                 'expiry_date' => '2025-06-10',
                 'payment_method' => 'full upfront',
+                'payment_channel' => 'bank',
+                'total_amount' => 1_500_000,
                 'new_student' => [
                     'name' => 'Citra Dewi',
                     'email' => 'citra@example.com',
@@ -240,14 +251,20 @@ class EnrollmentControllerTest extends TestCase
         $enrollment = Enrollment::factory()->create([
             'program_id' => $program->id,
             'status' => 'active',
-            'remaining_meetings' => 4, // 4 * (800000/8) = 400_000
+            'payment_method' => 'full upfront', // totalPaid = total_amount
+            'remaining_meetings' => 4,
             'total_amount' => 800_000,
         ]);
 
         $this->actingAs($this->admin)
             ->post(route('admin.enrollments.expire', $enrollment->id));
 
-        $this->assertDatabaseHas('journals', ['total_amount' => 400_000]);
+        // 800rb dibayar, 0 pertemuan diakui -> seluruh Deferred Revenue (800rb)
+        // diakui sebagai pendapatan saat expire (kebijakan hangus).
+        $this->assertDatabaseHas('journals', [
+            'reference' => "MANUAL-EXPIRY-{$enrollment->id}",
+            'total_amount' => 800_000,
+        ]);
     }
 
     // =========================================================
@@ -440,33 +457,40 @@ class EnrollmentControllerTest extends TestCase
     }
 
     #[Test]
-    public function update_blocks_amount_change_once_revenue_recognized()
+    public function update_posts_adjusting_journal_when_rate_changes_after_revenue_recognized()
     {
-        $program = Program::factory()->create(['total_meetings' => 20]);
-        $enrollment = Enrollment::factory()->create([
-            'program_id' => $program->id,
-            'payment_method' => 'full upfront',
-            'total_amount' => 3_600_000,
-            'status' => 'active',
-        ]);
-        // Simulasikan 1 pertemuan yang revenue-nya sudah diakui.
-        $classroom = Classroom::factory()->create();
-        $attendanceId = DB::table('attendance')->insertGetId([
-            'date' => '2026-07-05',
-            'time_block' => '18:30-20:00',
-            'classroom_id' => $classroom->id,
-            'marked_by' => $this->admin->id,
-            'status' => 'finished',
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
-        DB::table('attendance_student')->insert([
-            'enrollment_id' => $enrollment->id,
-            'attendance_id' => $attendanceId,
-            'is_present' => true,
-            'created_at' => now(),
-            'updated_at' => now(),
-        ]);
+        // Full-upfront 3.6jt, 20 meeting (rate 180rb), 1 pertemuan sudah diakui.
+        [, $enrollment] = $this->enrollmentWithRecognizedMeeting(20, 3_600_000);
+        // Program dikoreksi ke 10 meeting -> rate jadi 360rb -> revenue yang
+        // wajib diakui utk 1 pertemuan naik 180rb -> butuh jurnal catch-up.
+        $newProgram = Program::factory()->create(['total_meetings' => 10]);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.enrollments.update', $enrollment), [
+                'student_id' => $enrollment->student_id,
+                'program_id' => $newProgram->id,
+                'enrollment_date' => '2026-07-01',
+                'expiry_date' => '2026-10-01',
+                'payment_method' => 'full upfront',
+                'payment_channel' => 'bank',
+                'total_amount' => 3_600_000,
+                'status' => 'active',
+                'remaining_meetings' => 9,
+            ])
+            ->assertRedirect(route('admin.enrollments.show', $enrollment->id))
+            ->assertSessionHas('success');
+
+        $this->assertEquals($newProgram->id, $enrollment->fresh()->program_id);
+        $this->assertDatabaseHas('journals', ['reference' => "ENR-SYNC-{$enrollment->id}-1", 'enrollment_id' => $enrollment->id]);
+        $ledger = app(EnrollmentLedgerService::class);
+        $this->assertTrue($ledger->isInSync($enrollment->fresh()->load('program')));
+    }
+
+    #[Test]
+    public function update_blocks_lowering_amount_below_cash_already_received()
+    {
+        // Kas 3.6jt sudah masuk; turunkan total ke 3jt = kelebihan bayar 600rb.
+        [, $enrollment] = $this->enrollmentWithRecognizedMeeting(20, 3_600_000);
 
         $this->actingAs($this->admin)
             ->put(route('admin.enrollments.update', $enrollment), [
@@ -476,13 +500,78 @@ class EnrollmentControllerTest extends TestCase
                 'expiry_date' => '2026-10-01',
                 'payment_method' => 'full upfront',
                 'payment_channel' => 'bank',
-                'total_amount' => 1_000_000,
-                'payment_status' => PaymentStatus::FULL->value,
+                'total_amount' => 3_000_000,
                 'status' => 'active',
                 'remaining_meetings' => 19,
             ])
             ->assertSessionHasErrors('error');
 
         $this->assertEquals('3600000.00', $enrollment->fresh()->total_amount);
+    }
+
+    #[Test]
+    public function update_blocks_student_reassignment_once_revenue_recognized()
+    {
+        [$program, $enrollment] = $this->enrollmentWithRecognizedMeeting(20, 3_600_000);
+        $other = Student::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.enrollments.update', $enrollment), [
+                'student_id' => $other->id,
+                'program_id' => $enrollment->program_id,
+                'enrollment_date' => '2026-07-01',
+                'expiry_date' => '2026-10-01',
+                'payment_method' => 'full upfront',
+                'payment_channel' => 'bank',
+                'total_amount' => 3_600_000,
+                'status' => 'active',
+                'remaining_meetings' => 19,
+            ])
+            ->assertSessionHasErrors('error');
+
+        $this->assertEquals($enrollment->student_id, $enrollment->fresh()->student_id);
+    }
+
+    /** @return array{0: Program, 1: Enrollment} */
+    private function enrollmentWithRecognizedMeeting(int $meetings, int $total): array
+    {
+        $program = Program::factory()->create(['total_meetings' => $meetings]);
+        $enrollment = Enrollment::factory()->create([
+            'program_id' => $program->id,
+            'payment_method' => 'full upfront',
+            'total_amount' => $total,
+            'payment_status' => PaymentStatus::FULL->value,
+            'status' => 'active',
+        ]);
+        // Kas masuk penuh (biar buku besar sinkron di titik awal).
+        app(AccountingService::class)->createJournal(
+            '2026-07-01', "Pembayaran migrasi enrollment #{$enrollment->id}", "PAYMENT-ENROLL-{$enrollment->id}",
+            [
+                ['account_code' => '1002', 'debit' => $total, 'credit' => 0],
+                ['account_code' => '2002', 'debit' => 0, 'credit' => $total],
+            ],
+            'payment', $program->id, $enrollment->id,
+        );
+        // 1 pertemuan yang revenue-nya sudah diakui + jurnalnya.
+        $classroom = Classroom::factory()->create();
+        $attendanceId = DB::table('attendance')->insertGetId([
+            'date' => '2026-07-05', 'time_block' => '18:30-20:00', 'classroom_id' => $classroom->id,
+            'marked_by' => $this->admin->id, 'status' => 'finished', 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        DB::table('attendance_student')->insert([
+            'enrollment_id' => $enrollment->id, 'attendance_id' => $attendanceId,
+            'is_present' => true, 'created_at' => now(), 'updated_at' => now(),
+        ]);
+        $perMeeting = (int) round($total / $meetings);
+        app(AccountingService::class)->createJournal(
+            '2026-07-05', "Revenue recognition enrollment #{$enrollment->id}", "REV-REC-{$attendanceId}-{$enrollment->id}",
+            [
+                ['account_code' => '2002', 'debit' => $perMeeting, 'credit' => 0],
+                ['account_code' => '4101', 'debit' => 0, 'credit' => $perMeeting],
+            ],
+            'revenue_recognition', $program->id, $enrollment->id,
+        );
+
+        return [$program, $enrollment];
     }
 }

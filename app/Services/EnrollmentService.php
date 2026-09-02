@@ -1,20 +1,24 @@
 <?php
+
 namespace App\Services;
 
-use App\Models\Enrollment;
-use App\Models\Student;
-use App\Models\Program;
-use App\Models\ClassSession;
-use App\Models\Schedule;
-use App\Models\Installment;
-use App\Models\Tutor;
-use App\Models\TutorAvailability;
-use App\Models\Classroom;
-use App\Exceptions\DomainException;
-use Illuminate\Support\Facades\DB;
-use App\Enums\PaymentStatus;
 use App\Enums\AccountCode;
 use App\Enums\ClassType;
+use App\Enums\PaymentStatus;
+use App\Exceptions\DomainException;
+use App\Models\Classroom;
+use App\Models\ClassSession;
+use App\Models\Enrollment;
+use App\Models\Installment;
+use App\Models\Program;
+use App\Models\Schedule;
+use App\Models\Student;
+use App\Models\Tutor;
+use App\Models\TutorAvailability;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 class EnrollmentService
 {
@@ -22,7 +26,7 @@ class EnrollmentService
 
     public function enroll(array $data): array
     {
-        $program   = Program::findOrFail($data['program_id']);
+        $program = Program::findOrFail($data['program_id']);
         $classType = ClassType::from($program->type);
 
         $roomNotes = [];
@@ -33,22 +37,27 @@ class EnrollmentService
                 $schedule['time_block'],
                 $classType->value
             );
-            if ($note) $roomNotes[] = $note;
+            if ($note) {
+                $roomNotes[] = $note;
+            }
         }
+
         return DB::transaction(function () use ($data, $program, $classType, $roomNotes) {
 
-            if (!empty($data['schedules']) && !empty($data['existing_student_id'])) {
+            if (! empty($data['schedules']) && ! empty($data['existing_student_id'])) {
                 foreach ($data['schedules'] as $schedule) {
-                    if (empty($schedule['day']) || empty($schedule['time_block'])) continue;
+                    if (empty($schedule['day']) || empty($schedule['time_block'])) {
+                        continue;
+                    }
 
                     $conflict = Schedule::whereHas('enrollment', function ($q) use ($data) {
                         $q->where('student_id', $data['existing_student_id'])
-                          ->whereIn('status', ['active', 'waitlist']);
+                            ->whereIn('status', ['active', 'waitlist']);
                     })
-                    ->where('day', $schedule['day'])
-                    ->where('time_block', $schedule['time_block'])
-                    ->lockForUpdate()
-                    ->exists();
+                        ->where('day', $schedule['day'])
+                        ->where('time_block', $schedule['time_block'])
+                        ->lockForUpdate()
+                        ->exists();
 
                     if ($conflict) {
                         throw new DomainException("Student sudah memiliki sesi di {$schedule['day']} {$schedule['time_block']}.");
@@ -57,9 +66,9 @@ class EnrollmentService
             }
 
             // Existing atau baru
-            if (!empty($data['existing_student_id'])) {
+            if (! empty($data['existing_student_id'])) {
                 $student = Student::findOrFail($data['existing_student_id']);
-                $user    = $student->user;
+                $user = $student->user;
             } else {
                 // Security fix: previously hardcoded 'password123' — anyone who
                 // knew this convention could log in as any student created via
@@ -69,42 +78,42 @@ class EnrollmentService
                 // For now, the random password is logged so admin can share it
                 // with the student. In production, dispatch a welcome email with
                 // a signed password-reset link instead.
-                $plainPassword = \Illuminate\Support\Str::random(24);
-                $user = \App\Models\User::create([
-                    'name'     => $data['new_student']['name'],
-                    'email'    => $data['new_student']['email'],
-                    'phone'    => $data['new_student']['phone'] ?? null,
+                $plainPassword = Str::random(24);
+                $user = User::create([
+                    'name' => $data['new_student']['name'],
+                    'email' => $data['new_student']['email'],
+                    'phone' => $data['new_student']['phone'] ?? null,
                     'password' => bcrypt($plainPassword),
                 ]);
                 $user->role = 'student';
                 $user->save();
                 $student = Student::create([
-                    'user_id'         => $user->id,
+                    'user_id' => $user->id,
                     'education_level' => $data['new_student']['education_level'] ?? null,
                 ]);
                 // Log the temporary password so the admin who enrolled the
                 // student can relay it. This is a stopgap — the real fix is
                 // sending a password-setup email link.
-                \Illuminate\Support\Facades\Log::info('Student account created with temporary password', [
+                Log::info('Student account created with temporary password', [
                     'student_id' => $student->id,
-                    'user_id'    => $user->id,
-                    'email'      => $user->email,
-                    'note'       => 'Temporary password generated. Admin should share securely or trigger password reset.',
+                    'user_id' => $user->id,
+                    'email' => $user->email,
+                    'note' => 'Temporary password generated. Admin should share securely or trigger password reset.',
                 ]);
             }
             $data['student_id'] = $student->id;
 
             if ($classType === ClassType::PRIVATE) {
-                if (!empty($data['class_session_id'])) {
+                if (! empty($data['class_session_id'])) {
                     $classSession = ClassSession::where('id', $data['class_session_id'])
                         ->where('program_id', $program->id)
                         ->where('class_type', ClassType::PRIVATE->value)
                         ->firstOrFail();
                 } else {
-                    $firstName      = explode(' ', trim($user->name))[0];
+                    $firstName = explode(' ', trim($user->name))[0];
                     $tutorFirstName = null;
-                    if (!empty($data['tutor_ids'])) {
-                        $tutor          = Tutor::with('user')->find($data['tutor_ids'][0]);
+                    if (! empty($data['tutor_ids'])) {
+                        $tutor = Tutor::with('user')->find($data['tutor_ids'][0]);
                         $tutorFirstName = $tutor ? explode(' ', trim($tutor->user->name))[0] : null;
                     }
 
@@ -113,84 +122,84 @@ class EnrollmentService
                         : "Private_{$firstName}";
 
                     $classSession = ClassSession::create([
-                        'name'       => $sessionName,
+                        'name' => $sessionName,
                         'program_id' => $program->id,
                         'class_type' => $classType->value,
-                        'status'     => 'active',
+                        'status' => 'active',
                     ]);
                 }
                 $enrollmentStatus = 'active';
             } else {
-    if (!empty($data['class_session_id'])) {
-        $classSession = ClassSession::with('program')
-            ->where('id', $data['class_session_id'])
-            ->where('program_id', $program->id)
-            ->firstOrFail();
+                if (! empty($data['class_session_id'])) {
+                    $classSession = ClassSession::with('program')
+                        ->where('id', $data['class_session_id'])
+                        ->where('program_id', $program->id)
+                        ->firstOrFail();
 
-        $currentCount = Enrollment::where('class_session_id', $classSession->id)
-            ->whereIn('status', ['active', 'waitlist'])
-            ->lockForUpdate()
-            ->count();
+                    $currentCount = Enrollment::where('class_session_id', $classSession->id)
+                        ->whereIn('status', ['active', 'waitlist'])
+                        ->lockForUpdate()
+                        ->count();
 
-        $newCount         = $currentCount + 1;
-        $quotaMet = $newCount >= $program->min_quota;
-$hasTutor = $classSession->tutors()->wherePivot('status', 'confirmed')->exists()
-    || (isset($data['tutor_ids']) && !empty($data['tutor_ids']));
-$enrollmentStatus = ($quotaMet && $hasTutor) ? 'active' : 'waitlist';
+                    $newCount = $currentCount + 1;
+                    $quotaMet = $newCount >= $program->min_quota;
+                    $hasTutor = $classSession->tutors()->wherePivot('status', 'confirmed')->exists()
+                        || (isset($data['tutor_ids']) && ! empty($data['tutor_ids']));
+                    $enrollmentStatus = ($quotaMet && $hasTutor) ? 'active' : 'waitlist';
 
-        // Re-check kapasitas ruangan di dalam transaction setelah lock
-        foreach ($data['schedules'] ?? [] as $s) {
-            $roomCount = \App\Models\Schedule::where('classroom_id', $s['classroom_id'])
-                ->where('day', $s['day'])
-                ->where('time_block', $s['time_block'])
-                ->lockForUpdate()
-                ->count();
-            $classroom = \App\Models\Classroom::find($s['classroom_id']);
-            if ($classroom && $roomCount >= $classroom->capacity) {
-                throw new DomainException("Ruangan {$classroom->name} penuh pada {$s['day']} {$s['time_block']}. Enrollment dibatalkan.");
+                    // Re-check kapasitas ruangan di dalam transaction setelah lock
+                    foreach ($data['schedules'] ?? [] as $s) {
+                        $roomCount = Schedule::where('classroom_id', $s['classroom_id'])
+                            ->where('day', $s['day'])
+                            ->where('time_block', $s['time_block'])
+                            ->lockForUpdate()
+                            ->count();
+                        $classroom = Classroom::find($s['classroom_id']);
+                        if ($classroom && $roomCount >= $classroom->capacity) {
+                            throw new DomainException("Ruangan {$classroom->name} penuh pada {$s['day']} {$s['time_block']}. Enrollment dibatalkan.");
+                        }
+                    }
+
+                    if ($quotaMet && $hasTutor) {
+                        Enrollment::where('class_session_id', $classSession->id)
+                            ->where('status', 'waitlist')
+                            ->whereNotIn('status', ['expired', 'graduate'])
+                            ->update(['status' => 'active']);
+
+                        if ($classSession->status !== 'active') {
+                            $classSession->update(['status' => 'active']);
+                        }
+                    }
+                } else {
+                    $firstSchedule = $data['schedules'][0] ?? null;
+                    if (! empty($firstSchedule['day']) && ! empty($firstSchedule['time_block'])) {
+                        // Admin tidak pilih class session — buat sesi baru otomatis
+                        // untuk group/semi-private, sama seperti perilaku kelas private.
+                        $classSession = ClassSession::create([
+                            'name' => "{$program->name}_{$firstSchedule['day']}_{$firstSchedule['time_block']}",
+                            'program_id' => $program->id,
+                            'class_type' => $classType->value,
+                            'status' => 'active',
+                        ]);
+                        $enrollmentStatus = 'waitlist';
+                    } else {
+                        $classSession = null;
+                        $enrollmentStatus = 'waitlist';
+                    }
+                }
             }
-        }
-
-if ($quotaMet && $hasTutor) {
-    Enrollment::where('class_session_id', $classSession->id)
-        ->where('status', 'waitlist')
-        ->whereNotIn('status', ['expired', 'graduate'])
-        ->update(['status' => 'active']);
-
-    if ($classSession->status !== 'active') {
-        $classSession->update(['status' => 'active']);
-    }
-}
-    } else {
-        $firstSchedule = $data['schedules'][0] ?? null;
-        if (!empty($firstSchedule['day']) && !empty($firstSchedule['time_block'])) {
-            // Admin tidak pilih class session — buat sesi baru otomatis
-            // untuk group/semi-private, sama seperti perilaku kelas private.
-            $classSession = ClassSession::create([
-                'name'       => "{$program->name}_{$firstSchedule['day']}_{$firstSchedule['time_block']}",
-                'program_id' => $program->id,
-                'class_type' => $classType->value,
-                'status'     => 'active',
-            ]);
-            $enrollmentStatus = 'waitlist';
-        } else {
-            $classSession     = null;
-            $enrollmentStatus = 'waitlist';
-        }
-    }
-}
 
             $enrollment = Enrollment::create([
-                'student_id'         => $data['student_id'],
-                'program_id'         => $data['program_id'],
-                'class_session_id'   => $classSession?->id,
-                'enrollment_date'    => $data['enrollment_date'],
-                'expiry_date'        => $data['expiry_date'],
-                'payment_method'     => $data['payment_method'],
-                'payment_channel'    => $data['payment_channel'],
-                'total_amount'       => $data['total_amount'] ?? $program->price,
-                'payment_status'     => $data['payment_method'] === 'full upfront' ? PaymentStatus::FULL->value : PaymentStatus::PARTIAL->value,
-                'status'             => $enrollmentStatus,
+                'student_id' => $data['student_id'],
+                'program_id' => $data['program_id'],
+                'class_session_id' => $classSession?->id,
+                'enrollment_date' => $data['enrollment_date'],
+                'expiry_date' => $data['expiry_date'],
+                'payment_method' => $data['payment_method'],
+                'payment_channel' => $data['payment_channel'],
+                'total_amount' => $data['total_amount'] ?? $program->price,
+                'payment_status' => $data['payment_method'] === 'full upfront' ? PaymentStatus::FULL->value : PaymentStatus::PARTIAL->value,
+                'status' => $enrollmentStatus,
                 'remaining_meetings' => (($data['remaining_meetings'] ?? null) !== null && ($data['remaining_meetings'] ?? '') !== '') ? (int) $data['remaining_meetings'] : $program->total_meetings,
             ]);
 
@@ -200,13 +209,13 @@ if ($quotaMet && $hasTutor) {
                     ->where('time_block', $s['time_block'])
                     ->exists() : false;
 
-                if (!$exists) {
+                if (! $exists) {
                     Schedule::create([
-                        'enrollment_id'    => $enrollment->id,
+                        'enrollment_id' => $enrollment->id,
                         'class_session_id' => $classSession?->id,
-                        'classroom_id'     => $s['classroom_id'],
-                        'day'              => $s['day'],
-                        'time_block'       => $s['time_block'],
+                        'classroom_id' => $s['classroom_id'],
+                        'day' => $s['day'],
+                        'time_block' => $s['time_block'],
                     ]);
                 }
             }
@@ -216,8 +225,8 @@ if ($quotaMet && $hasTutor) {
                 foreach ($data['installments'] as $index => $inst) {
                     $createdInstallment = Installment::create([
                         'enrollment_id' => $enrollment->id,
-                        'amount'        => $inst['amount'],
-                        'due_date'      => $inst['due_date'],
+                        'amount' => $inst['amount'],
+                        'due_date' => $inst['due_date'],
                         'payment_channel' => $inst['payment_channel'] ?? $data['payment_channel'],
                     ]);
                     if ($index === 0) {
@@ -226,23 +235,23 @@ if ($quotaMet && $hasTutor) {
                 }
             }
 
-           if (isset($data['tutor_ids'])) {
-    $enrollment->tutors()->attach($data['tutor_ids'], ['status' => 'pending']);
-    if ($classSession) {
-        $classSession->tutors()->syncWithoutDetaching(
-            collect($data['tutor_ids'])->mapWithKeys(fn($id) => [$id => ['status' => 'pending']])->all()
-        );
-    }
+            if (isset($data['tutor_ids'])) {
+                $enrollment->tutors()->attach($data['tutor_ids'], ['status' => 'pending']);
+                if ($classSession) {
+                    $classSession->tutors()->syncWithoutDetaching(
+                        collect($data['tutor_ids'])->mapWithKeys(fn ($id) => [$id => ['status' => 'pending']])->all()
+                    );
+                }
 
-    foreach ($data['tutor_ids'] as $tutorId) {
-        foreach ($data['schedules'] ?? [] as $s) {
-            TutorAvailability::where('tutor_id', $tutorId)
-                ->where('day', $s['day'])
-                ->where('time_block', $s['time_block'])
-                ->update(['status' => 'occupied']);
-        }
-    }
-}
+                foreach ($data['tutor_ids'] as $tutorId) {
+                    foreach ($data['schedules'] ?? [] as $s) {
+                        TutorAvailability::where('tutor_id', $tutorId)
+                            ->where('day', $s['day'])
+                            ->where('time_block', $s['time_block'])
+                            ->update(['status' => 'occupied']);
+                    }
+                }
+            }
 
             $paymentAmount = 0;
             if ($data['payment_method'] === 'full upfront') {
@@ -261,7 +270,8 @@ if ($quotaMet && $hasTutor) {
                         ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => 0,              'credit' => $paymentAmount],
                     ],
                     'payment',
-                    $program->id
+                    $program->id,
+                    $enrollment->id
                 );
 
                 // GAP #13 fix: cicilan pertama = DP yang dibayar saat enrollment
@@ -281,34 +291,34 @@ if ($quotaMet && $hasTutor) {
     }
 
     protected function validateRoomOccupancy($classroomId, $day, $timeBlock, string $incomingClassType): ?string
-{
-    $classroom = Classroom::findOrFail($classroomId);
+    {
+        $classroom = Classroom::findOrFail($classroomId);
 
-    $occupyingSchedule = Schedule::with('classSession.program')
-        ->where('classroom_id', $classroomId)
-        ->where('day', $day)
-        ->where('time_block', $timeBlock)
-        ->first();
+        $occupyingSchedule = Schedule::with('classSession.program')
+            ->where('classroom_id', $classroomId)
+            ->where('day', $day)
+            ->where('time_block', $timeBlock)
+            ->first();
 
-    if (!$occupyingSchedule) return null;
+        if (! $occupyingSchedule) {
+            return null;
+        }
 
-    $occupyingType = $occupyingSchedule->classSession?->program?->type;
+        $occupyingType = $occupyingSchedule->classSession?->program?->type;
 
-    if ($occupyingType === ClassType::PRIVATE->value) {
-        throw new DomainException("Ruangan {$classroom->name} sudah dipakai kelas private pada {$day} {$timeBlock}.");
+        if ($occupyingType === ClassType::PRIVATE->value) {
+            throw new DomainException("Ruangan {$classroom->name} sudah dipakai kelas private pada {$day} {$timeBlock}.");
+        }
+
+        $currentCount = Schedule::where('classroom_id', $classroomId)
+            ->where('day', $day)
+            ->where('time_block', $timeBlock)
+            ->count();
+
+        if ($currentCount >= $classroom->capacity) {
+            throw new DomainException("Ruangan {$classroom->name} sudah penuh pada {$day} {$timeBlock}.");
+        }
+
+        return "Ruangan {$classroom->name} pada {$day} {$timeBlock} sudah dipakai kelas lain namun masih tersedia.";
     }
-
-    $currentCount = Schedule::where('classroom_id', $classroomId)
-        ->where('day', $day)
-        ->where('time_block', $timeBlock)
-        ->count();
-
-    if ($currentCount >= $classroom->capacity) {
-        throw new DomainException("Ruangan {$classroom->name} sudah penuh pada {$day} {$timeBlock}.");
-    }
-
-    return "Ruangan {$classroom->name} pada {$day} {$timeBlock} sudah dipakai kelas lain namun masih tersedia.";
-}
-
-
 }
