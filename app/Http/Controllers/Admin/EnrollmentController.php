@@ -1,27 +1,37 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AccountCode;
+use App\Enums\ClassType;
+use App\Enums\PaymentStatus;
+use App\Exceptions\DomainException;
+use App\Exceptions\IdempotencyException;
 use App\Http\Controllers\Controller;
+use App\Http\Requests\Admin\StoreEnrollmentRequest;
+use App\Http\Requests\Admin\UpdateEnrollmentRequest;
+use App\Models\Attendance;
+use App\Models\Classroom;
+use App\Models\ClassSession;
 use App\Models\Enrollment;
 use App\Models\Installment;
+use App\Models\Journal;
 use App\Models\Program;
-use App\Models\ClassSession;
-use App\Models\Classroom;
-use App\Services\EnrollmentService;
+use App\Models\RoomBooking;
+use App\Models\Student;
+use App\Models\Tutor;
 use App\Services\AccountingService;
+use App\Services\EnrollmentService;
 use App\Services\RevenueRecognitionService;
-use App\Http\Requests\Admin\StoreEnrollmentRequest;
-use App\Enums\AccountCode;
-use App\Enums\PaymentStatus;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Exceptions\DomainException;
-use Illuminate\Auth\Access\AuthorizationException;
 
 class EnrollmentController extends Controller
 {
     protected $enrollmentService;
+
     protected $accountingService;
+
     protected $revenueRecognitionService;
 
     public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService, RevenueRecognitionService $revenueRecognitionService)
@@ -36,64 +46,67 @@ class EnrollmentController extends Controller
         $this->authorize('viewAny', Enrollment::class);
 
         $enrollments = Enrollment::with(['student.user', 'program', 'classSession'])->get();
+
         return view('admin.enrollments.index', compact('enrollments'));
     }
 
     public function data(Request $request)
-{
-    $this->authorize('viewAny', Enrollment::class);
+    {
+        $this->authorize('viewAny', Enrollment::class);
 
-    $query = Enrollment::with(['student.user', 'program', 'classSession']);
+        $query = Enrollment::with(['student.user', 'program', 'classSession']);
 
-    if ($request->filled('search')) {
-    $search = $request->search;
-    $query->where(function($q) use ($search) {
-        $q->whereHas('student.user', fn($q2) => $q2->where('name', 'like', "%{$search}%"))
-          ->orWhereHas('program', fn($q2) => $q2->where('name', 'like', "%{$search}%"));
-    });
-}
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->whereHas('student.user', fn ($q2) => $q2->where('name', 'like', "%{$search}%"))
+                    ->orWhereHas('program', fn ($q2) => $q2->where('name', 'like', "%{$search}%"));
+            });
+        }
 
-    if ($request->filled('status')) {
-        $query->where('status', $request->status);
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
+        }
+
+        if ($request->filled('payment_status')) {
+            $query->where('payment_status', $request->payment_status);
+        }
+
+        $page = max(1, (int) $request->input('page', 1));
+        $size = (int) $request->input('size', 20);
+        $total = $query->count();
+        $items = $query->latest()->skip(($page - 1) * $size)->take($size)->get();
+
+        return response()->json([
+            'last_page' => ceil($total / $size),
+            'data' => $items->map(fn ($e) => [
+                'id' => $e->id,
+                'student' => $e->student->user->name,
+                'program' => $e->program->name,
+                'class_session' => $e->classSession?->name ?? '-',
+                'payment_status' => $e->payment_status,
+                'status' => $e->status,
+                'remaining' => $e->remaining_meetings,
+                'show_url' => route('admin.enrollments.show', $e->id),
+                'edit_url' => route('admin.enrollments.edit', $e->id),
+                'delete_url' => route('admin.enrollments.destroy', $e->id),
+            ]),
+        ]);
     }
-
-    if ($request->filled('payment_status')) {
-        $query->where('payment_status', $request->payment_status);
-    }
-
-    $page  = max(1, (int) $request->input('page', 1));
-    $size  = (int) $request->input('size', 20);
-    $total = $query->count();
-    $items = $query->latest()->skip(($page - 1) * $size)->take($size)->get();
-
-    return response()->json([
-        'last_page' => ceil($total / $size),
-        'data'      => $items->map(fn($e) => [
-            'id'               => $e->id,
-            'student'          => $e->student->user->name,
-            'program'          => $e->program->name,
-            'class_session'    => $e->classSession?->name ?? '-',
-            'payment_status'   => $e->payment_status,
-            'status'           => $e->status,
-            'remaining'        => $e->remaining_meetings,
-            'show_url'         => route('admin.enrollments.show', $e->id),
-            'delete_url'       => route('admin.enrollments.destroy', $e->id),
-        ]),
-    ]);
-}
 
     public function create()
     {
         $this->authorize('create', Enrollment::class);
 
-        $programs      = Program::all();
-        $classrooms    = Classroom::all();
+        $programs = Program::all();
+        $classrooms = Classroom::all();
         $classSessions = ClassSession::with(['program', 'schedules.classroom'])
-            ->withCount(['enrollments as enrollments_count' => fn($q) => $q->whereIn('status', ['active', 'waitlist'])])
+            ->withCount(['enrollments as enrollments_count' => fn ($q) => $q->whereIn('status', ['active', 'waitlist'])])
             ->where('status', 'active')
             ->orderBy('name')
             ->get();
-        $students = \App\Models\Student::with('user')->orderBy('created_at', 'desc')->get();
+        $students = Student::with('user')->orderBy('created_at', 'desc')->get();
+
         return view('admin.enrollments.create', compact('programs', 'classrooms', 'classSessions', 'students'));
     }
 
@@ -104,168 +117,310 @@ class EnrollmentController extends Controller
         try {
             [$enrollment, $roomNotes] = $this->enrollmentService->enroll($request->validated());
             $successMsg = 'Student enrolled successfully.';
-            if (!empty($roomNotes)) {
-                $successMsg .= ' Catatan ruangan: ' . implode(' | ', $roomNotes);
+            if (! empty($roomNotes)) {
+                $successMsg .= ' Catatan ruangan: '.implode(' | ', $roomNotes);
             }
+
             return redirect()->route('admin.enrollments.index')->with('success', $successMsg);
         } catch (DomainException $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
     }
 
+    public function edit($id)
+    {
+        $enrollment = Enrollment::with(['student.user', 'program', 'classSession', 'installments', 'tutors.user'])
+            ->findOrFail($id);
+        $this->authorize('update', $enrollment);
+
+        $programs = Program::orderBy('name')->get();
+        $classSessions = ClassSession::where('program_id', $enrollment->program_id)->orderBy('name')->get();
+        $students = Student::with('user')
+            ->get()
+            ->sortBy(fn ($s) => $s->user?->name)
+            ->values();
+
+        // Dependency guard info untuk UI: kalau revenue sudah diakui via
+        // attendance (fase 4), sebagian field dikunci.
+        $recognizedMeetings = DB::table('attendance_student')->where('enrollment_id', $enrollment->id)->count();
+        // Cicilan yang sudah punya jurnal pembayaran resmi (INSTALLMENT-<id>)
+        // tidak boleh dihapus dari form ini.
+        $lockedInstallmentIds = Journal::where('reference', 'like', 'INSTALLMENT-%')
+            ->pluck('reference')
+            ->map(fn ($r) => (int) str_replace('INSTALLMENT-', '', $r))
+            ->intersect($enrollment->installments->pluck('id'))
+            ->values();
+        $hasEnrollPaymentJournal = Journal::where('reference', 'PAYMENT-ENROLL-'.$enrollment->id)->exists();
+
+        return view('admin.enrollments.edit', compact(
+            'enrollment', 'programs', 'classSessions', 'students',
+            'recognizedMeetings', 'lockedInstallmentIds', 'hasEnrollPaymentJournal'
+        ));
+    }
+
+    public function update(UpdateEnrollmentRequest $request, $id)
+    {
+        $data = $request->validated();
+
+        try {
+            DB::transaction(function () use ($id, $data) {
+                $enrollment = Enrollment::with('program')->lockForUpdate()->findOrFail($id);
+                Installment::where('enrollment_id', $id)->lockForUpdate()->get();
+
+                $recognized = DB::table('attendance_student')->where('enrollment_id', $id)->count();
+
+                // Guard dependency akuntansi: begitu ada pertemuan yang revenue-nya
+                // sudah diakui, mengubah tarif revenue-per-meeting (total_amount /
+                // program) atau atribusi siswa bikin buku tidak konsisten. Blokir
+                // di sini — koreksi lewat jurnal penyesuaian.
+                if ($recognized > 0) {
+                    $locked = [];
+                    if ((int) $data['program_id'] !== (int) $enrollment->program_id) {
+                        $locked[] = 'program';
+                    }
+                    if (bccomp((string) $data['total_amount'], (string) $enrollment->total_amount, 2) !== 0) {
+                        $locked[] = 'total biaya';
+                    }
+                    if ((int) $data['student_id'] !== (int) $enrollment->student_id) {
+                        $locked[] = 'siswa';
+                    }
+                    if ($locked) {
+                        throw new DomainException(
+                            "Enrollment ini sudah punya {$recognized} pertemuan yang revenue-nya diakui. "
+                            .'Tidak bisa mengubah: '.implode(', ', $locked).'. '
+                            .'Gunakan jurnal penyesuaian untuk koreksi nilai.'
+                        );
+                    }
+                }
+
+                // --- Rekonsiliasi baris cicilan ---
+                $submitted = collect($data['installments'] ?? []);
+                $submittedIds = $submitted->pluck('id')->filter()->map(fn ($v) => (int) $v)->all();
+
+                $toDelete = Installment::where('enrollment_id', $id)
+                    ->when($data['payment_method'] === 'installment', fn ($q) => $q->whereNotIn('id', $submittedIds))
+                    ->get();
+                foreach ($toDelete as $inst) {
+                    if (Journal::where('reference', 'INSTALLMENT-'.$inst->id)->exists()) {
+                        throw new DomainException(
+                            "Cicilan #{$inst->id} sudah punya jurnal pembayaran resmi dan tidak bisa dihapus dari sini. "
+                            .'Gunakan flow refund yang proper.'
+                        );
+                    }
+                    $inst->delete();
+                }
+
+                if ($data['payment_method'] === 'installment') {
+                    foreach ($submitted as $row) {
+                        $attrs = [
+                            'amount' => $row['amount'],
+                            'due_date' => $row['due_date'],
+                            'payment_channel' => $row['payment_channel'] ?? $data['payment_channel'],
+                        ];
+                        $markPaid = ! empty($row['paid']);
+
+                        if (! empty($row['id'])) {
+                            $inst = Installment::where('enrollment_id', $id)->find($row['id']);
+                            if (! $inst) {
+                                continue;
+                            }
+                            // Pertahankan timestamp paid_at asli kalau statusnya tidak berubah.
+                            if ($markPaid) {
+                                $attrs['paid_at'] = $inst->paid_at ?: ($row['due_date']);
+                            } else {
+                                if ($inst->paid_at && Journal::where('reference', 'INSTALLMENT-'.$inst->id)->exists()) {
+                                    throw new DomainException(
+                                        "Cicilan #{$inst->id} punya jurnal pembayaran resmi — tidak bisa ditandai belum lunas dari sini."
+                                    );
+                                }
+                                $attrs['paid_at'] = null;
+                            }
+                            $inst->update($attrs);
+                        } else {
+                            $attrs['paid_at'] = $markPaid ? ($row['due_date']) : null;
+                            Installment::create(['enrollment_id' => $id] + $attrs);
+                        }
+                    }
+                }
+
+                $enrollment->update([
+                    'student_id' => $data['student_id'],
+                    'program_id' => $data['program_id'],
+                    'class_session_id' => $data['class_session_id'] ?? null,
+                    'enrollment_date' => $data['enrollment_date'],
+                    'expiry_date' => $data['expiry_date'],
+                    'payment_method' => $data['payment_method'],
+                    'payment_channel' => $data['payment_channel'],
+                    'total_amount' => $data['total_amount'],
+                    'payment_status' => $data['payment_status'],
+                    'status' => $data['status'],
+                    'remaining_meetings' => $data['remaining_meetings'],
+                ]);
+            });
+        } catch (DomainException $e) {
+            return back()->withErrors(['error' => $e->getMessage()])->withInput();
+        }
+
+        return redirect()->route('admin.enrollments.show', $id)->with('success', 'Enrollment berhasil diperbarui.');
+    }
+
     public function searchStudents(Request $request)
-{
-    $this->authorize('viewAny', Enrollment::class);
+    {
+        $this->authorize('viewAny', Enrollment::class);
 
-    $q = $request->input('q', '');
+        $q = $request->input('q', '');
 
-    // N+1 fix: previously the enrollments query ran inside ->map() per
-    // student (1 query × 10 students = 10 extra queries). Now we eager-load
-    // the latest 3 enrollments + program in a single relation query.
-    $students = \App\Models\Student::with([
-        'user',
-        'enrollments' => fn($query) => $query->with('program')->latest()->take(3),
-    ])
-        ->whereHas('user', fn($query) => $query->where('name', 'like', "%{$q}%")
-            ->orWhere('email', 'like', "%{$q}%"))
-        ->limit(10)
-        ->get()
-        ->map(fn($s) => [
-            'id'    => $s->id,
-            'name'  => $s->user->name,
-            'email' => $s->user->email,
-            'phone' => $s->user->phone,
-            'enrollments' => $s->enrollments->map(fn($e) => [
-                'program' => $e->program->name,
-                'status'  => $e->status,
-            ]),
-        ]);
-
-    return response()->json($students);
-}
-
-public function eligibleSessions(Request $request)
-{
-    $this->authorize('viewAny', Enrollment::class);
-
-    $request->validate([
-        'program_id' => 'required|exists:programs,id',
-        'day'        => 'nullable|string',
-        'time_block' => 'nullable|string',
-        'q'          => 'nullable|string',
-    ]);
-
-    $programId = $request->program_id;
-    $day       = $request->day;
-    $timeBlock = $request->time_block;
-    $search    = $request->q;
-    $program   = \App\Models\Program::find($programId);
-    $isPrivate = $program && $program->type === \App\Enums\ClassType::PRIVATE->value;
-
-    // Selalu tampilkan semua class session milik program ini (jenis program
-    // otomatis konsisten lewat program_id). Hari & time block, kalau diisi,
-    // cuma jadi filter tambahan opsional — bukan syarat wajib — supaya admin
-    // bisa lihat & pilih sesi yang sudah ada tanpa harus isi hari/jam dulu.
-    $query = \App\Models\ClassSession::with(['schedules.classroom', 'tutors.user'])
-        ->withCount([
-            'enrollments as active_count' => fn($q) => $q->whereIn('status', ['active', 'waitlist']),
+        // N+1 fix: previously the enrollments query ran inside ->map() per
+        // student (1 query × 10 students = 10 extra queries). Now we eager-load
+        // the latest 3 enrollments + program in a single relation query.
+        $students = Student::with([
+            'user',
+            'enrollments' => fn ($query) => $query->with('program')->latest()->take(3),
         ])
-        ->where('program_id', $programId)
-        ->where('status', 'active');
+            ->whereHas('user', fn ($query) => $query->where('name', 'like', "%{$q}%")
+                ->orWhere('email', 'like', "%{$q}%"))
+            ->limit(10)
+            ->get()
+            ->map(fn ($s) => [
+                'id' => $s->id,
+                'name' => $s->user->name,
+                'email' => $s->user->email,
+                'phone' => $s->user->phone,
+                'enrollments' => $s->enrollments->map(fn ($e) => [
+                    'program' => $e->program->name,
+                    'status' => $e->status,
+                ]),
+            ]);
 
-    if (!$isPrivate && $day && $timeBlock) {
-        $query->whereHas('schedules', fn($q) => $q->where('day', $day)->where('time_block', $timeBlock));
+        return response()->json($students);
     }
 
-    if ($search) {
-        $query->where('name', 'like', '%' . $search . '%');
-    }
+    public function eligibleSessions(Request $request)
+    {
+        $this->authorize('viewAny', Enrollment::class);
 
-    $sessions = $query->limit(20)->get();
-
-    // Single query for all sessions' finished-meeting counts
-    $sessionIds   = $sessions->pluck('id')->all();
-    $finishedMap  = \App\Models\Attendance::whereIn('class_session_id', $sessionIds)
-        ->selectRaw('class_session_id, COUNT(DISTINCT date) as finished')
-        ->groupBy('class_session_id')
-        ->pluck('finished', 'class_session_id');
-
-    $result = $sessions->map(function ($session) use ($day, $timeBlock, $finishedMap, $isPrivate) {
-        $activeCount = $session->active_count;
-        $finished    = $finishedMap->get($session->id, 0);
-        $schedule    = $session->schedules->first();
-        $capacity    = $schedule?->classroom?->capacity ?? 999;
-
-        if (!$isPrivate && $activeCount >= $capacity) return null;
-        if (!$isPrivate && $finished > 8) return null;
-
-        return [
-            'id'                => $session->id,
-            'name'              => $session->name,
-            'day'               => $schedule?->day ?? $day,
-            'time_block'        => $schedule?->time_block ?? $timeBlock,
-            'classroom'         => $schedule?->classroom?->name,
-            'classroom_id'      => $schedule?->classroom_id,
-            'capacity'          => $schedule?->classroom?->capacity,
-            'enrolled_count'    => $activeCount,
-            'finished_meetings' => $finished,
-            'tutors'            => $session->tutors->map(fn($t) => [
-                'id'   => $t->id,
-                'name' => $t->user->name,
-            ]),
-        ];
-    })
-    ->filter()
-    ->values();
-
-    return response()->json($result);
-}
-
-public function availableTutors(Request $request)
-{
-    $this->authorize('viewAny', Enrollment::class);
-
-    $day       = $request->input('day');
-    $timeBlock = $request->input('time_block');
-
-    $tutors = \App\Models\Tutor::with('user')
-        ->when($day && $timeBlock, function ($q) use ($day, $timeBlock) {
-            // Exclude tutor yang sudah ada di sesi lain pada slot yang sama
-            $q->whereHas('availability', fn($q2) => $q2->where('day', $day)->where('time_block', $timeBlock))
-  ->whereDoesntHave('classSessions', function ($q2) use ($day, $timeBlock) {
-      $q2->whereHas('schedules', fn($q3) => $q3->where('day', $day)->where('time_block', $timeBlock));
-  });
-        })
-        ->get()
-        ->map(fn($t) => [
-            'id'   => $t->id,
-            'name' => $t->user->name,
+        $request->validate([
+            'program_id' => 'required|exists:programs,id',
+            'day' => 'nullable|string',
+            'time_block' => 'nullable|string',
+            'q' => 'nullable|string',
         ]);
 
-    return response()->json($tutors);
-}
+        $programId = $request->program_id;
+        $day = $request->day;
+        $timeBlock = $request->time_block;
+        $search = $request->q;
+        $program = Program::find($programId);
+        $isPrivate = $program && $program->type === ClassType::PRIVATE->value;
+
+        // Selalu tampilkan semua class session milik program ini (jenis program
+        // otomatis konsisten lewat program_id). Hari & time block, kalau diisi,
+        // cuma jadi filter tambahan opsional — bukan syarat wajib — supaya admin
+        // bisa lihat & pilih sesi yang sudah ada tanpa harus isi hari/jam dulu.
+        $query = ClassSession::with(['schedules.classroom', 'tutors.user'])
+            ->withCount([
+                'enrollments as active_count' => fn ($q) => $q->whereIn('status', ['active', 'waitlist']),
+            ])
+            ->where('program_id', $programId)
+            ->where('status', 'active');
+
+        if (! $isPrivate && $day && $timeBlock) {
+            $query->whereHas('schedules', fn ($q) => $q->where('day', $day)->where('time_block', $timeBlock));
+        }
+
+        if ($search) {
+            $query->where('name', 'like', '%'.$search.'%');
+        }
+
+        $sessions = $query->limit(20)->get();
+
+        // Single query for all sessions' finished-meeting counts
+        $sessionIds = $sessions->pluck('id')->all();
+        $finishedMap = Attendance::whereIn('class_session_id', $sessionIds)
+            ->selectRaw('class_session_id, COUNT(DISTINCT date) as finished')
+            ->groupBy('class_session_id')
+            ->pluck('finished', 'class_session_id');
+
+        $result = $sessions->map(function ($session) use ($day, $timeBlock, $finishedMap, $isPrivate) {
+            $activeCount = $session->active_count;
+            $finished = $finishedMap->get($session->id, 0);
+            $schedule = $session->schedules->first();
+            $capacity = $schedule?->classroom?->capacity ?? 999;
+
+            if (! $isPrivate && $activeCount >= $capacity) {
+                return null;
+            }
+            if (! $isPrivate && $finished > 8) {
+                return null;
+            }
+
+            return [
+                'id' => $session->id,
+                'name' => $session->name,
+                'day' => $schedule?->day ?? $day,
+                'time_block' => $schedule?->time_block ?? $timeBlock,
+                'classroom' => $schedule?->classroom?->name,
+                'classroom_id' => $schedule?->classroom_id,
+                'capacity' => $schedule?->classroom?->capacity,
+                'enrolled_count' => $activeCount,
+                'finished_meetings' => $finished,
+                'tutors' => $session->tutors->map(fn ($t) => [
+                    'id' => $t->id,
+                    'name' => $t->user->name,
+                ]),
+            ];
+        })
+            ->filter()
+            ->values();
+
+        return response()->json($result);
+    }
+
+    public function availableTutors(Request $request)
+    {
+        $this->authorize('viewAny', Enrollment::class);
+
+        $day = $request->input('day');
+        $timeBlock = $request->input('time_block');
+
+        $tutors = Tutor::with('user')
+            ->when($day && $timeBlock, function ($q) use ($day, $timeBlock) {
+                // Exclude tutor yang sudah ada di sesi lain pada slot yang sama
+                $q->whereHas('availability', fn ($q2) => $q2->where('day', $day)->where('time_block', $timeBlock))
+                    ->whereDoesntHave('classSessions', function ($q2) use ($day, $timeBlock) {
+                        $q2->whereHas('schedules', fn ($q3) => $q3->where('day', $day)->where('time_block', $timeBlock));
+                    });
+            })
+            ->get()
+            ->map(fn ($t) => [
+                'id' => $t->id,
+                'name' => $t->user->name,
+            ]);
+
+        return response()->json($tutors);
+    }
 
     public function show($id)
-{
-    $this->authorize('view', Enrollment::findOrFail($id));
+    {
+        $this->authorize('view', Enrollment::findOrFail($id));
 
-    $enrollment = Enrollment::with([
-        'student.user',
-        'program',
-        'classSession',
-        'installments',
-        'tutors.user',
-        'schedules.classroom',
-    ])->findOrFail($id);
+        $enrollment = Enrollment::with([
+            'student.user',
+            'program',
+            'classSession',
+            'installments',
+            'tutors.user',
+            'schedules.classroom',
+        ])->findOrFail($id);
 
-    $availableTutors = \App\Models\Tutor::with('user')
-        ->whereDoesntHave('enrollments', function ($q) use ($id) {
-            $q->where('enrollment_id', $id);
-        })
-        ->get();
+        $availableTutors = Tutor::with('user')
+            ->whereDoesntHave('enrollments', function ($q) use ($id) {
+                $q->where('enrollment_id', $id);
+            })
+            ->get();
 
-    return view('admin.enrollments.show', compact('enrollment', 'availableTutors'));
-}
+        return view('admin.enrollments.show', compact('enrollment', 'availableTutors'));
+    }
 
     public function markInstallmentPaid(Request $request, $enrollmentId, $installmentId)
     {
@@ -376,7 +531,7 @@ public function availableTutors(Request $request)
                         'revenue_recognition',
                         $enrollment->program_id
                     );
-                } catch (\App\Exceptions\IdempotencyException $e) {
+                } catch (IdempotencyException $e) {
                     // Journal sudah ada — lanjut update status
                 }
                 // Note: DomainException is intentionally NOT caught here.
@@ -389,12 +544,12 @@ public function availableTutors(Request $request)
             }
 
             $enrollment->update([
-                'status'           => 'expired',
+                'status' => 'expired',
                 'remaining_meetings' => 0,
-                'payment_status'   => PaymentStatus::FULL->value,
+                'payment_status' => PaymentStatus::FULL->value,
             ]);
 
-            \App\Models\RoomBooking::where('enrollment_id', $enrollment->id)
+            RoomBooking::where('enrollment_id', $enrollment->id)
                 ->where('date', '>', now()->toDateString())
                 ->delete();
 
@@ -433,53 +588,53 @@ public function availableTutors(Request $request)
     }
 
     public function assignTutor(Request $request, $id)
-{
-    $this->authorize('update', Enrollment::findOrFail($id));
+    {
+        $this->authorize('update', Enrollment::findOrFail($id));
 
-    $request->validate([
-        'tutor_id' => 'required|exists:tutors,id',
-    ]);
+        $request->validate([
+            'tutor_id' => 'required|exists:tutors,id',
+        ]);
 
-    $enrollment = Enrollment::findOrFail($id);
+        $enrollment = Enrollment::findOrFail($id);
 
-    if ($enrollment->tutors()->where('tutor_id', $request->tutor_id)->exists()) {
-        return back()->withErrors(['error' => 'Tutor sudah di-assign ke enrollment ini.']);
+        if ($enrollment->tutors()->where('tutor_id', $request->tutor_id)->exists()) {
+            return back()->withErrors(['error' => 'Tutor sudah di-assign ke enrollment ini.']);
+        }
+
+        $enrollment->tutors()->attach($request->tutor_id, ['status' => 'pending']);
+
+        return back()->with('success', 'Tutor assigned.');
     }
 
-    $enrollment->tutors()->attach($request->tutor_id, ['status' => 'pending']);
+    public function removeTutor(Request $request, $id)
+    {
+        $this->authorize('update', Enrollment::findOrFail($id));
 
-    return back()->with('success', 'Tutor assigned.');
-}
+        $request->validate([
+            'tutor_id' => 'required|exists:tutors,id',
+        ]);
 
-public function removeTutor(Request $request, $id)
-{
-    $this->authorize('update', Enrollment::findOrFail($id));
+        $enrollment = Enrollment::findOrFail($id);
+        $enrollment->tutors()->detach($request->tutor_id);
 
-    $request->validate([
-        'tutor_id' => 'required|exists:tutors,id',
-    ]);
+        return back()->with('success', 'Tutor removed.');
+    }
 
-    $enrollment = Enrollment::findOrFail($id);
-    $enrollment->tutors()->detach($request->tutor_id);
+    public function updateTutorStatus(Request $request, $id, $tutorId)
+    {
+        $this->authorize('update', Enrollment::findOrFail($id));
 
-    return back()->with('success', 'Tutor removed.');
-}
+        $request->validate([
+            'status' => 'required|in:pending,confirmed',
+        ]);
 
-public function updateTutorStatus(Request $request, $id, $tutorId)
-{
-    $this->authorize('update', Enrollment::findOrFail($id));
+        $enrollment = Enrollment::findOrFail($id);
+        $enrollment->tutors()->updateExistingPivot($tutorId, [
+            'status' => $request->status,
+        ]);
 
-    $request->validate([
-        'status' => 'required|in:pending,confirmed',
-    ]);
-
-    $enrollment = Enrollment::findOrFail($id);
-    $enrollment->tutors()->updateExistingPivot($tutorId, [
-        'status' => $request->status,
-    ]);
-
-    return back()->with('success', 'Tutor status updated.');
-}
+        return back()->with('success', 'Tutor status updated.');
+    }
 
     public function destroy($id)
     {
@@ -492,7 +647,7 @@ public function updateTutorStatus(Request $request, $id, $tutorId)
         return DB::transaction(function () use ($id) {
             $enrollment = Enrollment::lockForUpdate()->findOrFail($id);
 
-            $hasJournal = \App\Models\Journal::where('reference', 'PAYMENT-ENROLL-' . $enrollment->id)->exists();
+            $hasJournal = Journal::where('reference', 'PAYMENT-ENROLL-'.$enrollment->id)->exists();
             if ($hasJournal) {
                 return response()->json([
                     'success' => false,
@@ -501,6 +656,7 @@ public function updateTutorStatus(Request $request, $id, $tutorId)
             }
 
             $enrollment->delete();
+
             return response()->json(['success' => true]);
         });
     }

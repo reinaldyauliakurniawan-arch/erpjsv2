@@ -167,7 +167,8 @@
                     hozAlign: 'center',
                     formatter: function(cell) {
                         var row = cell.getRow().getData();
-        return '<a href="' + cell.getValue() + '" class="btn btn-ghost btn-sm"><span class="material-symbols-outlined text-[16px]">open_in_new</span></a>'
+        return '<a href="' + cell.getValue() + '" class="btn btn-ghost btn-sm" title="Detail"><span class="material-symbols-outlined text-[16px]">open_in_new</span></a>'
+             + '<a href="' + row.edit_url + '" class="btn btn-ghost btn-sm" title="Edit"><span class="material-symbols-outlined text-[16px]">edit</span></a>'
              + '<button aria-label="Hapus" type="button" onclick="deleteEnrollment(\'' + row.delete_url + '\')" class="btn btn-ghost btn-sm text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>';
                     },
                 },

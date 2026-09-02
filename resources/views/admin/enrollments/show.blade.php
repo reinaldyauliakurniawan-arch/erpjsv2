@@ -39,7 +39,13 @@
                     <span class="badge badge-soft badge-neutral">Graduate</span>
                 @elseif($enrollment->status === 'expired')
                     <span class="badge badge-soft badge-error">Expired</span>
+                @else
+                    <span class="badge badge-soft badge-neutral">{{ ucfirst($enrollment->status) }}</span>
                 @endif
+                <a href="{{ route('admin.enrollments.edit', $enrollment->id) }}" class="btn btn-ghost btn-sm gap-xs">
+                    <span class="material-symbols-outlined text-[16px]">edit</span>
+                    Edit
+                </a>
             </div>
         </div>
 

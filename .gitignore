@@ -153,3 +153,9 @@ tags
 # code generation, etc). These are dev tooling, NOT part of the app.
 /scripts/*.py
 /scripts/*.sh
+
+# ── Data migration workspace ─────────────────────────────────────────
+# Local one-time migration from the old spreadsheets: raw source files,
+# generated CSVs, and full DB backups (SQL dumps contain password hashes
+# and student PII). Never push any of this to the remote.
+/_migrasi/

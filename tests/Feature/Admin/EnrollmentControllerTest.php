@@ -5,13 +5,12 @@ namespace Tests\Feature\Admin;
 use App\Enums\PaymentStatus;
 use App\Models\Account;
 use App\Models\Classroom;
-use App\Models\ClassSession;
 use App\Models\Enrollment;
 use App\Models\Installment;
 use App\Models\Program;
-use App\Models\Student;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
 
@@ -71,17 +70,17 @@ class EnrollmentControllerTest extends TestCase
     #[Test]
     public function admin_can_store_enrollment_with_full_upfront_payment()
     {
-        $program   = Program::factory()->create(['type' => 'private', 'price' => 1_500_000, 'total_meetings' => 8, 'min_quota' => 1]);
+        $program = Program::factory()->create(['type' => 'private', 'price' => 1_500_000, 'total_meetings' => 8, 'min_quota' => 1]);
         $classroom = Classroom::factory()->create(['capacity' => 5]);
 
         $this->actingAs($this->admin)
             ->post(route('admin.enrollments.store'), [
-                'program_id'      => $program->id,
+                'program_id' => $program->id,
                 'enrollment_date' => '2025-01-10',
-                'expiry_date'     => '2025-06-10',
-                'payment_method'  => 'full upfront',
-                'new_student'     => [
-                    'name'  => 'Citra Dewi',
+                'expiry_date' => '2025-06-10',
+                'payment_method' => 'full upfront',
+                'new_student' => [
+                    'name' => 'Citra Dewi',
                     'email' => 'citra@example.com',
                 ],
                 'schedules' => [
@@ -133,16 +132,16 @@ class EnrollmentControllerTest extends TestCase
     #[Test]
     public function admin_can_mark_installment_as_paid()
     {
-        $enrollment  = Enrollment::factory()->create(['payment_status' => PaymentStatus::PENDING->value]);
+        $enrollment = Enrollment::factory()->create(['payment_status' => PaymentStatus::PENDING->value]);
         $installment = Installment::factory()->create([
             'enrollment_id' => $enrollment->id,
-            'amount'        => 750_000,
-            'paid_at'       => null,
+            'amount' => 750_000,
+            'paid_at' => null,
         ]);
 
         $this->actingAs($this->admin)
             ->post(route('admin.enrollments.installments.paid', [
-                'enrollmentId'  => $enrollment->id,
+                'enrollmentId' => $enrollment->id,
                 'installmentId' => $installment->id,
             ]))
             ->assertRedirect()
@@ -154,15 +153,15 @@ class EnrollmentControllerTest extends TestCase
     #[Test]
     public function marking_already_paid_installment_returns_error()
     {
-        $enrollment  = Enrollment::factory()->create();
+        $enrollment = Enrollment::factory()->create();
         $installment = Installment::factory()->create([
             'enrollment_id' => $enrollment->id,
-            'paid_at'       => now(),
+            'paid_at' => now(),
         ]);
 
         $this->actingAs($this->admin)
             ->post(route('admin.enrollments.installments.paid', [
-                'enrollmentId'  => $enrollment->id,
+                'enrollmentId' => $enrollment->id,
                 'installmentId' => $installment->id,
             ]))
             ->assertSessionHasErrors('error');
@@ -172,12 +171,12 @@ class EnrollmentControllerTest extends TestCase
     public function payment_status_becomes_full_when_all_installments_paid()
     {
         $enrollment = Enrollment::factory()->create(['payment_status' => PaymentStatus::PARTIAL->value]);
-        $inst1      = Installment::factory()->create(['enrollment_id' => $enrollment->id, 'paid_at' => now()]);
-        $inst2      = Installment::factory()->create(['enrollment_id' => $enrollment->id, 'paid_at' => null]);
+        $inst1 = Installment::factory()->create(['enrollment_id' => $enrollment->id, 'paid_at' => now()]);
+        $inst2 = Installment::factory()->create(['enrollment_id' => $enrollment->id, 'paid_at' => null]);
 
         $this->actingAs($this->admin)
             ->post(route('admin.enrollments.installments.paid', [
-                'enrollmentId'  => $enrollment->id,
+                'enrollmentId' => $enrollment->id,
                 'installmentId' => $inst2->id,
             ]));
 
@@ -193,7 +192,7 @@ class EnrollmentControllerTest extends TestCase
 
         $this->actingAs($this->admin)
             ->post(route('admin.enrollments.installments.paid', [
-                'enrollmentId'  => $enrollment->id,
+                'enrollmentId' => $enrollment->id,
                 'installmentId' => $paying->id,
             ]));
 
@@ -207,12 +206,12 @@ class EnrollmentControllerTest extends TestCase
     #[Test]
     public function admin_can_expire_active_enrollment()
     {
-        $program    = Program::factory()->create(['total_meetings' => 8, 'price' => 800_000]);
+        $program = Program::factory()->create(['total_meetings' => 8, 'price' => 800_000]);
         $enrollment = Enrollment::factory()->create([
-            'program_id'         => $program->id,
-            'status'             => 'active',
+            'program_id' => $program->id,
+            'status' => 'active',
             'remaining_meetings' => 3,
-            'total_amount'       => 800_000,
+            'total_amount' => 800_000,
         ]);
 
         $this->actingAs($this->admin)
@@ -237,12 +236,12 @@ class EnrollmentControllerTest extends TestCase
     #[Test]
     public function expire_creates_journal_to_recognize_remaining_revenue()
     {
-        $program    = Program::factory()->create(['total_meetings' => 8, 'price' => 800_000]);
+        $program = Program::factory()->create(['total_meetings' => 8, 'price' => 800_000]);
         $enrollment = Enrollment::factory()->create([
-            'program_id'         => $program->id,
-            'status'             => 'active',
+            'program_id' => $program->id,
+            'status' => 'active',
             'remaining_meetings' => 4, // 4 * (800000/8) = 400_000
-            'total_amount'       => 800_000,
+            'total_amount' => 800_000,
         ]);
 
         $this->actingAs($this->admin)
@@ -259,7 +258,7 @@ class EnrollmentControllerTest extends TestCase
     public function admin_can_graduate_active_enrollment_with_zero_remaining_meetings()
     {
         $enrollment = Enrollment::factory()->create([
-            'status'             => 'active',
+            'status' => 'active',
             'remaining_meetings' => 0,
         ]);
 
@@ -275,7 +274,7 @@ class EnrollmentControllerTest extends TestCase
     public function cannot_graduate_enrollment_with_remaining_meetings()
     {
         $enrollment = Enrollment::factory()->create([
-            'status'             => 'active',
+            'status' => 'active',
             'remaining_meetings' => 2,
         ]);
 
@@ -318,5 +317,172 @@ class EnrollmentControllerTest extends TestCase
         $this->actingAs($tutor)
             ->get(route('admin.enrollments.index'))
             ->assertForbidden();
+    }
+
+    // =========================================================
+    //  EDIT & UPDATE
+    // =========================================================
+
+    #[Test]
+    public function admin_can_view_enrollment_edit_form()
+    {
+        $enrollment = Enrollment::factory()->create();
+
+        $this->actingAs($this->admin)
+            ->get(route('admin.enrollments.edit', $enrollment))
+            ->assertOk()
+            ->assertViewIs('admin.enrollments.edit');
+    }
+
+    #[Test]
+    public function admin_can_update_core_enrollment_fields()
+    {
+        $program = Program::factory()->create(['total_meetings' => 20]);
+        $newProgram = Program::factory()->create(['total_meetings' => 6]);
+        $enrollment = Enrollment::factory()->create([
+            'program_id' => $program->id,
+            'payment_method' => 'full upfront',
+            'payment_status' => PaymentStatus::PARTIAL->value,
+            'total_amount' => 3_600_000,
+            'status' => 'active',
+            'remaining_meetings' => 20,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.enrollments.update', $enrollment), [
+                'student_id' => $enrollment->student_id,
+                'program_id' => $newProgram->id,
+                'class_session_id' => '',
+                'enrollment_date' => '2026-07-01',
+                'expiry_date' => '2026-09-01',
+                'payment_method' => 'full upfront',
+                'payment_channel' => 'bank',
+                'total_amount' => 1_350_000,
+                'payment_status' => PaymentStatus::FULL->value,
+                'status' => 'active',
+                'remaining_meetings' => 4,
+            ])
+            ->assertRedirect(route('admin.enrollments.show', $enrollment->id))
+            ->assertSessionHas('success');
+
+        $enrollment->refresh();
+        $this->assertEquals($newProgram->id, $enrollment->program_id);
+        $this->assertEquals('1350000.00', $enrollment->total_amount);
+        $this->assertEquals(PaymentStatus::FULL->value, $enrollment->payment_status);
+        $this->assertEquals(4, $enrollment->remaining_meetings);
+    }
+
+    #[Test]
+    public function update_reconciles_installment_rows()
+    {
+        $enrollment = Enrollment::factory()->create([
+            'payment_method' => 'installment',
+            'total_amount' => 3_000_000,
+        ]);
+        $keep = Installment::factory()->create([
+            'enrollment_id' => $enrollment->id, 'amount' => 1_000_000, 'paid_at' => null,
+        ]);
+        $drop = Installment::factory()->create([
+            'enrollment_id' => $enrollment->id, 'amount' => 2_000_000, 'paid_at' => null,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.enrollments.update', $enrollment), [
+                'student_id' => $enrollment->student_id,
+                'program_id' => $enrollment->program_id,
+                'enrollment_date' => '2026-07-01',
+                'expiry_date' => '2026-10-01',
+                'payment_method' => 'installment',
+                'payment_channel' => 'bank',
+                'total_amount' => 3_000_000,
+                'payment_status' => PaymentStatus::PARTIAL->value,
+                'status' => 'active',
+                'remaining_meetings' => 10,
+                'installments' => [
+                    ['id' => $keep->id, 'amount' => 1_500_000, 'due_date' => '2026-07-01', 'payment_channel' => 'bank', 'paid' => '1'],
+                    ['amount' => 1_500_000, 'due_date' => '2026-08-01', 'payment_channel' => 'bank'],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('installments', ['id' => $drop->id]);
+        $this->assertEquals('1500000.00', $keep->fresh()->amount);
+        $this->assertNotNull($keep->fresh()->paid_at);
+        $this->assertEquals(2, $enrollment->fresh()->installments()->count());
+    }
+
+    #[Test]
+    public function update_rejects_installments_not_matching_total()
+    {
+        $enrollment = Enrollment::factory()->create([
+            'payment_method' => 'installment',
+            'total_amount' => 3_000_000,
+        ]);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.enrollments.update', $enrollment), [
+                'student_id' => $enrollment->student_id,
+                'program_id' => $enrollment->program_id,
+                'enrollment_date' => '2026-07-01',
+                'expiry_date' => '2026-10-01',
+                'payment_method' => 'installment',
+                'payment_channel' => 'bank',
+                'total_amount' => 3_000_000,
+                'payment_status' => PaymentStatus::PARTIAL->value,
+                'status' => 'active',
+                'remaining_meetings' => 10,
+                'installments' => [
+                    ['amount' => 1_000_000, 'due_date' => '2026-07-01', 'payment_channel' => 'bank'],
+                ],
+            ])
+            ->assertSessionHasErrors('installments');
+    }
+
+    #[Test]
+    public function update_blocks_amount_change_once_revenue_recognized()
+    {
+        $program = Program::factory()->create(['total_meetings' => 20]);
+        $enrollment = Enrollment::factory()->create([
+            'program_id' => $program->id,
+            'payment_method' => 'full upfront',
+            'total_amount' => 3_600_000,
+            'status' => 'active',
+        ]);
+        // Simulasikan 1 pertemuan yang revenue-nya sudah diakui.
+        $classroom = Classroom::factory()->create();
+        $attendanceId = DB::table('attendance')->insertGetId([
+            'date' => '2026-07-05',
+            'time_block' => '18:30-20:00',
+            'classroom_id' => $classroom->id,
+            'marked_by' => $this->admin->id,
+            'status' => 'finished',
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+        DB::table('attendance_student')->insert([
+            'enrollment_id' => $enrollment->id,
+            'attendance_id' => $attendanceId,
+            'is_present' => true,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.enrollments.update', $enrollment), [
+                'student_id' => $enrollment->student_id,
+                'program_id' => $enrollment->program_id,
+                'enrollment_date' => '2026-07-01',
+                'expiry_date' => '2026-10-01',
+                'payment_method' => 'full upfront',
+                'payment_channel' => 'bank',
+                'total_amount' => 1_000_000,
+                'payment_status' => PaymentStatus::FULL->value,
+                'status' => 'active',
+                'remaining_meetings' => 19,
+            ])
+            ->assertSessionHasErrors('error');
+
+        $this->assertEquals('3600000.00', $enrollment->fresh()->total_amount);
     }
 }
