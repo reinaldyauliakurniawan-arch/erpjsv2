@@ -159,3 +159,13 @@ tags
 # generated CSVs, and full DB backups (SQL dumps contain password hashes
 # and student PII). Never push any of this to the remote.
 /_migrasi/
+
+# One-off data-migration artisan commands. These exist only to reshape
+# production data once and depend on files under /_migrasi/. Laravel still
+# auto-discovers them locally; git does not track them. Permanent tooling
+# (scheduled jobs, health checks, ledger sync) stays tracked.
+/app/Console/Commands/Migrasi*.php
+/app/Console/Commands/RunMigrasiImport.php
+/app/Console/Commands/FixEdc5BulanCohort.php
+/app/Console/Commands/LinkJournalsToEnrollments.php
+/app/Console/Commands/BackfillAttendanceJournals.php
