@@ -52,9 +52,12 @@ class ExportController extends Controller
 
     public function exportPayroll()
     {
+        // payable_amount > 0 menyaring baris tutor tetap (fee per meeting = 0,
+        // gaji lewat jurnal payroll terpisah) dan baris rate-pending kosong.
         $payroll = DB::table('attendance_tutor')
             ->join('tutors', 'attendance_tutor.tutor_id', '=', 'tutors.id')
             ->join('users', 'tutors.user_id', '=', 'users.id')
+            ->where('attendance_tutor.payable_amount', '>', 0)
             ->select('users.name as tutor_name', 'attendance_tutor.payable_amount', 'attendance_tutor.paid_at', 'attendance_tutor.created_at')
             ->get();
 

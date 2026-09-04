@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Models\Program;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class ClassSessionFactory extends Factory
@@ -10,8 +11,8 @@ class ClassSessionFactory extends Factory
     {
         return [
             'name' => fake()->words(3, true),
-            'program_id' => \App\Models\Program::factory(),
-            'status' => fake()->randomElement(['open','closed']),
+            'program_id' => Program::factory(),
+            'status' => fake()->randomElement(['active', 'inactive']),
         ];
     }
 }

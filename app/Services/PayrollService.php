@@ -2,11 +2,14 @@
 
 namespace App\Services;
 
-use App\Models\Tutor;
-use App\Models\PayrollRun;
 use App\Enums\AccountCode;
-use Illuminate\Support\Facades\DB;
 use App\Exceptions\DomainException;
+use App\Exceptions\IdempotencyException;
+use App\Models\Journal;
+use App\Models\PayrollRun;
+use App\Models\Tutor;
+use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 class PayrollService
 {
@@ -19,7 +22,7 @@ class PayrollService
 
     public function createPayrollRun(string $month): PayrollRun
     {
-        $monthKey = \Carbon\Carbon::parse($month)->startOfMonth()->toDateString();
+        $monthKey = Carbon::parse($month)->startOfMonth()->toDateString();
 
         return DB::transaction(function () use ($monthKey) {
             $existing = PayrollRun::whereDate('month', $monthKey)->whereNotIn('status', ['reversed'])->lockForUpdate()->first();
@@ -28,7 +31,7 @@ class PayrollService
             }
 
             return PayrollRun::create([
-                'month'  => $monthKey,
+                'month' => $monthKey,
                 'status' => 'pending',
             ]);
         });
@@ -39,12 +42,12 @@ class PayrollService
         $payrollRun = PayrollRun::findOrFail($payrollRunId);
 
         if ($payrollRun->status === 'approved') {
-            throw new DomainException("Payroll run ini sudah di-approve sebelumnya.");
+            throw new DomainException('Payroll run ini sudah di-approve sebelumnya.');
         }
 
         return DB::transaction(function () use ($payrollRun, $approvedBy) {
             $tutors = Tutor::with('user')->get();
-            $date   = now()->toDateString();
+            $date = now()->toDateString();
             // Consistency fix: previously `now()` was called per-tutor inside
             // the loop, so each tutor's attendances got a slightly different
             // `paid_at` timestamp (millisecond drift). For audit purposes all
@@ -52,13 +55,40 @@ class PayrollService
             $paidAt = now();
 
             foreach ($tutors as $tutor) {
+                // ── 1. Tutor tetap: gaji bulanan ──────────────────────────
+                // Dibayar regardless berapa meeting yang diajar. Pro-rata per
+                // hari untuk bulan pertama/terakhir yang tidak penuh (mis.
+                // baru diangkat / berhenti di tengah bulan). Berbasis periode
+                // [salaried_since, salaried_until], BUKAN employment_type,
+                // supaya bulan lampau tetap benar walau statusnya sudah
+                // berubah.
+                $salary = $tutor->proratedSalaryForMonth($payrollRun->month);
+                if (bccomp($salary, '0', 2) > 0) {
+                    try {
+                        $this->accountingService->createJournal(
+                            $date,
+                            "Payroll Salary for Tutor: {$tutor->user->name} - Run #{$payrollRun->id}",
+                            "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}-SALARY",
+                            [
+                                ['account_code' => AccountCode::EXPENSE_TUTOR_PERMANENT_SALARY->value, 'debit' => $salary, 'credit' => 0],
+                                ['account_code' => AccountCode::BANK->value,                           'debit' => 0,       'credit' => $salary],
+                            ],
+                            'payroll'
+                        );
+                    } catch (IdempotencyException $e) {
+                        // Sudah pernah diposting untuk run ini — abaikan.
+                    }
+                }
+
+                // ── 2. Fee freelance per meeting ──────────────────────────
                 $unpaidAttendances = DB::table('attendance_tutor')
                     ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
                     ->where('attendance_tutor.tutor_id', $tutor->id)
                     ->whereNull('attendance_tutor.paid_at')
                     ->where('attendance_tutor.pending_rate', false)
-                    ->whereYear('attendance.date', \Carbon\Carbon::parse($payrollRun->month)->year)
-                    ->whereMonth('attendance.date', \Carbon\Carbon::parse($payrollRun->month)->month)
+                    ->where('attendance_tutor.payable_amount', '>', 0)
+                    ->whereYear('attendance.date', Carbon::parse($payrollRun->month)->year)
+                    ->whereMonth('attendance.date', Carbon::parse($payrollRun->month)->month)
                     ->select('attendance_tutor.*')
                     ->get();
 
@@ -67,13 +97,13 @@ class PayrollService
                 }
 
                 $totalAmount = $unpaidAttendances->sum('payable_amount');
-                $reference   = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}";
+                $reference = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}";
 
                 // Jurnal: Pembayaran hutang ke tutor
                 $this->accountingService->createJournal(
                     $date,
                     "Payroll Payment for Tutor: {$tutor->user->name} - Run #{$payrollRun->id}",
-                    $reference . '-PAY',
+                    $reference.'-PAY',
                     [
                         ['account_code' => AccountCode::TUTOR_PAYABLE->value, 'debit' => $totalAmount, 'credit' => 0],
                         ['account_code' => AccountCode::BANK->value,          'debit' => 0,            'credit' => $totalAmount],
@@ -87,7 +117,7 @@ class PayrollService
             }
 
             $payrollRun->update([
-                'status'      => 'approved',
+                'status' => 'approved',
                 'approved_by' => $approvedBy,
             ]);
 
@@ -100,23 +130,39 @@ class PayrollService
         $payrollRun = PayrollRun::findOrFail($payrollRunId);
 
         if ($payrollRun->status !== 'approved') {
-            throw new DomainException("Hanya payroll run dengan status approved yang bisa di-reverse.");
+            throw new DomainException('Hanya payroll run dengan status approved yang bisa di-reverse.');
         }
 
         return DB::transaction(function () use ($payrollRun, $reversedBy) {
             $tutors = Tutor::with('user')->get();
-            $date   = now()->toDateString();
+            $date = now()->toDateString();
 
             foreach ($tutors as $tutor) {
+                // ── Reverse gaji tutor tetap ─────────────────────────────
+                $salaryRef = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}-SALARY";
+                $salaryJournal = Journal::where('reference', $salaryRef)->first();
+                if ($salaryJournal && ! Journal::where('reference', "REV-{$salaryRef}")->exists()) {
+                    $this->accountingService->createJournal(
+                        $date,
+                        "REVERSE Payroll Salary for Tutor: {$tutor->user->name} - Run #{$payrollRun->id}",
+                        "REV-{$salaryRef}",
+                        [
+                            ['account_code' => AccountCode::BANK->value,                           'debit' => $salaryJournal->total_amount, 'credit' => 0],
+                            ['account_code' => AccountCode::EXPENSE_TUTOR_PERMANENT_SALARY->value, 'debit' => 0,                            'credit' => $salaryJournal->total_amount],
+                        ],
+                        'payroll'
+                    );
+                }
+
                 $reference = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}-PAY";
 
-                $originalJournal = \App\Models\Journal::where('reference', $reference)->first();
-                if (!$originalJournal) {
+                $originalJournal = Journal::where('reference', $reference)->first();
+                if (! $originalJournal) {
                     continue;
                 }
 
                 $reverseReference = "REV-{$reference}";
-                $alreadyReversed  = \App\Models\Journal::where('reference', $reverseReference)->exists();
+                $alreadyReversed = Journal::where('reference', $reverseReference)->exists();
                 if ($alreadyReversed) {
                     continue;
                 }
@@ -137,13 +183,13 @@ class PayrollService
                     ->where('attendance_tutor.tutor_id', $tutor->id)
                     ->whereNotNull('attendance_tutor.paid_at')
                     ->where('attendance_tutor.pending_rate', false)
-                    ->whereYear('attendance.date', \Carbon\Carbon::parse($payrollRun->month)->year)
-                    ->whereMonth('attendance.date', \Carbon\Carbon::parse($payrollRun->month)->month)
+                    ->whereYear('attendance.date', Carbon::parse($payrollRun->month)->year)
+                    ->whereMonth('attendance.date', Carbon::parse($payrollRun->month)->month)
                     ->update(['attendance_tutor.paid_at' => null]);
             }
 
             $payrollRun->update([
-                'status'      => 'reversed',
+                'status' => 'reversed',
                 'reversed_by' => $reversedBy,
             ]);
 

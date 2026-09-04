@@ -223,6 +223,20 @@ class AttendanceService
             throw new DomainException("Tutor {$tutor->user->name} sudah tercatat di sesi ini.");
         }
 
+        // Tutor tetap (salaried): kehadiran & riwayat mengajar tetap dicatat,
+        // tapi TIDAK ada jurnal akru fee per meeting — gajinya dibayar tetap
+        // bulanan lewat payroll. Meeting sebelum tanggal pengangkatan tetap
+        // diperlakukan freelance (jatuh ke cabang rate di bawah).
+        if ($tutor->isSalariedOn($date)) {
+            $attendance->tutors()->attach($tutor->id, array_merge([
+                'payable_amount' => 0,
+                'pending_rate' => false,
+                'journal_id' => null,
+            ], $pivotExtra));
+
+            return;
+        }
+
         $rate = TutorRate::where('tutor_id', $tutor->id)
             ->where('program_id', $classSession->program_id)
             ->first();

@@ -9,7 +9,7 @@ class Journal extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['date', 'description', 'reference', 'total_amount', 'approved_by', 'enrollment_id'];
+    protected $fillable = ['date', 'description', 'reference', 'type', 'total_amount', 'approved_by', 'enrollment_id'];
 
     public function items()
     {

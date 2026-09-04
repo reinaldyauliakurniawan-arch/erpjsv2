@@ -1,8 +1,10 @@
 <?php
+
 namespace Database\Seeders;
+
+use App\Enums\AccountCode;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
-use App\Enums\AccountCode;
 
 class ChartOfAccountsSeeder extends Seeder
 {
@@ -58,6 +60,12 @@ class ChartOfAccountsSeeder extends Seeder
                 'cash_flow_category' => 'operating',
             ],
             [
+                'code' => AccountCode::EXPENSE_TUTOR_PERMANENT_SALARY->value,
+                'name' => 'Beban Gaji Tutor Tetap',
+                'type' => 'Expense',
+                'cash_flow_category' => 'operating',
+            ],
+            [
                 'code' => AccountCode::EXPENSE_DISCOUNT_PROMO->value,
                 'name' => 'Expense - Discount/Promo',
                 'type' => 'Expense',
@@ -87,7 +95,7 @@ class ChartOfAccountsSeeder extends Seeder
         $categoryMap = [
             // Asset - Operating
             '1001' => 'operating', '1002' => 'operating', '1003' => 'operating',
-            '1003a'=> 'operating', '1004' => 'operating', '1007' => 'operating',
+            '1003a' => 'operating', '1004' => 'operating', '1007' => 'operating',
             '1008' => 'operating', '1009' => 'operating',
             // Asset - Investing
             '1005' => 'investing', '1101' => 'investing', '1102' => 'investing',
@@ -98,7 +106,7 @@ class ChartOfAccountsSeeder extends Seeder
             // Equity
             '3001' => 'financing', '3002' => 'financing', '3003' => 'financing',
             // Revenue - Operating
-            '4000b'=> 'operating', '4010' => 'operating', '4011' => 'operating',
+            '4000b' => 'operating', '4010' => 'operating', '4011' => 'operating',
             '4020' => 'operating', '4021' => 'operating', '4030' => 'operating',
             '4031' => 'operating', '4040' => 'operating', '4041' => 'operating',
             '4050' => 'operating', '4051' => 'operating', '4060' => 'operating',
@@ -118,7 +126,7 @@ class ChartOfAccountsSeeder extends Seeder
             '4983' => 'operating', '4990' => 'operating', '4991' => 'operating',
             '4992' => 'operating', '4993' => 'operating', '4994' => 'operating',
             // Expense - Operating
-            '5000b'=> 'operating', '5001' => 'operating', '5002' => 'operating',
+            '5000b' => 'operating', '5001' => 'operating', '5002' => 'operating',
             '5003' => 'operating', '5004' => 'operating', '5005' => 'operating',
             '5006' => 'operating', '5101' => 'operating', '5102' => 'operating',
             '5103' => 'operating', '5104' => 'operating', '5105' => 'operating',
@@ -141,7 +149,7 @@ class ChartOfAccountsSeeder extends Seeder
 
         // Update cash_flow_category untuk semua akun di DB
         foreach ($categoryMap as $code => $category) {
-            DB::table('accounts')->where('code', (string)$code)->update(['cash_flow_category' => $category]);
+            DB::table('accounts')->where('code', (string) $code)->update(['cash_flow_category' => $category]);
         }
     }
 }

@@ -3,8 +3,8 @@
 namespace App\Http\Controllers\Tutor;
 
 use App\Http\Controllers\Controller;
-use App\Models\Tutor;
 use App\Models\Attendance;
+use App\Models\Tutor;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -12,7 +12,7 @@ class DashboardController extends Controller
 {
     public function index()
     {
-        $user  = Auth::user();
+        $user = Auth::user();
         $tutor = Tutor::where('user_id', $user->id)->firstOrFail();
 
         $classes = DB::table('enrollment_tutor')
@@ -44,7 +44,7 @@ class DashboardController extends Controller
             ->count();
 
         $recentAttendances = Attendance::with(['classSession.program', 'students.student.user', 'tutors'])
-            ->whereHas('tutors', fn($q) => $q->where('tutor_id', $tutor->id))
+            ->whereHas('tutors', fn ($q) => $q->where('tutor_id', $tutor->id))
             ->orderByDesc('date')
             ->limit(5)
             ->get();
@@ -65,8 +65,31 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
+        // Tutor tetap: penghasilan bukan akumulasi per meeting tapi gaji
+        // bulanan (pro-rata utk bulan parsial). Berbasis periode tetap, bukan
+        // employment_type — jadi tutor yang sudah balik freelance otomatis
+        // lihat tampilan freelance lagi.
+        $isSalaried = $tutor->isCurrentlySalaried();
+        $monthlySalary = $isSalaried ? (float) $tutor->proratedSalaryForMonth(now()) : 0;
+        if ($isSalaried) {
+            $unpaidTotal = 0;
+            $pendingRateCount = 0;
+
+            // "Dibayar bulan ini" untuk tutor tetap = jurnal gaji yang sudah
+            // diposting untuk payroll run bulan ini.
+            $runIds = DB::table('payroll_runs')
+                ->whereYear('month', now()->year)
+                ->whereMonth('month', now()->month)
+                ->pluck('id');
+            $salaryRefs = $runIds->map(fn ($rid) => "PAYROLL-{$rid}-TUTOR-{$tutor->id}-SALARY");
+            $paidThisMonth = (float) DB::table('journals')
+                ->whereIn('reference', $salaryRefs)
+                ->sum('total_amount');
+        }
+
         return view('tutor.dashboard', compact(
-            'classes', 'unpaidTotal', 'paidThisMonth', 'pendingRateCount', 'recentAttendances', 'replacedHistory'
+            'classes', 'unpaidTotal', 'paidThisMonth', 'pendingRateCount', 'recentAttendances', 'replacedHistory',
+            'isSalaried', 'monthlySalary'
         ));
     }
 }

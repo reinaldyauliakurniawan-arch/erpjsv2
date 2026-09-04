@@ -1,15 +1,18 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
+
 use App\Http\Controllers\Controller;
-use App\Models\Tutor;
-use App\Models\TutorRate;
-use App\Models\TutorAvailability;
-use App\Models\User;
-use App\Models\Program;
 use App\Http\Requests\Admin\StoreTutorRequest;
+use App\Models\Program;
+use App\Models\Tutor;
+use App\Models\TutorAvailability;
+use App\Models\TutorRate;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class TutorController extends Controller
 {
@@ -26,13 +29,15 @@ class TutorController extends Controller
             ->select('tutors.*')
             ->paginate(20);
         $activeTutorCount = Tutor::where('status', 'active')->count();
+
         return view('admin.tutors.index', compact('tutors', 'activeTutorCount'));
     }
 
     public function show($id)
     {
-        $tutor    = Tutor::with(['user', 'rates.program', 'availability'])->findOrFail($id);
+        $tutor = Tutor::with(['user', 'rates.program', 'availability'])->findOrFail($id);
         $programs = Program::all();
+
         return view('admin.tutors.show', compact('tutor', 'programs'));
     }
 
@@ -44,8 +49,8 @@ class TutorController extends Controller
         // fails, the User would be orphaned with role=tutor but no tutor record.
         DB::transaction(function () use ($validated) {
             $user = User::create([
-                'name'     => $validated['name'],
-                'email'    => $validated['email'],
+                'name' => $validated['name'],
+                'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
             ]);
             $user->role = 'tutor';
@@ -61,18 +66,56 @@ class TutorController extends Controller
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'name'    => 'required|string|max:255',
-            'email'   => 'required|email|unique:users,email,' . Tutor::findOrFail($id)->user_id,
+        $tutor = Tutor::with('user')->findOrFail($id);
+        $wasSalaried = $tutor->salaried_since !== null;
+
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,'.$tutor->user_id,
             'persona' => 'required|string|max:255',
-            'status'  => 'required|in:active,inactive',
+            'status' => 'required|in:active,inactive',
+            'employment_type' => 'required|in:freelance,permanent',
+            'monthly_salary' => 'nullable|required_if:employment_type,permanent|numeric|min:0',
+            'salaried_since' => 'nullable|required_if:employment_type,permanent|date',
+            // Wajib saat menurunkan tutor tetap yang punya riwayat jadi freelance:
+            // tanggal hari terakhir dia berstatus tetap. Meeting & payroll bulan
+            // lampau tidak berubah; payroll bulan terakhir dihitung pro-rata.
+            'salaried_until' => [
+                'nullable',
+                'date',
+                Rule::requiredIf(fn () => $request->input('employment_type') === 'freelance' && $wasSalaried),
+                'after_or_equal:'.($tutor->salaried_since?->toDateString() ?? '1970-01-01'),
+            ],
         ]);
-        $tutor = Tutor::findOrFail($id);
+
         $tutor->user->update([
-            'name'  => $request->name,
-            'email' => $request->email,
+            'name' => $validated['name'],
+            'email' => $validated['email'],
         ]);
-        $tutor->update(['persona' => $request->persona, 'status' => $request->status]);
+
+        $permanent = $validated['employment_type'] === 'permanent';
+
+        if ($permanent) {
+            $salaryFields = [
+                'monthly_salary' => $validated['monthly_salary'],
+                'salaried_since' => $validated['salaried_since'],
+                'salaried_until' => $validated['salaried_until'] ?? null,
+            ];
+        } elseif ($wasSalaried) {
+            // Turun ke freelance tapi pernah jadi tutor tetap: simpan riwayat,
+            // hanya tutup periodenya.
+            $salaryFields = ['salaried_until' => $validated['salaried_until']];
+        } else {
+            // Tidak pernah jadi tutor tetap: bersihkan semua.
+            $salaryFields = ['monthly_salary' => null, 'salaried_since' => null, 'salaried_until' => null];
+        }
+
+        $tutor->update(array_merge([
+            'persona' => $validated['persona'],
+            'status' => $validated['status'],
+            'employment_type' => $validated['employment_type'],
+        ], $salaryFields));
+
         return back()->with('success', 'Tutor updated successfully.');
     }
 
@@ -83,6 +126,7 @@ class TutorController extends Controller
         ]);
         $tutor = Tutor::findOrFail($tutorId);
         $tutor->enrollments()->updateExistingPivot($request->enrollment_id, ['status' => 'confirmed']);
+
         return back()->with('success', 'Tutor confirmed for this enrollment.');
     }
 
@@ -90,22 +134,23 @@ class TutorController extends Controller
     {
         $request->validate([
             'program_id' => 'required|exists:programs,id',
-            'rate'       => 'required|numeric|min:0',
+            'rate' => 'required|numeric|min:0',
         ]);
         TutorRate::updateOrCreate(
             ['tutor_id' => $tutorId, 'program_id' => $request->program_id],
-            ['rate'     => $request->rate]
+            ['rate' => $request->rate]
         );
+
         return back()->with('success', 'Tutor rate saved.');
     }
 
     public function storeAvailability(Request $request, $tutorId)
     {
         $request->validate([
-            'availability'              => 'required|array',
-            'availability.*.day'        => 'required|string',
+            'availability' => 'required|array',
+            'availability.*.day' => 'required|string',
             'availability.*.time_block' => 'required|string',
-            'availability.*.status'     => 'sometimes|in:available,not_available,occupied',
+            'availability.*.status' => 'sometimes|in:available,not_available,occupied',
         ]);
 
         // Atomicity fix: previously delete-then-recreate was 2 separate
@@ -120,10 +165,10 @@ class TutorController extends Controller
 
             foreach ($request->availability as $slot) {
                 TutorAvailability::create([
-                    'tutor_id'   => $tutorId,
-                    'day'        => $slot['day'],
+                    'tutor_id' => $tutorId,
+                    'day' => $slot['day'],
                     'time_block' => $slot['time_block'],
-                    'status'     => $slot['status'] ?? 'available',
+                    'status' => $slot['status'] ?? 'available',
                 ]);
             }
         });
@@ -134,9 +179,9 @@ class TutorController extends Controller
     public function storeCustomAvailability(Request $request, $tutorId)
     {
         $request->validate([
-            'day'        => 'required|string',
+            'day' => 'required|string',
             'time_block' => 'required|string',
-            'status'     => 'required|in:available,not_available,occupied',
+            'status' => 'required|in:available,not_available,occupied',
         ]);
 
         TutorAvailability::updateOrCreate(
@@ -150,6 +195,7 @@ class TutorController extends Controller
     public function destroyAvailability($tutorId, $availabilityId)
     {
         TutorAvailability::where('tutor_id', $tutorId)->where('id', $availabilityId)->delete();
+
         return back()->with('success', 'Slot removed.');
     }
 
@@ -192,13 +238,14 @@ class TutorController extends Controller
                     ->with('error', 'Tutor tidak bisa dihapus karena masih memiliki riwayat presensi (sudah dibayar). Riwayat presensi harus tetap ada untuk keperluan audit.');
             }
 
-            $user  = $tutor->user;
+            $user = $tutor->user;
             $tutor->enrollments()->detach();
             $tutor->classSessions()->detach();
             $tutor->availability()->delete();
             $tutor->rates()->delete();
             $tutor->delete();
             $user->delete();
+
             return redirect()->route('admin.tutors.index')->with('success', 'Tutor berhasil dihapus.');
         });
     }

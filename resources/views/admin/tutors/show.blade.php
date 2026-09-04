@@ -34,7 +34,23 @@
                 <div>
                     <h3 class="text-headline-lg font-semibold text-on-surface">{{ $tutor->user->name }}</h3>
                     <p class="text-body-md text-on-surface-variant">{{ $tutor->user->email }}</p>
-                    <span class="badge badge-soft mt-xs">{{ $tutor->persona }}</span>
+                    <div class="flex flex-wrap items-center gap-xs mt-xs">
+                        <span class="badge badge-soft">{{ $tutor->persona }}</span>
+                        @if($tutor->isCurrentlySalaried())
+                            <span class="badge badge-primary badge-soft">
+                                Tutor Tetap · IDR {{ number_format($tutor->monthly_salary, 0, ',', '.') }}/bln
+                                sejak {{ $tutor->salaried_since->translatedFormat('d M Y') }}
+                                @if($tutor->salaried_until) &ndash; berakhir {{ $tutor->salaried_until->translatedFormat('d M Y') }} @endif
+                            </span>
+                        @elseif($tutor->salaried_since)
+                            <span class="badge badge-ghost">Freelance</span>
+                            <span class="badge badge-soft text-on-surface-variant">
+                                Pernah tutor tetap {{ $tutor->salaried_since->translatedFormat('d M Y') }} &ndash; {{ optional($tutor->salaried_until)->translatedFormat('d M Y') ?? '?' }}
+                            </span>
+                        @else
+                            <span class="badge badge-ghost">Freelance</span>
+                        @endif
+                    </div>
                 </div>
             </div>
             <div class="flex gap-sm">
@@ -270,6 +286,59 @@
                         <option value="inactive" {{ $tutor->status === 'inactive' ? 'selected' : '' }}>Inactive</option>
                     </select>
                 </div>
+
+                <div x-data="{ emp: '{{ old('employment_type', $tutor->employment_type ?? 'freelance') }}', wasSalaried: {{ $tutor->salaried_since ? 'true' : 'false' }} }" class="space-y-md">
+                    <div class="fieldset">
+                        <label class="fieldset-legend text-on-surface">Jenis Tutor</label>
+                        <select name="employment_type" x-model="emp" class="select w-full" required>
+                            <option value="freelance">Freelance (dibayar per meeting)</option>
+                            <option value="permanent">Tetap (gaji bulanan)</option>
+                        </select>
+                    </div>
+
+                    <template x-if="emp === 'permanent'">
+                        <div class="space-y-md">
+                            <div class="fieldset">
+                                <label class="fieldset-legend text-on-surface">Gaji Bulanan (IDR)</label>
+                                <input type="number" name="monthly_salary" min="0" step="1000"
+                                    value="{{ old('monthly_salary', $tutor->monthly_salary ? (int) $tutor->monthly_salary : '') }}"
+                                    class="input w-full @error('monthly_salary') input-error @enderror"
+                                    placeholder="3500000" />
+                                @error('monthly_salary')<p class="label text-error">{{ $message }}</p>@enderror
+                            </div>
+                            <div class="fieldset">
+                                <label class="fieldset-legend text-on-surface">Berlaku Sejak</label>
+                                <input type="date" name="salaried_since"
+                                    value="{{ old('salaried_since', optional($tutor->salaried_since)->toDateString()) }}"
+                                    class="input w-full @error('salaried_since') input-error @enderror" />
+                                <p class="label text-on-surface-variant">Meeting sebelum tanggal ini tetap dihitung sebagai freelance.</p>
+                                @error('salaried_since')<p class="label text-error">{{ $message }}</p>@enderror
+                            </div>
+                            <div class="fieldset">
+                                <label class="fieldset-legend text-on-surface">Berlaku Sampai <span class="text-on-surface-variant">(opsional)</span></label>
+                                <input type="date" name="salaried_until"
+                                    value="{{ old('salaried_until', optional($tutor->salaried_until)->toDateString()) }}"
+                                    class="input w-full @error('salaried_until') input-error @enderror" />
+                                <p class="label text-on-surface-variant">Kosongkan jika masih berlaku. Isi jika masa tutor tetap sudah dijadwalkan berakhir.</p>
+                                @error('salaried_until')<p class="label text-error">{{ $message }}</p>@enderror
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="emp === 'freelance' && wasSalaried">
+                        <div class="fieldset rounded-lg border border-warning/40 bg-warning/5 p-md">
+                            <label class="fieldset-legend text-on-surface">Hari terakhir sebagai tutor tetap</label>
+                            <input type="date" name="salaried_until"
+                                value="{{ old('salaried_until', optional($tutor->salaried_until)->toDateString()) }}"
+                                class="input w-full @error('salaried_until') input-error @enderror" required />
+                            <p class="label text-on-surface-variant">
+                                Gaji & absen periode tetap yang lalu tidak berubah. Payroll bulan terakhir dihitung pro-rata per hari otomatis.
+                            </p>
+                            @error('salaried_until')<p class="label text-error">{{ $message }}</p>@enderror
+                        </div>
+                    </template>
+                </div>
+
                 <div class="modal-action">
                     <button type="button" onclick="document.getElementById('modal-edit-tutor').close()"
                         class="btn btn-ghost">Batal</button>

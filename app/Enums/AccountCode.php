@@ -12,6 +12,7 @@ enum AccountCode: string
     case REVENUE_TUITION_FEES = '4101';
     case REVENUE_ADMIN_FEE = '4102';
     case EXPENSE_TUTOR_FEE = '5001';
+    case EXPENSE_TUTOR_PERMANENT_SALARY = '5006';
     case EXPENSE_DISCOUNT_PROMO = '5102';
     case EXPENSE_REFUND = '5103';
 }
