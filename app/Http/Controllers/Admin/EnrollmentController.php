@@ -24,6 +24,7 @@ use App\Services\AccountingService;
 use App\Services\EnrollmentLedgerService;
 use App\Services\EnrollmentService;
 use App\Services\RevenueRecognitionService;
+use App\Services\TutorAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -37,12 +38,15 @@ class EnrollmentController extends Controller
 
     protected $ledgerService;
 
-    public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService, RevenueRecognitionService $revenueRecognitionService, EnrollmentLedgerService $ledgerService)
+    protected TutorAssignmentService $tutorAssignment;
+
+    public function __construct(EnrollmentService $enrollmentService, AccountingService $accountingService, RevenueRecognitionService $revenueRecognitionService, EnrollmentLedgerService $ledgerService, TutorAssignmentService $tutorAssignment)
     {
         $this->enrollmentService = $enrollmentService;
         $this->accountingService = $accountingService;
         $this->revenueRecognitionService = $revenueRecognitionService;
         $this->ledgerService = $ledgerService;
+        $this->tutorAssignment = $tutorAssignment;
     }
 
     public function index()
@@ -566,6 +570,10 @@ class EnrollmentController extends Controller
                 ->where('date', '>', now()->toDateString())
                 ->delete();
 
+            foreach ($enrollment->tutors()->pluck('tutors.id') as $tid) {
+                $this->tutorAssignment->recomputeAvailability((int) $tid);
+            }
+
             return back()->with('success', 'Enrollment marked as expired, remaining revenue recognized.');
         });
     }
@@ -596,6 +604,10 @@ class EnrollmentController extends Controller
 
             $enrollment->update(['status' => 'graduate']);
 
+            foreach ($enrollment->tutors()->pluck('tutors.id') as $tid) {
+                $this->tutorAssignment->recomputeAvailability((int) $tid);
+            }
+
             return back()->with('success', 'Student marked as graduate.');
         });
     }
@@ -608,15 +620,15 @@ class EnrollmentController extends Controller
             'tutor_id' => 'required|exists:tutors,id',
         ]);
 
-        $enrollment = Enrollment::findOrFail($id);
+        $enrollment = Enrollment::with('classSession')->findOrFail($id);
 
         if ($enrollment->tutors()->where('tutor_id', $request->tutor_id)->exists()) {
             return back()->withErrors(['error' => 'Tutor sudah di-assign ke enrollment ini.']);
         }
 
-        $enrollment->tutors()->attach($request->tutor_id, ['status' => 'pending']);
+        $this->tutorAssignment->assignToEnrollment($enrollment, (int) $request->tutor_id);
 
-        return back()->with('success', 'Tutor assigned.');
+        return back()->with('success', 'Tutor di-assign ke enrollment & kelasnya.');
     }
 
     public function removeTutor(Request $request, $id)
@@ -627,8 +639,8 @@ class EnrollmentController extends Controller
             'tutor_id' => 'required|exists:tutors,id',
         ]);
 
-        $enrollment = Enrollment::findOrFail($id);
-        $enrollment->tutors()->detach($request->tutor_id);
+        $enrollment = Enrollment::with('classSession')->findOrFail($id);
+        $this->tutorAssignment->removeFromEnrollment($enrollment, (int) $request->tutor_id);
 
         return back()->with('success', 'Tutor removed.');
     }
@@ -641,10 +653,12 @@ class EnrollmentController extends Controller
             'status' => 'required|in:pending,confirmed',
         ]);
 
-        $enrollment = Enrollment::findOrFail($id);
-        $enrollment->tutors()->updateExistingPivot($tutorId, [
-            'status' => $request->status,
-        ]);
+        $enrollment = Enrollment::with('classSession.program')->findOrFail($id);
+        if ($enrollment->class_session_id && $enrollment->classSession) {
+            $this->tutorAssignment->setStatus($enrollment->classSession, (int) $tutorId, $request->status);
+        } else {
+            $enrollment->tutors()->updateExistingPivot($tutorId, ['status' => $request->status]);
+        }
 
         return back()->with('success', 'Tutor status updated.');
     }

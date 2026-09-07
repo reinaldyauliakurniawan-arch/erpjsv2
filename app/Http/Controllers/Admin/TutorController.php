@@ -4,11 +4,13 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTutorRequest;
+use App\Models\Enrollment;
 use App\Models\Program;
 use App\Models\Tutor;
 use App\Models\TutorAvailability;
 use App\Models\TutorRate;
 use App\Models\User;
+use App\Services\TutorAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -119,13 +121,19 @@ class TutorController extends Controller
         return back()->with('success', 'Tutor updated successfully.');
     }
 
-    public function confirmEnrollment(Request $request, $tutorId)
+    public function confirmEnrollment(Request $request, $tutorId, TutorAssignmentService $tutorAssignment)
     {
         $request->validate([
             'enrollment_id' => 'required|exists:enrollments,id',
         ]);
         $tutor = Tutor::findOrFail($tutorId);
-        $tutor->enrollments()->updateExistingPivot($request->enrollment_id, ['status' => 'confirmed']);
+        $enrollment = Enrollment::with('classSession.program')->findOrFail($request->enrollment_id);
+
+        if ($enrollment->class_session_id && $enrollment->classSession) {
+            $tutorAssignment->setStatus($enrollment->classSession, (int) $tutor->id, 'confirmed');
+        } else {
+            $tutor->enrollments()->updateExistingPivot($enrollment->id, ['status' => 'confirmed']);
+        }
 
         return back()->with('success', 'Tutor confirmed for this enrollment.');
     }

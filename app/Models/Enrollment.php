@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\DB;
 class Enrollment extends Model
 {
     use HasFactory;
+
     protected static function booted()
     {
         // Atomicity fix: previously the cascade deletes (tutors/schedules/installments)
@@ -27,15 +28,16 @@ class Enrollment extends Model
             });
         });
     }
+
     protected $fillable = [
         'student_id', 'program_id', 'class_session_id', 'enrollment_date', 'expiry_date',
-        'payment_method', 'payment_channel', 'total_amount', 'payment_status', 'status', 'remaining_meetings'
+        'payment_method', 'payment_channel', 'total_amount', 'payment_status', 'status', 'remaining_meetings',
     ];
 
     protected $casts = [
-    'total_amount' => 'decimal:2',
-    'enrollment_date' => 'date',
-    'expiry_date' => 'date',
+        'total_amount' => 'decimal:2',
+        'enrollment_date' => 'date',
+        'expiry_date' => 'date',
     ];
 
     public function student()
@@ -53,9 +55,15 @@ class Enrollment extends Model
         return $this->belongsTo(ClassSession::class);
     }
 
+    /**
+     * Jadwal mingguan enrollment ini = jadwal class session-nya. Jadwal melekat
+     * pada kelas (bukan per murid), jadi SEMUA murid di satu kelas grup melihat
+     * jadwal yang sama di dashboard-nya. Enrollment tanpa class session (belum
+     * ditempatkan) tidak punya jadwal.
+     */
     public function schedules()
     {
-        return $this->hasMany(Schedule::class);
+        return $this->hasMany(Schedule::class, 'class_session_id', 'class_session_id');
     }
 
     public function installments()

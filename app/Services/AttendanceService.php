@@ -10,9 +10,7 @@ use App\Models\ClassSession;
 use App\Models\Enrollment;
 use App\Models\Journal;
 use App\Models\RoomBooking;
-use App\Models\Schedule;
 use App\Models\Tutor;
-use App\Models\TutorAvailability;
 use App\Models\TutorRate;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
@@ -108,22 +106,9 @@ class AttendanceService
                                 ->where('date', '>', $data['date'])
                                 ->delete();
                             $tutorIds = $enrollment->tutors()->pluck('tutors.id');
-                            foreach ($enrollment->schedules as $schedule) {
-                                foreach ($tutorIds as $tutorId) {
-                                    $stillOccupied = Schedule::where('day', $schedule->day)
-                                        ->where('time_block', $schedule->time_block)
-                                        ->where('enrollment_id', '!=', $enrollment->id)
-                                        ->whereHas('enrollment', fn ($q) => $q->whereIn('status', ['active', 'waitlist']))
-                                        ->whereHas('enrollment.tutors', fn ($q) => $q->where('tutor_id', $tutorId))
-                                        ->exists();
-
-                                    if (! $stillOccupied) {
-                                        TutorAvailability::where('day', $schedule->day)
-                                            ->where('time_block', $schedule->time_block)
-                                            ->where('tutor_id', $tutorId)
-                                            ->update(['status' => 'available']);
-                                    }
-                                }
+                            $tutorAssignment = app(TutorAssignmentService::class);
+                            foreach ($tutorIds as $tutorId) {
+                                $tutorAssignment->recomputeAvailability((int) $tutorId);
                             }
                         }
 

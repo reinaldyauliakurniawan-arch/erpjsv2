@@ -13,6 +13,7 @@ use App\Enums\TimeBlock;
 use App\Enums\DayOfWeek;
 use App\Enums\ClassType;
 use App\Services\AttendanceService;
+use App\Services\TutorAssignmentService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -28,15 +29,13 @@ class ClassSessionController extends Controller
      */
     protected $attendanceService;
 
-    /**
-     * Create a new controller instance.
-     *
-     * @param  \App\Services\AttendanceService  $attendanceService
-     * @return void
-     */
-    public function __construct(AttendanceService $attendanceService)
+    /** @var \App\Services\TutorAssignmentService */
+    protected $tutorAssignment;
+
+    public function __construct(AttendanceService $attendanceService, TutorAssignmentService $tutorAssignment)
     {
         $this->attendanceService = $attendanceService;
+        $this->tutorAssignment = $tutorAssignment;
     }
 
     /**
@@ -313,6 +312,12 @@ class ClassSessionController extends Controller
             Enrollment::where('id', $request->enrollment_id)
                 ->update(['class_session_id' => $id]);
 
+            // Integrasi: siswa yang masuk kelas otomatis ikut tutor-tutor kelas itu
+            // (muncul di dashboard tutor); jadwal kelas juga langsung terbaca di
+            // dashboard siswa (Enrollment::schedules() lewat class_session_id).
+            $moved = Enrollment::with('classSession.program')->find($request->enrollment_id);
+            $this->tutorAssignment->syncEnrollmentToClassTutors($moved);
+
             return back()->with('success', 'Student assigned to class session successfully.');
         });
     }
@@ -332,9 +337,14 @@ class ClassSessionController extends Controller
 
         $request->validate(['enrollment_id' => 'required|exists:enrollments,id']);
 
-        Enrollment::where('id', $request->enrollment_id)
-            ->where('class_session_id', $id)
-            ->update(['class_session_id' => null]);
+        $enrollment = Enrollment::where('id', $request->enrollment_id)
+            ->where('class_session_id', $id)->first();
+        if ($enrollment) {
+            foreach ($enrollment->tutors()->pluck('tutors.id') as $tid) {
+                DB::table('enrollment_tutor')->where('enrollment_id', $enrollment->id)->where('tutor_id', $tid)->delete();
+            }
+            $enrollment->update(['class_session_id' => null]);
+        }
 
         return back()->with('success', 'Student removed from class session successfully.');
     }
@@ -358,9 +368,9 @@ class ClassSessionController extends Controller
             return back()->withErrors(['error' => 'Tutor is already assigned to this class session.']);
         }
 
-        $classSession->tutors()->attach($request->tutor_id, ['status' => 'pending']);
+        $this->tutorAssignment->assignToClassSession($classSession, (int) $request->tutor_id);
 
-        return back()->with('success', 'Tutor assigned successfully.');
+        return back()->with('success', 'Tutor di-assign ke kelas & seluruh siswanya.');
     }
 
     /**
@@ -378,7 +388,7 @@ class ClassSessionController extends Controller
 
         $request->validate(['tutor_id' => 'required|exists:tutors,id']);
 
-        $classSession->tutors()->detach($request->tutor_id);
+        $this->tutorAssignment->removeFromClassSession($classSession, (int) $request->tutor_id);
 
         return back()->with('success', 'Tutor removed successfully.');
     }
@@ -399,30 +409,9 @@ class ClassSessionController extends Controller
 
         $request->validate(['status' => 'required|in:pending,confirmed']);
 
-        DB::transaction(function () use ($classSession, $tutorId, $request) {
-            $classSession->tutors()->updateExistingPivot($tutorId, [
-                'status' => $request->status,
-            ]);
-
-            if ($request->status === 'confirmed' && $classSession->program) {
-                $hasConfirmedTutor = $classSession->tutors()->wherePivot('status', 'confirmed')->exists();
-                $activeCount = Enrollment::where('class_session_id', $classSession->id)
-                    ->whereIn('status', ['active', 'waitlist'])
-                    ->lockForUpdate()
-                    ->count();
-                $quotaMet = $activeCount >= $classSession->program->min_quota;
-
-                if ($hasConfirmedTutor && $quotaMet) {
-                    Enrollment::where('class_session_id', $classSession->id)
-                        ->where('status', 'waitlist')
-                        ->update(['status' => 'active']);
-
-                    if ($classSession->status !== 'active') {
-                        $classSession->update(['status' => 'active']);
-                    }
-                }
-            }
-        });
+        // Sinkron ke KEDUA daftar (class_session_tutor + enrollment_tutor) +
+        // aktivasi waitlist kalau quota terpenuhi.
+        $this->tutorAssignment->setStatus($classSession->load('program'), (int) $tutorId, $request->status);
 
         return back()->with('success', 'Tutor status updated successfully.');
     }
@@ -631,7 +620,9 @@ class ClassSessionController extends Controller
      */
     protected function attachTutors(ClassSession $classSession, array $tutorIds)
     {
-        $classSession->tutors()->attach($tutorIds, ['status' => 'pending']);
+        foreach ($tutorIds as $tid) {
+            $this->tutorAssignment->assignToClassSession($classSession, (int) $tid);
+        }
     }
 
     /**
@@ -645,6 +636,11 @@ class ClassSessionController extends Controller
     {
         Enrollment::whereIn('id', $enrollmentIds)
             ->update(['class_session_id' => $classSession->id]);
+
+        // Siswa yang masuk kelas ikut tutor-tutor kelas itu (integrasi dashboard).
+        foreach (Enrollment::with('classSession.program')->whereIn('id', $enrollmentIds)->get() as $e) {
+            $this->tutorAssignment->syncEnrollmentToClassTutors($e);
+        }
     }
 
     /**

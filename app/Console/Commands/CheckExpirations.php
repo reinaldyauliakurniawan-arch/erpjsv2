@@ -6,6 +6,7 @@ use Illuminate\Console\Command;
 use App\Models\Enrollment;
 use App\Enums\AccountCode;
 use App\Services\AccountingService;
+use App\Services\TutorAssignmentService;
 use Carbon\Carbon;
 
 class CheckExpirations extends Command
@@ -61,23 +62,7 @@ class CheckExpirations extends Command
                 ->where('date', '>', $today->format('Y-m-d'))
                 ->delete();
                 $e->update(['status' => 'expired']);
-                $tutorIds = $e->tutors()->pluck('tutors.id');
-                foreach ($e->schedules as $schedule) {
-                    foreach ($tutorIds as $tutorId) {
-                        $stillOccupied = \App\Models\Schedule::where('day', $schedule->day)
-                            ->where('time_block', $schedule->time_block)
-                            ->where('enrollment_id', '!=', $e->id)
-                            ->whereHas('enrollment', fn($q) => $q->whereIn('status', ['active', 'waitlist']))
-                            ->whereHas('enrollment.tutors', fn($q) => $q->where('tutor_id', $tutorId))
-                            ->exists();
-                        if (!$stillOccupied) {
-                            \App\Models\TutorAvailability::where('day', $schedule->day)
-                                ->where('time_block', $schedule->time_block)
-                                ->where('tutor_id', $tutorId)
-                                ->update(['status' => 'available']);
-                        }
-                    }
-                }
+                $this->releaseTutorSlots($e);
                 $this->warn("Expired enrollment #{$e->id}: tidak ada pembayaran, status diupdate tanpa jurnal.");
                 continue;
             }
@@ -103,23 +88,7 @@ class CheckExpirations extends Command
                         ->where('date', '>', $today->format('Y-m-d'))
                         ->delete();
                     $e->update(['status' => 'expired', 'remaining_meetings' => 0]);
-                    $tutorIds = $e->tutors()->pluck('tutors.id');
-                    foreach ($e->schedules as $schedule) {
-                        foreach ($tutorIds as $tutorId) {
-                            $stillOccupied = \App\Models\Schedule::where('day', $schedule->day)
-                                ->where('time_block', $schedule->time_block)
-                                ->where('enrollment_id', '!=', $e->id)
-                                ->whereHas('enrollment', fn($q) => $q->whereIn('status', ['active', 'waitlist']))
-                                ->whereHas('enrollment.tutors', fn($q) => $q->where('tutor_id', $tutorId))
-                                ->exists();
-                            if (!$stillOccupied) {
-                                \App\Models\TutorAvailability::where('day', $schedule->day)
-                                    ->where('time_block', $schedule->time_block)
-                                    ->where('tutor_id', $tutorId)
-                                    ->update(['status' => 'available']);
-                            }
-                        }
-                    }
+                    $this->releaseTutorSlots($e);
                     $this->info("Expired enrollment #{$e->id}: recognized sisa IDR " . number_format($remainingDeferred));
                     }); // end DB::transaction
                 } catch (\App\Exceptions\IdempotencyException $ex) {
@@ -130,6 +99,15 @@ class CheckExpirations extends Command
                     $this->error("Failed to recognize revenue for enrollment #{$e->id}: " . $ex->getMessage());
                 }
             }
+        }
+    }
+
+    /** Bebaskan slot jam tutor setelah sebuah enrollment berakhir. */
+    private function releaseTutorSlots(Enrollment $e): void
+    {
+        $svc = app(TutorAssignmentService::class);
+        foreach ($e->tutors()->pluck('tutors.id') as $tutorId) {
+            $svc->recomputeAvailability((int) $tutorId);
         }
     }
 }
