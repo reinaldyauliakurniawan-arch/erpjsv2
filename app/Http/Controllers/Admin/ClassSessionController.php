@@ -315,8 +315,9 @@ class ClassSessionController extends Controller
             // Integrasi: siswa yang masuk kelas otomatis ikut tutor-tutor kelas itu
             // (muncul di dashboard tutor); jadwal kelas juga langsung terbaca di
             // dashboard siswa (Enrollment::schedules() lewat class_session_id).
-            $moved = Enrollment::with('classSession.program')->find($request->enrollment_id);
+            $moved = Enrollment::with(['classSession.program', 'student.user'])->find($request->enrollment_id);
             $this->tutorAssignment->syncEnrollmentToClassTutors($moved);
+            app(\App\Services\Notifier::class)->newStudentInClass($moved);
 
             return back()->with('success', 'Student assigned to class session successfully.');
         });

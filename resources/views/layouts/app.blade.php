@@ -80,6 +80,7 @@
         @endif
 
         <div class="flex items-center gap-sm flex-shrink-0">
+            @include('partials.notification-bell')
             <div class="app-user-avatar">
                 {{ strtoupper(substr(Auth::user()->name, 0, 1)) }}
             </div>

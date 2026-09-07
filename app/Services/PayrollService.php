@@ -15,9 +15,12 @@ class PayrollService
 {
     protected $accountingService;
 
-    public function __construct(AccountingService $accountingService)
+    protected Notifier $notifier;
+
+    public function __construct(AccountingService $accountingService, Notifier $notifier)
     {
         $this->accountingService = $accountingService;
+        $this->notifier = $notifier;
     }
 
     public function createPayrollRun(string $month): PayrollRun
@@ -78,6 +81,7 @@ class PayrollService
                     } catch (IdempotencyException $e) {
                         // Sudah pernah diposting untuk run ini — abaikan.
                     }
+                    $this->notifier->payrollPaid($tutor, Carbon::parse($payrollRun->month)->translatedFormat('F Y'), (float) $salary);
                 }
 
                 // ── 2. Fee freelance per meeting ──────────────────────────
@@ -114,6 +118,8 @@ class PayrollService
                 DB::table('attendance_tutor')
                     ->whereIn('id', $unpaidAttendances->pluck('id'))
                     ->update(['paid_at' => $paidAt]);
+
+                $this->notifier->payrollPaid($tutor, Carbon::parse($payrollRun->month)->translatedFormat('F Y'), (float) $totalAmount);
             }
 
             $payrollRun->update([

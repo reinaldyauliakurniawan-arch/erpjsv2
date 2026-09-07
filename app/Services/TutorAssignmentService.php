@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
 use App\Models\Schedule;
+use App\Models\Tutor;
 use App\Models\TutorAvailability;
 use Illuminate\Support\Facades\DB;
 
@@ -23,15 +24,19 @@ use Illuminate\Support\Facades\DB;
  */
 class TutorAssignmentService
 {
+    public function __construct(protected Notifier $notifier) {}
+
     /**
      * Tugaskan tutor ke sebuah class session DAN ke semua enrollment
      * aktif/waitlist di dalamnya. Idempoten.
      */
     public function assignToClassSession(ClassSession $classSession, int $tutorId, string $status = 'pending'): void
     {
-        DB::transaction(function () use ($classSession, $tutorId, $status) {
+        $newlyAttached = false;
+        DB::transaction(function () use ($classSession, $tutorId, $status, &$newlyAttached) {
             if (! $classSession->tutors()->where('tutor_id', $tutorId)->exists()) {
                 $classSession->tutors()->attach($tutorId, ['status' => $status]);
+                $newlyAttached = true;
             }
 
             $enrollmentIds = Enrollment::where('class_session_id', $classSession->id)
@@ -44,6 +49,10 @@ class TutorAssignmentService
             $this->recomputeAvailability($tutorId);
             $this->maybeActivateWaitlist($classSession);
         });
+
+        if ($newlyAttached) {
+            $this->notifier->tutorAssigned($tutorId, $classSession);
+        }
     }
 
     /**
@@ -77,6 +86,10 @@ class TutorAssignmentService
                 $this->maybeActivateWaitlist($classSession);
             }
         });
+
+        if ($status === 'confirmed') {
+            $this->notifier->tutorConfirmed($tutorId, $classSession);
+        }
     }
 
     /**

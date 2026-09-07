@@ -254,6 +254,9 @@ class AttendanceService
                 'pending_rate' => true,
                 'journal_id' => null,
             ], $pivotExtra));
+
+            // Integrasi ke keuangan: belum ada tarif -> honor belum bisa diposting.
+            app(\App\Services\Notifier::class)->pendingRate($tutor, (string) $date);
         }
     }
 

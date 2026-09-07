@@ -25,6 +25,9 @@ class PaymentReminders extends Command
             $this->error("OVERDUE: Student {$i->enrollment->student->user->name} owes IDR " . number_format($i->amount) . " since {$i->due_date}");
         }
 
+        // Integrasi: kabari admin & keuangan lewat lonceng notifikasi.
+        app(\App\Services\Notifier::class)->overdueInstallments($overdue->count(), (float) $overdue->sum('amount'));
+
         // Upcoming (Due in 3 days)
         $upcoming = Installment::where('due_date', $today->copy()->addDays(3))
             ->whereNull('paid_at')

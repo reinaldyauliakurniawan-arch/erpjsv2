@@ -37,11 +37,14 @@ class CheckExpirations extends Command
             ->where('status', 'active')
             ->get();
 
+        $notifier = app(\App\Services\Notifier::class);
         foreach ($h7 as $e) {
             $this->info("H-7 Expiry Warning: Student {$e->student->user->name} ({$e->program->name}) expires on {$e->expiry_date}");
+            $notifier->enrollmentExpiring($e->student->user->name, $e->program->name, (string) $e->expiry_date, 7);
         }
         foreach ($h3 as $e) {
             $this->warn("H-3 Expiry Warning: Student {$e->student->user->name} ({$e->program->name}) expires on {$e->expiry_date}");
+            $notifier->enrollmentExpiring($e->student->user->name, $e->program->name, (string) $e->expiry_date, 3);
         }
 
         // 2. Auto-recognize revenue for expired enrollments with remaining meetings

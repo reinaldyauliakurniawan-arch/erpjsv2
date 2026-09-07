@@ -22,7 +22,10 @@ use Illuminate\Support\Str;
 
 class EnrollmentService
 {
-    public function __construct(protected AccountingService $accountingService) {}
+    public function __construct(
+        protected AccountingService $accountingService,
+        protected Notifier $notifier,
+    ) {}
 
     public function enroll(array $data): array
     {
@@ -42,7 +45,7 @@ class EnrollmentService
             }
         }
 
-        return DB::transaction(function () use ($data, $program, $classType, $roomNotes) {
+        $result = DB::transaction(function () use ($data, $program, $classType, $roomNotes) {
 
             if (! empty($data['schedules']) && ! empty($data['existing_student_id'])) {
                 foreach ($data['schedules'] as $schedule) {
@@ -288,6 +291,12 @@ class EnrollmentService
 
             return [$enrollment, $roomNotes];
         });
+
+        // Integrasi peran: beri tahu tutor-tutor kelas ada siswa baru.
+        $result[0]->loadMissing('classSession', 'student.user');
+        $this->notifier->newStudentInClass($result[0]);
+
+        return $result;
     }
 
     protected function validateRoomOccupancy($classroomId, $day, $timeBlock, string $incomingClassType): ?string

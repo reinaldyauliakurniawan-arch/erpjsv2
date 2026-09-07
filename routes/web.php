@@ -51,6 +51,11 @@ Route::middleware('auth')->group(function () {
     Route::patch('/profile', [ProfileController::class, 'update'])->name('profile.update');
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
+    // Notifikasi in-app (semua peran) — lonceng topbar
+    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+
     // Admin routes — operasional
     Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function() {
         Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('dashboard');
