@@ -169,7 +169,7 @@
                         var row = cell.getRow().getData();
         return '<a href="' + cell.getValue() + '" class="btn btn-ghost btn-sm" title="Detail"><span class="material-symbols-outlined text-[16px]">open_in_new</span></a>'
              + '<a href="' + row.edit_url + '" class="btn btn-ghost btn-sm" title="Edit"><span class="material-symbols-outlined text-[16px]">edit</span></a>'
-             + '<button aria-label="Hapus" type="button" onclick="deleteEnrollment(\'' + row.delete_url + '\')" class="btn btn-ghost btn-sm text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>';
+             + '<button aria-label="Hapus" type="button" onclick="deleteEnrollment(\'' + row.delete_url + '\', \'' + row.delete_preview_url + '\')" class="btn btn-ghost btn-sm text-error"><span class="material-symbols-outlined text-[16px]">delete</span></button>';
                     },
                 },
             ],
@@ -193,19 +193,35 @@
         document.getElementById('filter-payment').value    = '';
         window.enrollmentTable.setData('{{ route("admin.enrollments.data") }}', {});
     }
-    function deleteEnrollment(url) {
-    if (!confirm('Hapus enrollment ini? Data tidak bisa dikembalikan.')) return;
-    fetch(url, {
-        method: 'DELETE',
-        headers: {
-            'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
-            'Accept': 'application/json',
-        }
-    }).then(r => r.json()).then(data => {
-        if (data.success) window.enrollmentTable.replaceData();
-        else alert('Gagal menghapus enrollment.');
-    }).catch(() => alert('Terjadi kesalahan. Coba lagi.'));
-}
+    function rupiah(n) {
+        return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+    }
+    async function deleteEnrollment(url, previewUrl) {
+        let msg = 'Hapus enrollment ini? Data tidak bisa dikembalikan.';
+        try {
+            const p = await fetch(previewUrl, { headers: { 'Accept': 'application/json' } }).then(r => r.json());
+            msg = 'HAPUS enrollment ' + p.student + ' (' + p.program + ')?\n\n'
+                + 'Yang ikut TERHAPUS PERMANEN:\n'
+                + '• ' + p.journals + ' jurnal (pembayaran, pengakuan pendapatan, penyesuaian)\n'
+                + '• ' + p.installments + ' baris cicilan\n'
+                + '• ' + p.attendance_rows + ' baris kehadiran\n\n'
+                + 'Dampak ke buku besar:\n'
+                + '• Kas berkurang ' + rupiah(p.cash_amount) + '\n'
+                + '• Pendapatan berkurang ' + rupiah(p.revenue_recognized) + '\n\n'
+                + 'Honor tutor TIDAK ikut terhapus. Lanjutkan?';
+        } catch (e) { /* pakai pesan default kalau preview gagal */ }
+        if (!confirm(msg)) return;
+        fetch(url, {
+            method: 'DELETE',
+            headers: {
+                'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]').content,
+                'Accept': 'application/json',
+            }
+        }).then(r => r.json()).then(data => {
+            if (data.success) window.enrollmentTable.replaceData();
+            else alert(data.message || 'Gagal menghapus enrollment.');
+        }).catch(() => alert('Terjadi kesalahan. Coba lagi.'));
+    }
     </script>
 
 </x-app-layout>

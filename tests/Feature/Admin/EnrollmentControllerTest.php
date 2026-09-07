@@ -532,6 +532,46 @@ class EnrollmentControllerTest extends TestCase
         $this->assertEquals($enrollment->student_id, $enrollment->fresh()->student_id);
     }
 
+    #[Test]
+    public function destroy_cascades_related_journals_and_data()
+    {
+        [, $enrollment] = $this->enrollmentWithRecognizedMeeting(20, 3_600_000);
+        Installment::factory()->create(['enrollment_id' => $enrollment->id]);
+
+        $this->assertDatabaseHas('journals', ['reference' => "PAYMENT-ENROLL-{$enrollment->id}"]);
+        $this->assertDatabaseHas('journals', ['type' => 'revenue_recognition', 'enrollment_id' => $enrollment->id]);
+
+        $this->actingAs($this->admin)
+            ->deleteJson(route('admin.enrollments.destroy', $enrollment))
+            ->assertOk()
+            ->assertJson(['success' => true]);
+
+        $this->assertDatabaseMissing('enrollments', ['id' => $enrollment->id]);
+        $this->assertDatabaseMissing('journals', ['enrollment_id' => $enrollment->id]);
+        $this->assertDatabaseMissing('journals', ['reference' => "PAYMENT-ENROLL-{$enrollment->id}"]);
+        $this->assertDatabaseMissing('attendance_student', ['enrollment_id' => $enrollment->id]);
+        $this->assertDatabaseMissing('installments', ['enrollment_id' => $enrollment->id]);
+        // buku besar tetap balance
+        $diff = (float) DB::table('journal_items')->selectRaw('SUM(debit)-SUM(credit) d')->value('d');
+        $this->assertEqualsWithDelta(0, $diff, 0.01);
+    }
+
+    #[Test]
+    public function delete_preview_returns_impact_summary()
+    {
+        [, $enrollment] = $this->enrollmentWithRecognizedMeeting(20, 3_600_000);
+
+        $this->actingAs($this->admin)
+            ->getJson(route('admin.enrollments.delete-preview', $enrollment->id))
+            ->assertOk()
+            ->assertJsonStructure(['student', 'program', 'journals', 'installments', 'attendance_rows', 'cash_amount', 'revenue_recognized'])
+            ->assertJson([
+                'journals' => 2,
+                'cash_amount' => 3_600_000,
+                'revenue_recognized' => 180_000,
+            ]);
+    }
+
     /** @return array{0: Program, 1: Enrollment} */
     private function enrollmentWithRecognizedMeeting(int $meetings, int $total): array
     {

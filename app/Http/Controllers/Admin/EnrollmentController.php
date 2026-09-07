@@ -94,6 +94,7 @@ class EnrollmentController extends Controller
                 'show_url' => route('admin.enrollments.show', $e->id),
                 'edit_url' => route('admin.enrollments.edit', $e->id),
                 'delete_url' => route('admin.enrollments.destroy', $e->id),
+                'delete_preview_url' => route('admin.enrollments.delete-preview', $e->id),
             ]),
         ]);
     }
@@ -651,28 +652,78 @@ class EnrollmentController extends Controller
         return back()->with('success', 'Tutor status updated.');
     }
 
+    /**
+     * Ringkasan apa saja yang akan ikut terhapus (untuk dialog konfirmasi).
+     */
+    public function deletePreview($id)
+    {
+        $this->authorize('delete', Enrollment::findOrFail($id));
+
+        $enrollment = Enrollment::with(['installments', 'student.user', 'program'])->findOrFail($id);
+        $journalIds = $this->relatedJournalIds($enrollment);
+
+        $cash = (float) DB::table('journal_items as ji')
+            ->join('accounts as a', 'a.id', '=', 'ji.account_id')
+            ->whereIn('ji.journal_id', $journalIds)
+            ->whereIn('a.code', [AccountCode::CASH->value, AccountCode::BANK->value])
+            ->selectRaw('SUM(ji.debit) - SUM(ji.credit) v')->value('v');
+
+        $revenue = (float) DB::table('journal_items as ji')
+            ->join('accounts as a', 'a.id', '=', 'ji.account_id')
+            ->whereIn('ji.journal_id', $journalIds)
+            ->where('a.code', AccountCode::REVENUE_TUITION_FEES->value)
+            ->selectRaw('SUM(ji.credit) - SUM(ji.debit) v')->value('v');
+
+        return response()->json([
+            'student' => $enrollment->student->user->name ?? '?',
+            'program' => $enrollment->program->name ?? '?',
+            'journals' => $journalIds->count(),
+            'installments' => $enrollment->installments->count(),
+            'attendance_rows' => DB::table('attendance_student')->where('enrollment_id', $id)->count(),
+            'cash_amount' => round($cash),
+            'revenue_recognized' => round($revenue),
+        ]);
+    }
+
     public function destroy($id)
     {
         $this->authorize('delete', Enrollment::findOrFail($id));
 
-        // TOCTOU fix: previously the journal-exists check ran outside any
-        // transaction. A payment journal could be created between the check
-        // and the delete, leaving an orphaned payment journal for a deleted
-        // enrollment. Lock the enrollment row + re-check inside transaction.
         return DB::transaction(function () use ($id) {
-            $enrollment = Enrollment::lockForUpdate()->findOrFail($id);
+            $enrollment = Enrollment::with('installments')->lockForUpdate()->findOrFail($id);
 
-            $hasJournal = Journal::where('reference', 'PAYMENT-ENROLL-'.$enrollment->id)->exists();
-            if ($hasJournal) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Enrollment ini sudah memiliki jurnal pembayaran dan tidak bisa dihapus. Gunakan Expire jika ingin menonaktifkan.',
-                ], 422);
-            }
+            // Cascade jurnal (keputusan owner 2026-09-07): hapus enrollment =
+            // hapus semua jurnal yang ber-enrollment_id itu + jurnal cicilannya.
+            // journal_items ikut lewat FK cascade; kita eksplisit + lepas dulu
+            // attendance_tutor.journal_id yang (jarang) menunjuk ke sini.
+            $journalIds = $this->relatedJournalIds($enrollment);
+            DB::table('attendance_tutor')->whereIn('journal_id', $journalIds)->update(['journal_id' => null]);
+            DB::table('journal_items')->whereIn('journal_id', $journalIds)->delete();
+            Journal::whereIn('id', $journalIds)->delete();
 
+            // enrollment_tutor / installments / attendance_student -> FK cascade.
+            // schedules / room_bookings -> enrollment_id di-null (milik class session).
             $enrollment->delete();
 
-            return response()->json(['success' => true]);
+            return response()->json([
+                'success' => true,
+                'deleted' => ['journals' => $journalIds->count()],
+            ]);
         });
+    }
+
+    /**
+     * Id semua jurnal yang "terkait" enrollment: yang punya journals.enrollment_id
+     * = enrollment ini, plus jurnal per-cicilan (reference INSTALLMENT-<id>).
+     * Jurnal honor tutor TIDAK termasuk — itu milik sesi kelas.
+     */
+    private function relatedJournalIds(Enrollment $enrollment)
+    {
+        $installmentRefs = $enrollment->installments->pluck('id')
+            ->map(fn ($iid) => 'INSTALLMENT-'.$iid)->all();
+
+        return Journal::where('enrollment_id', $enrollment->id)
+            ->when($installmentRefs, fn ($q) => $q->orWhereIn('reference', $installmentRefs))
+            ->pluck('id');
     }
 }

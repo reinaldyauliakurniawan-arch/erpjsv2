@@ -62,6 +62,7 @@ Route::middleware('auth')->group(function () {
         Route::get('enrollments/sessions/eligible', [EnrollmentController::class, 'eligibleSessions'])->name('enrollments.sessions.eligible');
         Route::get('enrollments/tutors/available', [EnrollmentController::class, 'availableTutors'])->name('enrollments.tutors.available');
         Route::get('/enrollments/data', [EnrollmentController::class, 'data'])->name('enrollments.data');
+        Route::get('/enrollments/{id}/delete-preview', [EnrollmentController::class, 'deletePreview'])->name('enrollments.delete-preview');
         Route::resource('enrollments', EnrollmentController::class);
         Route::resource('classrooms', ClassroomController::class)->except(['create', 'show']);
         Route::resource('tutors', TutorController::class);
