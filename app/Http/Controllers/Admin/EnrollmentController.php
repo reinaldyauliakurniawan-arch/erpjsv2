@@ -166,10 +166,9 @@ class EnrollmentController extends Controller
     public function update(UpdateEnrollmentRequest $request, $id)
     {
         $data = $request->validated();
-        $syncJournal = null;
 
         try {
-            DB::transaction(function () use ($id, $data, &$syncJournal) {
+            DB::transaction(function () use ($id, $data) {
                 $enrollment = Enrollment::with('program')->lockForUpdate()->findOrFail($id);
                 Installment::where('enrollment_id', $id)->lockForUpdate()->get();
 
@@ -235,23 +234,21 @@ class EnrollmentController extends Controller
                 $enrollment->payment_status = $this->derivePaymentStatus($enrollment);
                 $enrollment->save();
 
-                // --- Sinkronisasi buku besar: posting jurnal penyesuaian selisih ---
-                $syncJournal = $this->ledgerService->reconcile(
+                // --- Buku besar ikut ter-edit langsung (tanpa jurnal penyesuaian) ---
+                // Jurnal enrollment dibangun ulang dari data operasional baru:
+                // kas = uang yang benar-benar diterima, revenue recognition di-replay
+                // per pertemuan. Hasilnya selalu sinkron.
+                $this->ledgerService->rebuild(
                     $enrollment->refresh()->load('program'),
-                    $data['enrollment_date'],
-                    'Edit enrollment oleh admin'
+                    $data['enrollment_date']
                 );
             });
         } catch (DomainException $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();
         }
 
-        $msg = 'Enrollment berhasil diperbarui.';
-        if ($syncJournal) {
-            $msg .= " Jurnal penyesuaian {$syncJournal->reference} (Rp ".number_format($syncJournal->total_amount, 0, ',', '.').') diposting agar buku besar sinkron.';
-        }
-
-        return redirect()->route('admin.enrollments.show', $id)->with('success', $msg);
+        return redirect()->route('admin.enrollments.show', $id)
+            ->with('success', 'Enrollment berhasil diperbarui. Buku besar (kas & pengakuan pendapatan) ikut disesuaikan.');
     }
 
     /**

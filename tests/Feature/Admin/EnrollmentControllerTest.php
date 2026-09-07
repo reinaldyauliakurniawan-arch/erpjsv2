@@ -457,12 +457,11 @@ class EnrollmentControllerTest extends TestCase
     }
 
     #[Test]
-    public function update_posts_adjusting_journal_when_rate_changes_after_revenue_recognized()
+    public function update_rebuilds_journals_directly_without_adjusting_entry()
     {
         // Full-upfront 3.6jt, 20 meeting (rate 180rb), 1 pertemuan sudah diakui.
         [, $enrollment] = $this->enrollmentWithRecognizedMeeting(20, 3_600_000);
-        // Program dikoreksi ke 10 meeting -> rate jadi 360rb -> revenue yang
-        // wajib diakui utk 1 pertemuan naik 180rb -> butuh jurnal catch-up.
+        // Program dikoreksi ke 10 meeting -> rate jadi 360rb.
         $newProgram = Program::factory()->create(['total_meetings' => 10]);
 
         $this->actingAs($this->admin)
@@ -481,15 +480,22 @@ class EnrollmentControllerTest extends TestCase
             ->assertSessionHas('success');
 
         $this->assertEquals($newProgram->id, $enrollment->fresh()->program_id);
-        $this->assertDatabaseHas('journals', ['reference' => "ENR-SYNC-{$enrollment->id}-1", 'enrollment_id' => $enrollment->id]);
+        // TIDAK ada jurnal penyesuaian — jurnal REV-REC-nya di-rebuild dg rate baru.
+        $this->assertDatabaseMissing('journals', ['reference' => "ENR-SYNC-{$enrollment->id}-1"]);
+        $this->assertDatabaseHas('journals', [
+            'type' => 'revenue_recognition',
+            'enrollment_id' => $enrollment->id,
+            'total_amount' => 360_000,
+        ]);
         $ledger = app(EnrollmentLedgerService::class);
         $this->assertTrue($ledger->isInSync($enrollment->fresh()->load('program')));
     }
 
     #[Test]
-    public function update_blocks_lowering_amount_below_cash_already_received()
+    public function update_rewrites_cash_journal_when_amount_corrected_downward()
     {
-        // Kas 3.6jt sudah masuk; turunkan total ke 3jt = kelebihan bayar 600rb.
+        // Migrasi salah catat: full-upfront 3.6jt "lunas". Admin koreksi jadi
+        // cicilan — baru bayar 1jt, sisa 2.6jt belum. Jurnal kas harus ikut turun.
         [, $enrollment] = $this->enrollmentWithRecognizedMeeting(20, 3_600_000);
 
         $this->actingAs($this->admin)
@@ -498,15 +504,29 @@ class EnrollmentControllerTest extends TestCase
                 'program_id' => $enrollment->program_id,
                 'enrollment_date' => '2026-07-01',
                 'expiry_date' => '2026-10-01',
-                'payment_method' => 'full upfront',
+                'payment_method' => 'installment',
                 'payment_channel' => 'bank',
-                'total_amount' => 3_000_000,
+                'total_amount' => 3_600_000,
                 'status' => 'active',
                 'remaining_meetings' => 19,
+                'installments' => [
+                    ['amount' => 1_000_000, 'due_date' => '2026-07-01', 'payment_channel' => 'bank', 'paid' => true],
+                    ['amount' => 2_600_000, 'due_date' => '2026-08-01', 'payment_channel' => 'bank'],
+                ],
             ])
-            ->assertSessionHasErrors('error');
+            ->assertRedirect(route('admin.enrollments.show', $enrollment->id))
+            ->assertSessionHas('success');
 
-        $this->assertEquals('3600000.00', $enrollment->fresh()->total_amount);
+        $fresh = $enrollment->fresh()->load('program');
+        $this->assertEquals(PaymentStatus::PARTIAL->value, $fresh->payment_status);
+        // Jurnal kas di-rebuild ke 1jt (bukan 3.6jt).
+        $this->assertDatabaseHas('journals', [
+            'reference' => "PAYMENT-ENROLL-{$enrollment->id}", 'total_amount' => 1_000_000,
+        ]);
+        $ledger = app(EnrollmentLedgerService::class);
+        $this->assertTrue($ledger->isInSync($fresh));
+        $diff = (float) DB::table('journal_items')->selectRaw('SUM(debit)-SUM(credit) d')->value('d');
+        $this->assertEqualsWithDelta(0, $diff, 0.01);
     }
 
     #[Test]

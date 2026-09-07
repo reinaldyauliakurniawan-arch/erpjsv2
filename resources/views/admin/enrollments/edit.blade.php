@@ -76,11 +76,12 @@
             <span class="material-symbols-outlined">sync_alt</span>
             <span>
                 Perubahan nilai keuangan (total biaya, metode, cicilan, program) otomatis
-                menyinkronkan buku besar — sistem memposting <strong>jurnal penyesuaian selisih</strong>
-                saat disimpan. <code>payment_status</code> juga dihitung ulang dari kas yang benar-benar masuk.
+                <strong>membangun ulang jurnal enrollment ini</strong> saat disimpan — jurnal kas &
+                pengakuan pendapatan ikut ter-edit langsung mengikuti data baru, tanpa jurnal penyesuaian.
+                <code>payment_status</code> dihitung ulang dari kas yang benar-benar masuk.
                 @if($revenueRecognized)
                     <br>Enrollment ini sudah punya <strong>{{ $recognizedMeetings }}</strong> pertemuan
-                    yang revenue-nya diakui, jadi <strong>ganti siswa dikunci</strong> (atribusi tak bisa dijurnal-penyesuaian).
+                    yang revenue-nya diakui, jadi <strong>ganti siswa dikunci</strong> (atribusi kehadiran ikut siswa lama).
                 @endif
             </span>
         </div>

@@ -34,7 +34,91 @@ class EnrollmentLedgerService
 {
     private const EPS = '0.01';
 
-    public function __construct(protected AccountingService $accounting) {}
+    public function __construct(
+        protected AccountingService $accounting,
+        protected RevenueRecognitionService $revenueRecognition,
+    ) {}
+
+    /**
+     * Bangun ulang SELURUH jurnal enrollment ini dari data operasional saat ini
+     * — hapus semua jurnal lama (enrollment_id = ini), lalu posting ulang:
+     *   1. jurnal kas sebesar uang yang benar-benar diterima (Dr Kas/Bank / Cr
+     *      Pendapatan Diterima Dimuka),
+     *   2. jurnal revenue recognition per pertemuan (replay tanggal attendance).
+     *
+     * Dipakai saat admin mengoreksi nominal enrollment lewat form edit: jurnalnya
+     * ikut "ter-edit" langsung — TANPA jurnal penyesuaian (ENR-SYNC). Hasil akhir
+     * selalu persis sama dengan posisi target (isInSync() == true).
+     *
+     * Jurnal honor tutor (TUTOR-PAY-*, enrollment_id NULL) tidak disentuh.
+     *
+     * Caller WAJIB sudah lockForUpdate() row Enrollment di transaction yang sama.
+     */
+    public function rebuild(Enrollment $enrollment, ?string $date = null): void
+    {
+        $enrollment->loadMissing('program');
+        $date ??= optional($enrollment->enrollment_date)->toDateString() ?? now()->toDateString();
+
+        // 1. hapus jurnal lama milik enrollment ini
+        $jids = Journal::where('enrollment_id', $enrollment->id)->pluck('id');
+        if ($jids->isNotEmpty()) {
+            DB::table('attendance_tutor')->whereIn('journal_id', $jids)->update(['journal_id' => null]);
+            DB::table('journal_items')->whereIn('journal_id', $jids)->delete();
+            Journal::whereIn('id', $jids)->delete();
+        }
+
+        // 2. jurnal kas = uang yang benar-benar sudah diterima
+        $cash = $this->revenueRecognition->totalPaid($enrollment);
+        if (bccomp($cash, '0', 2) > 0) {
+            $cashCode = $enrollment->payment_channel === 'cash'
+                ? AccountCode::CASH->value
+                : AccountCode::BANK->value;
+            $this->accounting->createJournal(
+                $date,
+                "Pembayaran enrollment #{$enrollment->id}",
+                'PAYMENT-ENROLL-'.$enrollment->id,
+                [
+                    ['account_code' => $cashCode, 'debit' => $cash, 'credit' => 0],
+                    ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => 0, 'credit' => $cash],
+                ],
+                'payment',
+                $enrollment->program_id,
+                $enrollment->id,
+            );
+        }
+
+        // 3. replay revenue recognition per pertemuan (urut tanggal)
+        $meetings = DB::table('attendance_student as ats')
+            ->join('attendance as a', 'a.id', '=', 'ats.attendance_id')
+            ->where('ats.enrollment_id', $enrollment->id)
+            ->orderBy('a.date')->orderBy('a.id')
+            ->get(['a.id as att_id', 'a.date']);
+
+        foreach ($meetings as $i => $m) {
+            $split = $this->revenueRecognition->splitForNextMeeting($enrollment, $i);
+            if (bccomp($split['revenueThisMeeting'], '0', 2) <= 0) {
+                continue;
+            }
+            $items = [];
+            if (bccomp($split['fromDeferredRevenue'], '0', 2) > 0) {
+                $items[] = ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => $split['fromDeferredRevenue'], 'credit' => 0];
+            }
+            if (bccomp($split['fromReceivable'], '0', 2) > 0) {
+                $items[] = ['account_code' => AccountCode::ACCOUNTS_RECEIVABLE->value, 'debit' => $split['fromReceivable'], 'credit' => 0];
+            }
+            $items[] = ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $split['revenueThisMeeting']];
+
+            $this->accounting->createJournal(
+                $m->date instanceof \DateTimeInterface ? $m->date->format('Y-m-d') : (string) $m->date,
+                "Revenue Recognition: enrollment #{$enrollment->id}, Session: {$m->att_id}",
+                "REV-REC-{$m->att_id}-{$enrollment->id}",
+                $items,
+                'revenue_recognition',
+                $enrollment->program_id,
+                $enrollment->id,
+            );
+        }
+    }
 
     /**
      * Posisi yang SEHARUSNYA, dari data operasional saat ini.
