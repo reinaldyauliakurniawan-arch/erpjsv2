@@ -242,10 +242,19 @@ class EnrollmentController extends Controller
                 // Jurnal enrollment dibangun ulang dari data operasional baru:
                 // kas = uang yang benar-benar diterima, revenue recognition di-replay
                 // per pertemuan. Hasilnya selalu sinkron.
-                $this->ledgerService->rebuild(
-                    $enrollment->refresh()->load('program'),
-                    $data['enrollment_date']
-                );
+                $enrollment->refresh()->load('program');
+                $this->ledgerService->rebuild($enrollment, $data['enrollment_date']);
+
+                // Status terminal lewat form edit -> jalankan efek operasionalnya
+                // (sama seperti tombol Expire/Graduate): bersihkan booking ruangan
+                // masa depan + bebaskan slot jam tutor.
+                if (in_array($enrollment->status, ['expired', 'graduate', 'cancelled', 'refunded'], true)) {
+                    RoomBooking::where('enrollment_id', $enrollment->id)
+                        ->where('date', '>', now()->toDateString())->delete();
+                    foreach ($enrollment->tutors()->pluck('tutors.id') as $tid) {
+                        $this->tutorAssignment->recomputeAvailability((int) $tid);
+                    }
+                }
             });
         } catch (DomainException $e) {
             return back()->withErrors(['error' => $e->getMessage()])->withInput();

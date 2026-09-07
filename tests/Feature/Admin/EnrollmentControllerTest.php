@@ -577,6 +577,34 @@ class EnrollmentControllerTest extends TestCase
     }
 
     #[Test]
+    public function setting_status_expired_via_edit_recognizes_forfeited_revenue()
+    {
+        // Full-upfront 2jt bayar penuh, 10 meeting, baru 1 diakui (200rb).
+        [, $enrollment] = $this->enrollmentWithRecognizedMeeting(10, 2_000_000);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.enrollments.update', $enrollment), [
+                'student_id' => $enrollment->student_id,
+                'program_id' => $enrollment->program_id,
+                'enrollment_date' => '2026-07-01',
+                'expiry_date' => '2026-10-01',
+                'payment_method' => 'full upfront',
+                'payment_channel' => 'bank',
+                'total_amount' => 2_000_000,
+                'status' => 'expired',
+                'remaining_meetings' => 9,
+            ])
+            ->assertRedirect(route('admin.enrollments.show', $enrollment->id));
+
+        $fresh = $enrollment->fresh()->load('program');
+        $ledger = app(EnrollmentLedgerService::class);
+        // Semua kas jadi pendapatan (sisa 1.8jt di-forfeit).
+        $this->assertEquals('2000000.00', number_format((float) $ledger->postedPosition($fresh)['revenue'], 2, '.', ''));
+        $this->assertEquals('0.00', number_format((float) $ledger->postedPosition($fresh)['deferred'], 2, '.', ''));
+        $this->assertTrue($ledger->isInSync($fresh));
+    }
+
+    #[Test]
     public function delete_preview_returns_impact_summary()
     {
         [, $enrollment] = $this->enrollmentWithRecognizedMeeting(20, 3_600_000);

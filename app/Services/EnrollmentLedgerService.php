@@ -94,6 +94,7 @@ class EnrollmentLedgerService
             ->orderBy('a.date')->orderBy('a.id')
             ->get(['a.id as att_id', 'a.date']);
 
+        $meetingCount = $meetings->count();
         foreach ($meetings as $i => $m) {
             $split = $this->revenueRecognition->splitForNextMeeting($enrollment, $i);
             if (bccomp($split['revenueThisMeeting'], '0', 2) <= 0) {
@@ -117,6 +118,28 @@ class EnrollmentLedgerService
                 $enrollment->program_id,
                 $enrollment->id,
             );
+        }
+
+        // Enrollment sudah berakhir (expired = hangus / graduate = selesai):
+        // sisa uang yang belum diakui jadi pendapatan (siswa tidak dapat refund
+        // untuk pertemuan yang tidak dipakai).
+        if (in_array($enrollment->status, ['expired', 'graduate'], true)) {
+            $recognized = $this->revenueRecognition->totalRevenueRecognizedSoFar($enrollment, $meetingCount);
+            $forfeit = bcsub($this->revenueRecognition->totalPaid($enrollment), $recognized, 2);
+            if (bccomp($forfeit, self::EPS, 2) > 0) {
+                $this->accounting->createJournal(
+                    $date,
+                    "Pengakuan sisa pendapatan (enrollment #{$enrollment->id} {$enrollment->status})",
+                    "MANUAL-EXPIRY-{$enrollment->id}",
+                    [
+                        ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => $forfeit, 'credit' => 0],
+                        ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $forfeit],
+                    ],
+                    'revenue_recognition',
+                    $enrollment->program_id,
+                    $enrollment->id,
+                );
+            }
         }
     }
 
@@ -143,6 +166,12 @@ class EnrollmentLedgerService
             ? (string) $enrollment->installments()->whereNotNull('paid_at')->sum('amount')
             : $totalAmount;
         $cash = bcadd($cash, '0', 2);
+
+        // Enrollment berakhir (expired/graduate): seluruh kas jadi pendapatan
+        // (sisa pertemuan hangus, tidak di-refund).
+        if (in_array($enrollment->status, ['expired', 'graduate'], true) && bccomp($cash, $revenue, 2) > 0) {
+            $revenue = $cash;
+        }
 
         $deferred = bccomp(bcsub($cash, $revenue, 2), '0', 2) > 0 ? bcsub($cash, $revenue, 2) : '0';
         $receivable = bccomp(bcsub($revenue, $cash, 2), '0', 2) > 0 ? bcsub($revenue, $cash, 2) : '0';
