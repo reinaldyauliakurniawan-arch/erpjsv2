@@ -87,7 +87,11 @@ class FinanceControllerTest extends TestCase
         $this->assertEquals(380_000.0, $res->viewData('profitTotal'));
         $this->assertEquals(300_000.0, $res->viewData('revenueYtd'));
         $this->assertEquals(180_000.0, $res->viewData('profitYtd'));
+        // margin = 380rb / 500rb = 76%
+        $this->assertEquals(76.0, $res->viewData('profitMarginTotal'));
+        $this->assertEquals(60.0, $res->viewData('profitMarginYtd')); // 180rb / 300rb
         $res->assertSee('Ringkasan Laba–Rugi');
+        $res->assertSee('76.0%');
     }
 
     #[Test]

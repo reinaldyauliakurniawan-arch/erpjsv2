@@ -60,6 +60,9 @@ class FinanceController extends Controller
             ->value('v') ?? 0);
 
         $profitTotal = $revenueTotal - $expenseTotal;
+        // Margin laba bersih = laba / pendapatan. Kalau belum ada pendapatan,
+        // null (tak ada margin untuk ditampilkan).
+        $profitMarginTotal = $revenueTotal > 0 ? round($profitTotal / $revenueTotal * 100, 1) : null;
 
         // Sama tapi dibatasi tahun berjalan (year-to-date) untuk perbandingan.
         $ytdStart = now()->startOfYear()->toDateString();
@@ -78,6 +81,7 @@ class FinanceController extends Controller
             ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as v')
             ->value('v') ?? 0);
         $profitYtd = $revenueYtd - $expenseYtd;
+        $profitMarginYtd = $revenueYtd > 0 ? round($profitYtd / $revenueYtd * 100, 1) : null;
 
         $deferredRevenue = DB::table('journal_items')
             ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
@@ -271,8 +275,8 @@ class FinanceController extends Controller
 
         return view('admin.finance.dashboard', compact(
             'revenue', 'expense', 'netProfit',
-            'revenueTotal', 'expenseTotal', 'profitTotal',
-            'revenueYtd', 'expenseYtd', 'profitYtd',
+            'revenueTotal', 'expenseTotal', 'profitTotal', 'profitMarginTotal',
+            'revenueYtd', 'expenseYtd', 'profitYtd', 'profitMarginYtd',
             'cashBalance', 'collectionRate', 'burnRate', 'runwayMonths',
             'deferredRevenue', 'tutorPayable', 'accountsReceivable',
             'privateUnpaidWarnings', 'privateUnpaidWarningsTotal',

@@ -52,8 +52,14 @@
                     <p class="text-body-sm text-on-surface-variant">{{ $profitTotal >= 0 ? 'Laba' : 'Rugi' }}</p>
                     <p class="font-bold leading-tight text-headline-lg break-all {{ $profitTotal >= 0 ? 'text-success' : 'text-error' }}">
                         Rp {{ number_format($profitTotal, 0, ',', '.') }}
+                        @if(!is_null($profitMarginTotal))
+                            <span class="text-body-md font-semibold">({{ number_format($profitMarginTotal, 1) }}%)</span>
+                        @endif
                     </p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Tahun ini: Rp {{ number_format($profitYtd, 0, ',', '.') }}</p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">
+                        Tahun ini: Rp {{ number_format($profitYtd, 0, ',', '.') }}@if(!is_null($profitMarginYtd)) · margin {{ number_format($profitMarginYtd, 1) }}%@endif
+                    </p>
+                    <p class="text-label-lg text-on-surface-variant">Margin = laba ÷ pendapatan</p>
                 </div>
             </div>
         </div>
