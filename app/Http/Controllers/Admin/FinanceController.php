@@ -1,15 +1,19 @@
 <?php
+
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\AccountCode;
+use App\Exceptions\DomainException;
+use App\Exceptions\IdempotencyException;
 use App\Http\Controllers\Controller;
-use App\Models\Journal;
 use App\Models\Account;
 use App\Models\Enrollment;
+use App\Models\Journal;
 use App\Services\AccountingService;
+use App\Services\RevenueRecognitionService;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
-use App\Enums\AccountCode;
-use Carbon\Carbon;
 
 class FinanceController extends Controller
 {
@@ -17,9 +21,9 @@ class FinanceController extends Controller
 
     public function dashboard(Request $request)
     {
-        $month     = $request->input('month', now()->format('Y-m'));
+        $month = $request->input('month', now()->format('Y-m'));
         $startDate = Carbon::parse($month)->startOfMonth()->toDateString();
-        $endDate   = Carbon::parse($month)->endOfMonth()->toDateString();
+        $endDate = Carbon::parse($month)->endOfMonth()->toDateString();
 
         $revenue = DB::table('journal_items')
             ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
@@ -36,6 +40,44 @@ class FinanceController extends Controller
             ->sum('journal_items.debit');
 
         $netProfit = $revenue - $expense;
+
+        // ── RINGKASAN BESAR "per detik ini" — akumulatif seluruh buku besar ──
+        // Pendapatan (akun tipe Revenue, saldo kredit) dan Beban (akun tipe
+        // Expense, saldo debit) sejak awal pembukuan sampai sekarang. Dihitung
+        // live tiap kali halaman dibuka, jadi selalu mencerminkan kondisi
+        // terkini — termasuk pengakuan pendapatan dari absensi & akru honor
+        // yang baru saja diposting.
+        $revenueTotal = (float) (DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->where('accounts.type', 'Revenue')
+            ->selectRaw('SUM(journal_items.credit) - SUM(journal_items.debit) as v')
+            ->value('v') ?? 0);
+
+        $expenseTotal = (float) (DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->where('accounts.type', 'Expense')
+            ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as v')
+            ->value('v') ?? 0);
+
+        $profitTotal = $revenueTotal - $expenseTotal;
+
+        // Sama tapi dibatasi tahun berjalan (year-to-date) untuk perbandingan.
+        $ytdStart = now()->startOfYear()->toDateString();
+        $revenueYtd = (float) (DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+            ->where('accounts.type', 'Revenue')
+            ->where('journals.date', '>=', $ytdStart)
+            ->selectRaw('SUM(journal_items.credit) - SUM(journal_items.debit) as v')
+            ->value('v') ?? 0);
+        $expenseYtd = (float) (DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+            ->where('accounts.type', 'Expense')
+            ->where('journals.date', '>=', $ytdStart)
+            ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as v')
+            ->value('v') ?? 0);
+        $profitYtd = $revenueYtd - $expenseYtd;
 
         $deferredRevenue = DB::table('journal_items')
             ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
@@ -97,14 +139,14 @@ class FinanceController extends Controller
             ->get();
 
         // Chart 1: Revenue vs Expense 12 bulan terakhir
-        $chartMonths  = [];
+        $chartMonths = [];
         $chartRevenue = [];
         $chartExpense = [];
 
         for ($i = 11; $i >= 0; $i--) {
-            $date  = now()->subMonths($i);
+            $date = now()->subMonths($i);
             $start = $date->copy()->startOfMonth()->toDateString();
-            $end   = $date->copy()->endOfMonth()->toDateString();
+            $end = $date->copy()->endOfMonth()->toDateString();
 
             $chartMonths[] = $date->translatedFormat('M Y');
 
@@ -141,7 +183,7 @@ class FinanceController extends Controller
         $collectionRate = $totalTagihan > 0 ? round(($totalTerbayar / $totalTagihan) * 100, 1) : 0;
 
         // Burn Rate: rata-rata expense 3 bulan terakhir
-        $burnRate = collect(range(1, 6))->map(fn($i) => (float) DB::table('journal_items')
+        $burnRate = collect(range(1, 6))->map(fn ($i) => (float) DB::table('journal_items')
             ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
             ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
             ->where('accounts.type', 'Expense')
@@ -163,9 +205,9 @@ class FinanceController extends Controller
             ->get();
 
         $chartProgramLabels = $enrollmentByProgram->pluck('name')->toArray();
-        $chartProgramData   = $enrollmentByProgram->pluck('total')->toArray();
+        $chartProgramData = $enrollmentByProgram->pluck('total')->toArray();
 
-// Chart 3: Revenue per program (bulan ini) — dari journal_items dengan program_id
+        // Chart 3: Revenue per program (bulan ini) — dari journal_items dengan program_id
         $revenueByProgram = DB::table('journal_items')
             ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
             ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
@@ -178,7 +220,7 @@ class FinanceController extends Controller
             ->get();
 
         $chartProgramRevenueLabels = $revenueByProgram->pluck('name')->toArray();
-        $chartProgramRevenueData   = $revenueByProgram->pluck('total')->map(fn($v) => (float)$v)->toArray();
+        $chartProgramRevenueData = $revenueByProgram->pluck('total')->map(fn ($v) => (float) $v)->toArray();
 
         // GAP #14 poin 4: warning pasif untuk private class yang punya
         // Piutang outstanding (siswa belum/kurang bayar padahal sudah
@@ -199,17 +241,17 @@ class FinanceController extends Controller
             })
             ->get();
 
-        $revenueRecognitionService = app(\App\Services\RevenueRecognitionService::class);
+        $revenueRecognitionService = app(RevenueRecognitionService::class);
         $privateUnpaidWarnings = $privateReceivableCandidates
             ->map(function ($enrollment) use ($revenueRecognitionService) {
                 $outstanding = $revenueRecognitionService->outstandingReceivable($enrollment);
 
                 return [
-                    'enrollment_id'   => $enrollment->id,
-                    'student_name'    => $enrollment->student->user->name,
-                    'program_name'    => $enrollment->program->name,
-                    'session_name'    => $enrollment->classSession->name,
-                    'outstanding'     => (float) $outstanding,
+                    'enrollment_id' => $enrollment->id,
+                    'student_name' => $enrollment->student->user->name,
+                    'program_name' => $enrollment->program->name,
+                    'session_name' => $enrollment->classSession->name,
+                    'outstanding' => (float) $outstanding,
                 ];
             })
             ->filter(fn ($row) => $row['outstanding'] > 0)
@@ -229,6 +271,8 @@ class FinanceController extends Controller
 
         return view('admin.finance.dashboard', compact(
             'revenue', 'expense', 'netProfit',
+            'revenueTotal', 'expenseTotal', 'profitTotal',
+            'revenueYtd', 'expenseYtd', 'profitYtd',
             'cashBalance', 'collectionRate', 'burnRate', 'runwayMonths',
             'deferredRevenue', 'tutorPayable', 'accountsReceivable',
             'privateUnpaidWarnings', 'privateUnpaidWarningsTotal',
@@ -244,21 +288,21 @@ class FinanceController extends Controller
     public function chartRevenueByProgram(Request $request)
     {
         $period = $request->input('period', 'year');
-        $from   = $request->input('from');
-        $to     = $request->input('to');
+        $from = $request->input('from');
+        $to = $request->input('to');
 
         if ($period === 'custom' && $from && $to) {
             $start = $from;
-            $end   = $to;
+            $end = $to;
         } elseif ($period === 'month') {
             $start = now()->startOfMonth()->toDateString();
-            $end   = now()->toDateString();
+            $end = now()->toDateString();
         } elseif ($period === 'quarter') {
             $start = now()->startOfQuarter()->toDateString();
-            $end   = now()->toDateString();
+            $end = now()->toDateString();
         } else {
             $start = now()->startOfYear()->toDateString();
-            $end   = now()->toDateString();
+            $end = now()->toDateString();
         }
 
         $data = DB::table('journal_items')
@@ -274,7 +318,7 @@ class FinanceController extends Controller
 
         return response()->json([
             'labels' => $data->pluck('name'),
-            'data'   => $data->pluck('total')->map(fn($v) => (float)$v),
+            'data' => $data->pluck('total')->map(fn ($v) => (float) $v),
         ]);
     }
 
@@ -294,7 +338,7 @@ class FinanceController extends Controller
         // Fix: lock the row INSIDE the transaction, re-check pending_rate,
         // and catch IdempotencyException (it means another concurrent
         // request already assigned the rate — treat as success/idempotent).
-        $reference = 'RATE-AT-' . $attendanceTutorId;
+        $reference = 'RATE-AT-'.$attendanceTutorId;
 
         try {
             DB::transaction(function () use ($attendanceTutorId, $reference, $request) {
@@ -303,13 +347,13 @@ class FinanceController extends Controller
                     ->lockForUpdate()
                     ->first();
 
-                if (!$row || !$row->pending_rate) {
-                    throw new \App\Exceptions\DomainException('Rate sudah di-assign sebelumnya.');
+                if (! $row || ! $row->pending_rate) {
+                    throw new DomainException('Rate sudah di-assign sebelumnya.');
                 }
 
                 $journal = $this->accountingService->createJournal(
                     now()->toDateString(),
-                    'Tutor fee assigned for attendance_tutor #' . $attendanceTutorId,
+                    'Tutor fee assigned for attendance_tutor #'.$attendanceTutorId,
                     $reference,
                     [
                         ['account_code' => AccountCode::EXPENSE_TUTOR_FEE->value, 'debit' => $request->payable_amount, 'credit' => 0],
@@ -320,11 +364,11 @@ class FinanceController extends Controller
 
                 DB::table('attendance_tutor')->where('id', $attendanceTutorId)->update([
                     'payable_amount' => $request->payable_amount,
-                    'pending_rate'   => false,
-                    'journal_id'     => $journal->id,
+                    'pending_rate' => false,
+                    'journal_id' => $journal->id,
                 ]);
             });
-        } catch (\App\Exceptions\IdempotencyException $e) {
+        } catch (IdempotencyException $e) {
             // Another concurrent request already created the journal.
             // The pending_rate flag was either already flipped by that
             // request, or this request should flip it now (the journal
@@ -334,11 +378,11 @@ class FinanceController extends Controller
                 ->where('pending_rate', true)
                 ->update([
                     'payable_amount' => $request->payable_amount,
-                    'pending_rate'   => false,
-                    'journal_id'     => \App\Models\Journal::where('reference', $reference)->value('id'),
+                    'pending_rate' => false,
+                    'journal_id' => Journal::where('reference', $reference)->value('id'),
                 ]);
             // Fall through to success — the rate is assigned.
-        } catch (\App\Exceptions\DomainException $e) {
+        } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
         }
 
@@ -359,6 +403,7 @@ class FinanceController extends Controller
                 if (in_array($row->type, ['Asset', 'Expense'])) {
                     return $row->total_debit - $row->total_credit;
                 }
+
                 return $row->total_credit - $row->total_debit;
             });
 

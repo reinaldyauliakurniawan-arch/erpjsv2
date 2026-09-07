@@ -31,7 +31,34 @@
             </form>
         </div>
 
-        {{-- Row 1: Posisi Kas --}}
+        {{-- RINGKASAN BESAR — posisi laba-rugi "per detik ini" (akumulatif, live) --}}
+        <div class="app-card">
+            <div class="flex items-center justify-between mb-md">
+                <p class="text-body-md font-semibold text-on-surface">Ringkasan Laba–Rugi</p>
+                <span class="text-label-lg text-on-surface-variant">Akumulatif sejak awal pembukuan · dihitung real-time</span>
+            </div>
+            <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
+                <div>
+                    <p class="text-body-sm text-on-surface-variant">Pendapatan</p>
+                    <p class="font-bold text-on-surface leading-tight text-headline-lg break-all">Rp {{ number_format($revenueTotal, 0, ',', '.') }}</p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Tahun ini: Rp {{ number_format($revenueYtd, 0, ',', '.') }}</p>
+                </div>
+                <div>
+                    <p class="text-body-sm text-on-surface-variant">Beban</p>
+                    <p class="font-bold text-on-surface leading-tight text-headline-lg break-all">Rp {{ number_format($expenseTotal, 0, ',', '.') }}</p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Tahun ini: Rp {{ number_format($expenseYtd, 0, ',', '.') }}</p>
+                </div>
+                <div>
+                    <p class="text-body-sm text-on-surface-variant">{{ $profitTotal >= 0 ? 'Laba' : 'Rugi' }}</p>
+                    <p class="font-bold leading-tight text-headline-lg break-all {{ $profitTotal >= 0 ? 'text-success' : 'text-error' }}">
+                        Rp {{ number_format($profitTotal, 0, ',', '.') }}
+                    </p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Tahun ini: Rp {{ number_format($profitYtd, 0, ',', '.') }}</p>
+                </div>
+            </div>
+        </div>
+
+        {{-- Row 1: Posisi Kas + Bulan Ini --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Cash Balance</p>
@@ -39,17 +66,17 @@
                 <p class="text-body-sm text-on-surface-variant mt-xs">Saldo kas & bank saat ini</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Total Revenue</p>
+                <p class="text-body-sm text-on-surface-variant">Pendapatan Bulan Ini</p>
                 <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($revenue, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan dari sesi yang sudah selesai</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Total Expense</p>
+                <p class="text-body-sm text-on-surface-variant">Beban Bulan Ini</p>
                 <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($expense, 0, ',', '.') }}</p>
                 <p class="text-body-sm text-on-surface-variant mt-xs">Biaya yang sudah dikeluarkan bulan ini</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Net Profit</p>
+                <p class="text-body-sm text-on-surface-variant">Laba/Rugi Bulan Ini</p>
                 <p class="font-bold mt-xs leading-tight {{ $netProfit >= 0 ?'text-success' : 'text-error' }} text-headline-md break-all">
                     Rp {{ number_format($netProfit, 0, ',', '.') }}
                 </p>

@@ -2,8 +2,10 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Models\User;
 use App\Models\Account;
+use App\Models\Journal;
+use App\Models\JournalItem;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -60,6 +62,32 @@ class FinanceControllerTest extends TestCase
             ->get(route('finance.chart.revenue-by-program'))
             ->assertOk()
             ->assertJsonStructure([]);
+    }
+
+    #[Test]
+    public function dashboard_shows_cumulative_profit_loss_summary(): void
+    {
+        $acc = fn ($code) => Account::where('code', $code)->first()->id;
+        // Pendapatan diakui total 500rb (200rb tahun lalu + 300rb tahun ini),
+        // beban total 120rb -> laba 380rb.
+        $mk = function (string $ref, string $date, array $items) {
+            $j = Journal::create(['date' => $date, 'description' => $ref, 'reference' => $ref, 'total_amount' => 0, 'type' => 'general']);
+            foreach ($items as $it) {
+                JournalItem::create(['journal_id' => $j->id, 'account_id' => $it[0], 'debit' => $it[1], 'credit' => $it[2]]);
+            }
+        };
+        $mk('REV-OLD', now()->subYear()->toDateString(), [[$acc('2002'), 200_000, 0], [$acc('4101'), 0, 200_000]]);
+        $mk('REV-NEW', now()->toDateString(), [[$acc('2002'), 300_000, 0], [$acc('4101'), 0, 300_000]]);
+        $mk('EXP', now()->toDateString(), [[$acc('5101'), 120_000, 0], [$acc('1002'), 0, 120_000]]);
+
+        $res = $this->actingAs($this->cfo)->get(route('finance.index'))->assertOk();
+
+        $this->assertEquals(500_000.0, $res->viewData('revenueTotal'));
+        $this->assertEquals(120_000.0, $res->viewData('expenseTotal'));
+        $this->assertEquals(380_000.0, $res->viewData('profitTotal'));
+        $this->assertEquals(300_000.0, $res->viewData('revenueYtd'));
+        $this->assertEquals(180_000.0, $res->viewData('profitYtd'));
+        $res->assertSee('Ringkasan Laba–Rugi');
     }
 
     #[Test]
