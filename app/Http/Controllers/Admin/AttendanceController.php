@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
 use App\Models\Tutor;
@@ -34,30 +35,31 @@ class AttendanceController extends Controller
             $query->where('status', $request->status);
         }
         if ($request->filled('tutor')) {
-            $query->whereHas('tutors.user', fn($q) => $q->where('name', 'like', '%' . $request->tutor . '%'));
+            $query->whereHas('tutors.user', fn ($q) => $q->where('name', 'like', '%'.$request->tutor.'%'));
         }
         if ($request->filled('program_type')) {
-            $query->whereHas('classSession.program', fn($q) => $q->where('type', $request->program_type));
+            $query->whereHas('classSession.program', fn ($q) => $q->where('type', $request->program_type));
         }
 
-        // Deteksi duplikat via SQL, tidak perlu load semua data
+        // Deteksi duplikat via SQL (portable — jangan pakai CONCAT yg MySQL-only).
         $duplicateKeys = (clone $query)
-            ->selectRaw('CONCAT(date, "|", time_block, "|", class_session_id) as dup_key')
-            ->groupByRaw('date, time_block, class_session_id')
+            ->select('date', 'time_block', 'class_session_id')
+            ->groupBy('date', 'time_block', 'class_session_id')
             ->havingRaw('COUNT(*) > 1')
-            ->pluck('dup_key')
+            ->get()
+            ->map(fn ($r) => "{$r->date}|{$r->time_block}|{$r->class_session_id}")
             ->toArray();
 
-        $page      = max(1, (int) $request->input('page', 1));
-        $size      = (int) $request->input('size', 50);
+        $page = max(1, (int) $request->input('page', 1));
+        $size = (int) $request->input('size', 50);
         $attendances = $query->paginate($size, ['*'], 'page', $page);
         $totalPages = $attendances->lastPage();
         $attendances = $attendances->getCollection();
 
         $today = Carbon::today()->toDateString();
 
-        $replacedTutorIds = $attendances->flatMap(fn($a) => $a->tutors)
-            ->filter(fn($t) => $t->pivot->is_replacement && $t->pivot->replaced_tutor_id)
+        $replacedTutorIds = $attendances->flatMap(fn ($a) => $a->tutors)
+            ->filter(fn ($t) => $t->pivot->is_replacement && $t->pivot->replaced_tutor_id)
             ->pluck('pivot.replaced_tutor_id')
             ->unique()
             ->values();
@@ -68,62 +70,62 @@ class AttendanceController extends Controller
             ->keyBy('id');
 
         $rows = $attendances->map(function ($att) use ($duplicateKeys, $replacedTutors) {
-            $key           = $att->date . '|' . $att->time_block . '|' . $att->class_session_id;
-            $isDuplicate   = in_array($key, $duplicateKeys);
+            $key = $att->date.'|'.$att->time_block.'|'.$att->class_session_id;
+            $isDuplicate = in_array($key, $duplicateKeys);
             $totalStudents = $att->students->count();
-            $present       = $att->students->where('pivot.is_present', true)->count();
-            $pct           = $totalStudents > 0 ? round($present / $totalStudents * 100) : null;
-            $tutorNames    = $att->tutors->map(fn($t) => $t->user->name)->filter()->values();
+            $present = $att->students->where('pivot.is_present', true)->count();
+            $pct = $totalStudents > 0 ? round($present / $totalStudents * 100) : null;
+            $tutorNames = $att->tutors->map(fn ($t) => $t->user->name)->filter()->values();
 
-$replacements = $att->tutors
-    ->where('pivot.is_replacement', true)
-    ->map(function ($t) use ($replacedTutors) {
-        $replacedTutorName = null;
-        if ($t->pivot->replaced_tutor_id) {
-            $replacedTutorName = $replacedTutors->get($t->pivot->replaced_tutor_id)?->user?->name;
-        }
-        return [
-            'replaced_by'    => $t->user->name,
-            'replaced_tutor' => $replacedTutorName,
-        ];
-    })->values();
+            $replacements = $att->tutors
+                ->where('pivot.is_replacement', true)
+                ->map(function ($t) use ($replacedTutors) {
+                    $replacedTutorName = null;
+                    if ($t->pivot->replaced_tutor_id) {
+                        $replacedTutorName = $replacedTutors->get($t->pivot->replaced_tutor_id)?->user?->name;
+                    }
+
+                    return [
+                        'replaced_by' => $t->user->name,
+                        'replaced_tutor' => $replacedTutorName,
+                    ];
+                })->values();
 
             return [
-                'id'           => $att->id,
-                'date'         => $att->date,
-                'date_label'   => Carbon::parse($att->date)->format('d M Y'),
-                'day_label'    => Carbon::parse($att->date)->format('l'),
-                'time_block'   => $att->time_block,
-                'class_name'   => $att->classSession?->name ?? '—',
+                'id' => $att->id,
+                'date' => $att->date,
+                'date_label' => Carbon::parse($att->date)->format('d M Y'),
+                'day_label' => Carbon::parse($att->date)->format('l'),
+                'time_block' => $att->time_block,
+                'class_name' => $att->classSession?->name ?? '—',
                 'program_name' => $att->classSession?->program?->name ?? '—',
                 'program_type' => $att->classSession?->program?->type ?? '',
-                'tutors'       => $tutorNames,
+                'tutors' => $tutorNames,
                 'replacements' => $replacements,
-                'present'      => $present,
-                'total'        => $totalStudents,
-                'pct'          => $pct,
-                'status'       => $att->status ?? 'pending',
+                'present' => $present,
+                'total' => $totalStudents,
+                'pct' => $pct,
+                'status' => $att->status ?? 'pending',
                 'is_duplicate' => $isDuplicate,
             ];
         });
 
-        $withStudents  = $attendances->filter(fn($a) => $a->students->count() > 0);
+        $withStudents = $attendances->filter(fn ($a) => $a->students->count() > 0);
         $avgAttendance = $withStudents->count() > 0
-            ? round($withStudents->map(fn($a) =>
-                $a->students->where('pivot.is_present', true)->count() / $a->students->count() * 100
-              )->avg(), 1)
+            ? round($withStudents->map(fn ($a) => $a->students->where('pivot.is_present', true)->count() / $a->students->count() * 100
+            )->avg(), 1)
             : 0;
 
         $summary = [
-            'total_sessions'  => $attendances->count(),
-            'active_today'    => $attendances->filter(fn($a) => $a->date === $today)->count(),
-            'avg_attendance'  => $avgAttendance,
+            'total_sessions' => $attendances->count(),
+            'active_today' => $attendances->filter(fn ($a) => $a->date === $today)->count(),
+            'avg_attendance' => $avgAttendance,
             'duplicate_count' => count($duplicateKeys),
         ];
 
         return response()->json([
-            'rows'      => $rows,
-            'summary'   => $summary,
+            'rows' => $rows,
+            'summary' => $summary,
             'last_page' => $totalPages,
         ]);
     }
@@ -152,7 +154,7 @@ $replacements = $att->tutors
         $attendance = Attendance::findOrFail($id);
         try {
             $this->attendanceService->reverseAttendance($attendance);
-        } catch (\App\Exceptions\DomainException $e) {
+        } catch (DomainException $e) {
             return redirect()->route('admin.attendance.index')->withErrors(['error' => $e->getMessage()]);
         }
 
