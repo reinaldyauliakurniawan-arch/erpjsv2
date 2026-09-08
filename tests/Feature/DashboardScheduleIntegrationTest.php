@@ -184,4 +184,38 @@ class DashboardScheduleIntegrationTest extends TestCase
             ->assertSee('pindah ke Stanford')
             ->assertDontSee('Diliburkan'); // bukan libur — cuma pindah
     }
+
+    #[Test]
+    public function admin_enrollment_page_shows_the_same_upcoming_sessions_as_the_student(): void
+    {
+        [$tutorU, $tutor, $cs, $schedule] = $this->classWithTutorToday();
+        $admin = User::factory()->create(['role' => 'admin']);
+        $newRoom = Classroom::factory()->create(['name' => 'Stanford']);
+
+        $studentU = User::factory()->create(['role' => 'student']);
+        $student = Student::factory()->create(['user_id' => $studentU->id]);
+        $enrollment = Enrollment::factory()->create([
+            'student_id' => $student->id,
+            'program_id' => $cs->program_id,
+            'class_session_id' => $cs->id,
+            'status' => 'active',
+        ]);
+
+        RoomBooking::create([
+            'classroom_id' => $schedule->classroom_id, 'schedule_id' => $schedule->id,
+            'date' => now()->toDateString(), 'time_block' => '09:00-10:30',
+            'type' => 'regular_skip', 'tutor_id' => $tutor->id,
+        ]);
+        RoomBooking::create([
+            'classroom_id' => $newRoom->id, 'class_session_id' => $cs->id,
+            'date' => now()->toDateString(), 'time_block' => '09:00-10:30',
+            'type' => 'temporary', 'tutor_id' => $tutor->id,
+        ]);
+
+        // Halaman enrollment admin menampilkan pindah ruang yang sama.
+        $this->actingAs($admin)->get(route('admin.enrollments.show', $enrollment->id))
+            ->assertOk()
+            ->assertSee('Pertemuan Mendatang')
+            ->assertSee('pindah ke Stanford');
+    }
 }

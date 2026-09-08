@@ -414,7 +414,7 @@
                                             <label class="fieldset-legend text-on-surface" x-show="idx === 0">Hari <span class="text-on-surface-variant font-normal">(kosong = waitlist)</span></label>
                                             <select class="select w-full" x-model="slot.day" @change="fetchSessions()">
                                                 <option value="">— Pilih hari —</option>
-                                                @foreach(['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'] as $day)
+                                                @foreach($days as $day)
                                                     <option value="{{ $day }}">{{ $day }}</option>
                                                 @endforeach
                                             </select>
@@ -423,7 +423,7 @@
                                             <label class="fieldset-legend text-on-surface" x-show="idx === 0">Time Block <span class="text-on-surface-variant font-normal">(kosong = waitlist)</span></label>
                                             <select class="select w-full" x-model="slot.time_block" @change="fetchSessions()">
                                                 <option value="">— Pilih time block —</option>
-                                                @foreach(['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'] as $block)
+                                                @foreach($timeBlocks as $block)
                                                     <option value="{{ $block }}">{{ $block }}</option>
                                                 @endforeach
                                             </select>

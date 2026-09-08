@@ -185,12 +185,36 @@
                     <tr class="border-b border-surface-border">
                         <td class="text-on-surface">{{ $schedule->day }}</td>
                         <td class="text-on-surface">{{ $schedule->time_block }}</td>
-                        <td class="text-on-surface">{{ $schedule->classroom->name }}</td>
+                        <td class="text-on-surface">{{ $schedule->classroom?->name ?? '—' }}</td>
                     </tr>
                     @endforeach
                 </tbody>
             </table>
 </div>
+
+            @if(!empty($upcomingSessions))
+            <div>
+                <p class="text-label-lg text-on-surface-variant uppercase tracking-widest mb-xs">Pertemuan Mendatang</p>
+                <ul class="space-y-xs">
+                    @foreach($upcomingSessions as $s)
+                    <li class="flex items-center gap-sm text-body-sm">
+                        <span class="material-symbols-outlined text-[16px]
+                            {{ $s['status'] === 'skipped' ? 'text-warning' : ($s['status'] === 'moved' ? 'text-secondary' : 'text-on-surface-variant') }}">
+                            {{ $s['status'] === 'skipped' ? 'event_busy' : ($s['status'] === 'moved' ? 'moving' : 'event') }}
+                        </span>
+                        <span class="text-on-surface">{{ $s['day'] }}, {{ $s['date_label'] }} · {{ $s['time_block'] }}</span>
+                        @if($s['status'] === 'skipped')
+                            <span class="text-warning font-medium">· diliburkan</span>
+                        @elseif($s['status'] === 'moved')
+                            <span class="text-secondary font-medium">· pindah ke {{ $s['moved_to'] }}</span>
+                        @else
+                            <span class="text-on-surface-variant">· {{ $s['classroom'] }}</span>
+                        @endif
+                    </li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
         </div>
         @endif
 

@@ -115,8 +115,10 @@ class EnrollmentController extends Controller
             ->orderBy('name')
             ->get();
         $students = Student::with('user')->orderBy('created_at', 'desc')->get();
+        $days = \App\Support\ScheduleFormat::DAYS;
+        $timeBlocks = \App\Support\ScheduleFormat::TIME_BLOCKS;
 
-        return view('admin.enrollments.create', compact('programs', 'classrooms', 'classSessions', 'students'));
+        return view('admin.enrollments.create', compact('programs', 'classrooms', 'classSessions', 'students', 'days', 'timeBlocks'));
     }
 
     public function store(StoreEnrollmentRequest $request)
@@ -444,7 +446,13 @@ class EnrollmentController extends Controller
             })
             ->get();
 
-        return view('admin.enrollments.show', compact('enrollment', 'availableTutors'));
+        // Pertemuan mendatang (sadar skip / pindah ruang) — sama persis dengan
+        // yang dilihat siswa di dashboard-nya.
+        $upcomingSessions = $enrollment->status === 'active'
+            ? \App\Support\UpcomingSessions::forEnrollment($enrollment, limit: 5)
+            : [];
+
+        return view('admin.enrollments.show', compact('enrollment', 'availableTutors', 'upcomingSessions'));
     }
 
     public function markInstallmentPaid(Request $request, $enrollmentId, $installmentId)

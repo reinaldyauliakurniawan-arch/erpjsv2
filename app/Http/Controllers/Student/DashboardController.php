@@ -2,14 +2,13 @@
 
 namespace App\Http\Controllers\Student;
 
-use App\Enums\DayOfWeek;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Enrollment;
-use App\Models\RoomBooking;
+use App\Support\UpcomingSessions;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
-use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
@@ -53,73 +52,36 @@ class DashboardController extends Controller
             ->get();
 
         // ── Sesi berikutnya per enrollment (sadar "skip" & "pindah ruang") ─
-        // Kalau tutor/admin men-skip / memindahkan satu pertemuan, dashboard
-        // siswa ikut menyesuaikan — jadi jadwal yang dilihat siswa selalu
-        // cocok dengan yang dilihat tutor & admin.
+        // Pakai App\Support\UpcomingSessions supaya identik dengan yang dilihat
+        // admin di halaman enrollment, tutor di jadwal, dsb.
         $today = Carbon::today();
-        $sessionIds = $enrollments->pluck('class_session_id')->filter()->unique();
-
-        $bookings = RoomBooking::with('classroom')
-            ->whereDate('date', '>=', $today->toDateString())
-            ->when($sessionIds->isNotEmpty(), fn ($q) => $q->where(fn ($w) => $w
-                ->whereIn('class_session_id', $sessionIds)
-                ->orWhereIn('schedule_id', fn ($s) => $s->select('id')->from('schedules')->whereIn('class_session_id', $sessionIds))
-                ->orWhereIn('classroom_id', fn ($s) => $s->select('classroom_id')->from('schedules')->whereIn('class_session_id', $sessionIds))))
-            ->get();
-
-        $onDate = fn ($b, Carbon $date) => Carbon::parse($b->date)->toDateString() === $date->toDateString();
-
         $nextSessions = [];
         foreach ($enrollments as $enrollment) {
             $nextSessions[$enrollment->id] = null;
-            if ($enrollment->status !== 'active' || $enrollment->schedules->isEmpty()) {
+            if ($enrollment->status !== 'active') {
                 continue;
             }
 
+            $upcoming = UpcomingSessions::forEnrollment($enrollment, limit: 6);
             $skippedBefore = null;
-            for ($i = 0; $i <= 21; $i++) {
-                $date = $today->copy()->addDays($i);
-                $dayName = DayOfWeek::fromDate($date)->value;
-                $slot = $enrollment->schedules->firstWhere('day', $dayName);
-                if (! $slot) {
+            foreach ($upcoming as $s) {
+                if ($s['status'] === 'skipped') {
+                    $skippedBefore ??= [
+                        'day' => $s['day'],
+                        'date' => $s['date_label'],
+                    ];
+
                     continue;
                 }
-
-                $entry = [
-                    'day' => $slot->day,
-                    'time_block' => $slot->time_block,
-                    'classroom' => $slot->classroom?->name ?? '—',
-                    'date' => $date->isoFormat('D MMM YYYY'),
-                    'is_today' => $i === 0,
-                    'moved_to' => null,
+                $nextSessions[$enrollment->id] = [
+                    'day' => $s['day'],
+                    'time_block' => $s['time_block'],
+                    'classroom' => $s['classroom'],
+                    'date' => $s['date_label'],
+                    'is_today' => $s['is_today'],
+                    'moved_to' => $s['status'] === 'moved' ? $s['moved_to'] : null,
+                    'skipped_before' => $skippedBefore,
                 ];
-
-                // Pindah ruang: booking sementara untuk class session ini di
-                // tanggal & jam yang sama -> pertemuan tetap jalan, di ruang lain.
-                $move = $bookings->first(fn ($b) => $b->type === 'temporary'
-                    && (int) $b->class_session_id === (int) $enrollment->class_session_id
-                    && $b->time_block === $slot->time_block
-                    && $onDate($b, $date));
-                if ($move) {
-                    $entry['moved_to'] = $move->classroom?->name ?? '—';
-                    $entry['skipped_before'] = $skippedBefore;
-                    $nextSessions[$enrollment->id] = $entry;
-                    break;
-                }
-
-                // Skip: pertemuan di ruang aslinya ditiadakan (tanpa pengganti).
-                $skipped = $bookings->contains(fn ($b) => $b->type === 'regular_skip'
-                    && (int) $b->classroom_id === (int) $slot->classroom_id
-                    && $b->time_block === $slot->time_block
-                    && $onDate($b, $date));
-                if ($skipped) {
-                    $skippedBefore ??= $entry;
-
-                    continue;
-                }
-
-                $entry['skipped_before'] = $skippedBefore;
-                $nextSessions[$enrollment->id] = $entry;
                 break;
             }
         }
