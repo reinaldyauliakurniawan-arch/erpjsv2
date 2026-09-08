@@ -201,6 +201,11 @@ Route::middleware('auth')->group(function () {
 
         // RAB Realisasi
         Route::get('/rab-realisasi', [RabRealisasiController::class, 'index'])->name('rab-realisasi.index');
+
+        // Tracker RAB (versi bulanan — meniru spreadsheet CFO)
+        Route::get('/rab-tracker', [\App\Http\Controllers\Admin\RabTrackerController::class, 'index'])->name('rab-tracker.index');
+        Route::post('/rab-tracker/actuals', [\App\Http\Controllers\Admin\RabTrackerController::class, 'saveActuals'])->name('rab-tracker.actuals');
+        Route::post('/rab-tracker/sync-journals', [\App\Http\Controllers\Admin\RabTrackerController::class, 'syncFromJournals'])->name('rab-tracker.sync-journals');
     });
 
     // Tutor routes

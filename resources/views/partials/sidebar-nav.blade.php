@@ -61,6 +61,7 @@
             <p class="app-sidebar__section-label">Perencanaan</p>
             <x-sidebar-link href="{{ route('finance.rab.index') }}" :active="request()->routeIs('finance.rab.*')" icon="event_note">RAB</x-sidebar-link>
             <x-sidebar-link href="{{ route('finance.rab-realisasi.index') }}" :active="request()->routeIs('finance.rab-realisasi.*')" icon="monitoring">Realisasi RAB</x-sidebar-link>
+            <x-sidebar-link href="{{ route('finance.rab-tracker.index') }}" :active="request()->routeIs('finance.rab-tracker.*')" icon="table_chart">Tracker RAB</x-sidebar-link>
         </div>
         <div class="pt-sm">
             <p class="app-sidebar__section-label">Master &amp; Operasional</p>

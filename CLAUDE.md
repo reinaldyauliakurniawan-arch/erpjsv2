@@ -107,6 +107,19 @@ contended rows.
 Chart of accounts: `App\Enums\AccountCode` (well-known codes) + `ChartOfAccountsSeeder`.
 Adjusting journals have their own models/controller and a monthly scheduled generator.
 
+## Budgeting (RAB) — CFO only
+
+All under `/finance/*` (`role:cfo`). `rabs` holds the annual budget per expense
+account (quarterly split, `total` = `q1+q2+q3+q4` stored column, plus `rab_prev`).
+Three pages: **RAB** (`RabController`, edit the budget), **Realisasi RAB**
+(`RabRealisasiController`, quarterly budget-vs-actual derived from `journal_items`),
+and **Tracker RAB** (`RabTrackerController`, monthly budget-vs-actual from
+`rab_monthly_actuals` — a CFO-maintained manual store for the cash→accrual
+transition, with a "sync from journals" action and a manual `__REVENUE__` row for
+the monthly P/L). The CFO's real spreadsheet lives at
+`_migrasi/sumber/Dashboard FInance & Admin.xlsx` (gitignored); its data was loaded
+via `_migrasi/import_rab_tracker.php` (also gitignored — never commit `_migrasi/`).
+
 ## Idempotency for money-mutating endpoints
 
 The `idempotent` middleware alias (`IdempotencyMiddleware`) is applied to routes that move

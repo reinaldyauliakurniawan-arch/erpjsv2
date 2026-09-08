@@ -9,8 +9,10 @@ class Rab extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['year', 'division', 'account_name', 'account_code', 'activity', 'q1', 'q2', 'q3', 'q4'];
+    protected $fillable = ['year', 'division', 'account_name', 'account_code', 'activity', 'rab_prev', 'q1', 'q2', 'q3', 'q4'];
+
     protected $casts = [
+        'rab_prev' => 'integer',
         'q1' => 'integer', 'q2' => 'integer',
         'q3' => 'integer', 'q4' => 'integer',
         'total' => 'integer',
