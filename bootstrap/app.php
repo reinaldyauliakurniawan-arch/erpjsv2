@@ -40,6 +40,18 @@ return Application::configure(basePath: dirname(__DIR__))
             return redirect()->route('login')->withErrors(['email' => 'Sesi telah berakhir. Silakan login kembali.']);
         });
 
+        // AuthenticationException: belum login → 401 JSON untuk XHR/API
+        // (bentuk error konsisten dengan RoleMiddleware: {error, message}).
+        // Request web biasa tetap di-redirect ke halaman login oleh framework.
+        $exceptions->render(function (\Illuminate\Auth\AuthenticationException $e, \Illuminate\Http\Request $request) {
+            if ($request->expectsJson()) {
+                return response()->json([
+                    'error'   => 'unauthenticated',
+                    'message' => 'Authentication required.',
+                ], 401);
+            }
+        });
+
         // DomainException: business rule violation → 422 with message
         $exceptions->render(function (\App\Exceptions\DomainException $e, \Illuminate\Http\Request $request) {
             if ($request->expectsJson()) {

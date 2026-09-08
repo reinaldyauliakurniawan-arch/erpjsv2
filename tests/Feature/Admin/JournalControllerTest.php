@@ -2,10 +2,11 @@
 
 namespace Tests\Feature\Admin;
 
+use App\Enums\AccountCode;
 use App\Models\Account;
 use App\Models\Journal;
-use App\Models\JournalItem;
 use App\Models\User;
+use Database\Seeders\ChartOfAccountsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -14,15 +15,20 @@ class JournalControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $admin;
+    private User $cfo;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
 
-        Account::factory()->create(['code' => '1101', 'name' => 'Cash/Bank']);
-        Account::factory()->create(['code' => '2201', 'name' => 'Deferred Revenue']);
+        // Buku besar & jurnal manual ada di area /finance — hanya untuk CFO.
+        $this->cfo = User::factory()->create(['role' => 'cfo']);
+        $this->seed(ChartOfAccountsSeeder::class);
+    }
+
+    private function accountId(AccountCode $code): int
+    {
+        return Account::where('code', $code->value)->value('id');
     }
 
     // =========================================================
@@ -30,18 +36,18 @@ class JournalControllerTest extends TestCase
     // =========================================================
 
     #[Test]
-    public function admin_can_view_journal_list()
+    public function cfo_can_view_journal_list()
     {
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->get(route('finance.journals.index'))
             ->assertOk()
             ->assertViewIs('admin.journals.index');
     }
 
     #[Test]
-    public function admin_can_view_journal_create_form()
+    public function cfo_can_view_journal_create_form()
     {
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->get(route('finance.journals.create'))
             ->assertOk();
     }
@@ -51,16 +57,16 @@ class JournalControllerTest extends TestCase
     // =========================================================
 
     #[Test]
-    public function admin_can_create_manual_journal_entry()
+    public function cfo_can_create_manual_journal_entry()
     {
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->post(route('finance.journals.store'), [
-                'date'        => '2025-01-15',
+                'date' => '2025-01-15',
                 'description' => 'Manual adjustment',
-                'reference'   => 'MAN-001',
-                'items'       => [
-                    ['account_code' => '1101', 'debit' => 100_000, 'credit' => 0],
-                    ['account_code' => '2201', 'debit' => 0,       'credit' => 100_000],
+                'reference' => 'MAN-001',
+                'items' => [
+                    ['account_id' => $this->accountId(AccountCode::CASH), 'debit' => 100_000, 'credit' => 0],
+                    ['account_id' => $this->accountId(AccountCode::DEFERRED_REVENUE), 'debit' => 0, 'credit' => 100_000],
                 ],
             ])
             ->assertRedirect()
@@ -72,17 +78,20 @@ class JournalControllerTest extends TestCase
     #[Test]
     public function store_journal_fails_when_debit_not_equal_credit()
     {
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->post(route('finance.journals.store'), [
-                'date'        => '2025-01-15',
+                'date' => '2025-01-15',
                 'description' => 'Unbalanced',
-                'reference'   => 'UNBAL-001',
-                'items'       => [
-                    ['account_code' => '1101', 'debit' => 100_000, 'credit' => 0],
-                    ['account_code' => '2201', 'debit' => 0,       'credit' => 50_000],
+                'reference' => 'UNBAL-001',
+                'items' => [
+                    ['account_id' => $this->accountId(AccountCode::CASH), 'debit' => 100_000, 'credit' => 0],
+                    ['account_id' => $this->accountId(AccountCode::DEFERRED_REVENUE), 'debit' => 0, 'credit' => 50_000],
                 ],
             ])
-            ->assertSessionHasErrors();
+            ->assertRedirect()
+            ->assertSessionHas('error');
+
+        $this->assertDatabaseMissing('journals', ['reference' => 'UNBAL-001']);
     }
 
     // =========================================================
@@ -90,11 +99,11 @@ class JournalControllerTest extends TestCase
     // =========================================================
 
     #[Test]
-    public function admin_can_view_journal_detail()
+    public function cfo_can_view_journal_detail()
     {
         $journal = Journal::factory()->withItems()->create();
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->get(route('finance.journals.show', $journal))
             ->assertOk()
             ->assertViewIs('admin.journals.show');
@@ -105,16 +114,16 @@ class JournalControllerTest extends TestCase
     // =========================================================
 
     #[Test]
-    public function admin_can_reverse_a_journal()
+    public function cfo_can_reverse_a_journal()
     {
         $journal = Journal::factory()->withItems()->create(['reference' => 'ORIG-001']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->post(route('finance.journals.reverse', $journal))
             ->assertRedirect()
             ->assertSessionHas('success');
 
-        // Reversal journal harus ada dengan reference yang mencerminkan reversal
+        // Jurnal balik harus ada dengan reference REV-<asli>
         $this->assertDatabaseHas('journals', ['reference' => 'REV-ORIG-001']);
     }
 
@@ -123,13 +132,14 @@ class JournalControllerTest extends TestCase
     {
         $journal = Journal::factory()->withItems()->create(['reference' => 'ORIG-DUP']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->post(route('finance.journals.reverse', $journal));
 
         // Coba reverse lagi
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->post(route('finance.journals.reverse', $journal))
-            ->assertSessionHasErrors('error');
+            ->assertRedirect()
+            ->assertSessionHas('error');
     }
 
     #[Test]
@@ -137,5 +147,15 @@ class JournalControllerTest extends TestCase
     {
         $this->get(route('finance.journals.index'))
             ->assertRedirect(route('login'));
+    }
+
+    #[Test]
+    public function admin_cannot_access_finance_journals()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('finance.journals.index'))
+            ->assertForbidden();
     }
 }

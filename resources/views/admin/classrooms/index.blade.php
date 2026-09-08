@@ -218,10 +218,10 @@
                     @error('name')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
                 <div class="fieldset">
-                    <label class="fieldset-legend text-on-surface">Kapasitas <span class="text-on-surface-variant font-normal">(opsional)</span></label>
+                    <label class="fieldset-legend text-on-surface">Kapasitas</label>
                     <input type="number" name="capacity" value="{{ old('capacity') }}"
                         class="input w-full @error('capacity') input-error @enderror"
-                        placeholder="10" min="1" />
+                        placeholder="10" min="1" required />
                     @error('capacity')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
                 <div class="fieldset">
@@ -256,9 +256,9 @@
                         class="input w-full" placeholder="Ruang A" required />
                 </div>
                 <div class="fieldset">
-                    <label class="fieldset-legend text-on-surface">Kapasitas <span class="text-on-surface-variant font-normal">(opsional)</span></label>
+                    <label class="fieldset-legend text-on-surface">Kapasitas</label>
                     <input type="number" name="capacity" id="edit-capacity"
-                        class="input w-full" placeholder="10" min="1" />
+                        class="input w-full" placeholder="10" min="1" required />
                 </div>
                 <div class="fieldset">
                     <label class="fieldset-legend text-on-surface">Lokasi</label>

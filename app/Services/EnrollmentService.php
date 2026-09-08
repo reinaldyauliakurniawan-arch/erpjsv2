@@ -225,7 +225,7 @@ class EnrollmentService
 
             $firstInstallment = null;
             if ($data['payment_method'] === 'installment') {
-                foreach ($data['installments'] as $index => $inst) {
+                foreach ($data['installments'] ?? [] as $index => $inst) {
                     $createdInstallment = Installment::create([
                         'enrollment_id' => $enrollment->id,
                         'amount' => $inst['amount'],
@@ -260,7 +260,9 @@ class EnrollmentService
             if ($data['payment_method'] === 'full upfront') {
                 $paymentAmount = $data['total_amount'] ?? $program->price;
             } elseif ($data['payment_method'] === 'installment') {
-                $paymentAmount = collect($data['installments'])->first()['amount'];
+                // Cicilan pertama = DP saat enrollment. Kalau daftar cicilan
+                // kosong (belum ada pembayaran), DP dianggap nol.
+                $paymentAmount = collect($data['installments'] ?? [])->first()['amount'] ?? 0;
             }
 
             if ($paymentAmount > 0) {

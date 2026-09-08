@@ -30,9 +30,8 @@ class EnrollmentServiceTest extends TestCase
         parent::setUp();
         $this->service = app(EnrollmentService::class);
 
-        // Akun wajib untuk accounting
-        Account::factory()->create(['code' => '1101', 'name' => 'Cash/Bank']);
-        Account::factory()->create(['code' => '2201', 'name' => 'Deferred Revenue']);
+        // Bagan akun lengkap (kode 1001/1002/2002/... sesuai AccountCode).
+        $this->seed(\Database\Seeders\ChartOfAccountsSeeder::class);
     }
 
     // =========================================================
@@ -85,6 +84,17 @@ class EnrollmentServiceTest extends TestCase
         ], $overrides);
     }
 
+    /**
+     * EnrollmentService::enroll() mengembalikan tuple [Enrollment, catatan ruangan].
+     * Helper ini mengambil model Enrollment-nya saja supaya test tetap ringkas.
+     */
+    private function enroll(array $data): Enrollment
+    {
+        [$enrollment] = $this->service->enroll($data);
+
+        return $enrollment;
+    }
+
     // =========================================================
     //  PRIVATE CLASS — HAPPY PATH
     // =========================================================
@@ -95,7 +105,7 @@ class EnrollmentServiceTest extends TestCase
         $program = $this->makePrivateProgram();
         $tutor   = Tutor::factory()->withUser()->create();
 
-        $enrollment = $this->service->enroll(array_merge(
+        $enrollment = $this->enroll(array_merge(
             $this->baseData($program),
             ['tutor_ids' => [$tutor->id]]
         ));
@@ -116,7 +126,7 @@ class EnrollmentServiceTest extends TestCase
     {
         $program = $this->makePrivateProgram();
 
-        $enrollment = $this->service->enroll($this->baseData($program));
+        $enrollment = $this->enroll($this->baseData($program));
 
         $session = ClassSession::find($enrollment->class_session_id);
         $this->assertNotNull($session);
@@ -129,7 +139,7 @@ class EnrollmentServiceTest extends TestCase
         $program = $this->makePrivateProgram();
         $tutor   = Tutor::factory()->withUser(['name' => 'Budi Santoso'])->create();
 
-        $enrollment = $this->service->enroll(array_merge(
+        $enrollment = $this->enroll(array_merge(
             $this->baseData($program),
             ['tutor_ids' => [$tutor->id]]
         ));
@@ -144,7 +154,7 @@ class EnrollmentServiceTest extends TestCase
         $program = $this->makePrivateProgram();
         $tutor   = Tutor::factory()->withUser()->create();
 
-        $enrollment = $this->service->enroll(array_merge(
+        $enrollment = $this->enroll(array_merge(
             $this->baseData($program),
             ['tutor_ids' => [$tutor->id]]
         ));
@@ -161,7 +171,7 @@ class EnrollmentServiceTest extends TestCase
     {
         $program = $this->makePrivateProgram(['price' => 1_500_000]);
 
-        $this->service->enroll($this->baseData($program));
+        $this->enroll($this->baseData($program));
 
         $this->assertDatabaseHas('journals', ['total_amount' => 1_500_000]);
     }
@@ -177,7 +187,7 @@ class EnrollmentServiceTest extends TestCase
             'installments'   => [], // tidak ada cicilan awal
         ]);
 
-        $this->service->enroll($data);
+        $this->enroll($data);
 
         $this->assertDatabaseCount('journals', 0);
     }
@@ -190,7 +200,7 @@ class EnrollmentServiceTest extends TestCase
     public function group_enrollment_sets_waitlist_when_below_min_quota()
     {
         $program  = $this->makeGroupProgram(['min_quota' => 3]);
-        $session  = ClassSession::factory()->create(['program_id' => $program->id, 'status' => 'pending']);
+        $session  = ClassSession::factory()->create(['program_id' => $program->id, 'status' => 'inactive']);
         $classroom = $this->makeClassroom(10);
 
         $data = array_merge($this->baseData($program), [
@@ -200,7 +210,7 @@ class EnrollmentServiceTest extends TestCase
             ],
         ]);
 
-        $enrollment = $this->service->enroll($data);
+        $enrollment = $this->enroll($data);
 
         $this->assertEquals('waitlist', $enrollment->status);
     }
@@ -209,8 +219,13 @@ class EnrollmentServiceTest extends TestCase
     public function group_enrollment_activates_all_waitlist_when_quota_reached()
     {
         $program   = $this->makeGroupProgram(['min_quota' => 2]);
-        $session   = ClassSession::factory()->create(['program_id' => $program->id, 'status' => 'pending']);
+        $session   = ClassSession::factory()->create(['program_id' => $program->id, 'status' => 'inactive']);
         $classroom = $this->makeClassroom(10);
+
+        // Sesi sudah punya tutor terkonfirmasi — syarat kedua supaya kelas
+        // bisa aktif begitu kuota tercapai.
+        $tutor = Tutor::factory()->withUser()->create();
+        $session->tutors()->attach($tutor->id, ['status' => 'confirmed']);
 
         // Enrollment pertama → waitlist
         $waitlisted = Enrollment::factory()->create([
@@ -227,18 +242,24 @@ class EnrollmentServiceTest extends TestCase
             ],
         ]);
 
-        $this->service->enroll($data);
+        $this->enroll($data);
 
         $this->assertEquals('active', $waitlisted->fresh()->status);
     }
 
     #[Test]
-    public function group_enrollment_throws_when_class_session_not_provided()
+    public function group_enrollment_auto_creates_session_when_not_provided()
     {
-        $this->expectException(DomainException::class);
-
+        // Perilaku sekarang: kalau admin tidak memilih sesi kelas untuk program
+        // group/semi-private, service otomatis membuat sesi baru dari jadwal
+        // (hari + jam) yang diisi, sama seperti kelas privat. Enrollment masuk
+        // sebagai waitlist sampai kuota + tutor terpenuhi.
         $program = $this->makeGroupProgram();
-        $this->service->enroll($this->baseData($program)); // tidak ada class_session_id
+
+        $enrollment = $this->enroll($this->baseData($program)); // tanpa class_session_id
+
+        $this->assertNotNull($enrollment->class_session_id);
+        $this->assertEquals('waitlist', $enrollment->status);
     }
 
     // =========================================================
@@ -266,7 +287,7 @@ class EnrollmentServiceTest extends TestCase
             ],
         ]);
 
-        $this->service->enroll($data);
+        $this->enroll($data);
     }
 
     // =========================================================
@@ -286,7 +307,7 @@ class EnrollmentServiceTest extends TestCase
             ],
         ]);
 
-        $enrollment = $this->service->enroll($data);
+        $enrollment = $this->enroll($data);
 
         $this->assertCount(2, $enrollment->installments);
         $this->assertDatabaseHas('installments', ['enrollment_id' => $enrollment->id, 'amount' => 750_000]);
@@ -305,7 +326,7 @@ class EnrollmentServiceTest extends TestCase
             ],
         ]);
 
-        $this->service->enroll($data);
+        $this->enroll($data);
 
         // Journal dibuat hanya untuk cicilan pertama
         $this->assertDatabaseHas('journals', ['total_amount' => 500_000]);
@@ -329,7 +350,7 @@ class EnrollmentServiceTest extends TestCase
             ],
         ]);
 
-        $enrollment = $this->service->enroll($data);
+        $enrollment = $this->enroll($data);
 
         $this->assertCount(2, $enrollment->schedules);
     }
@@ -349,7 +370,7 @@ class EnrollmentServiceTest extends TestCase
         ]);
         unset($data['new_student']);
 
-        $enrollment = $this->service->enroll($data);
+        $enrollment = $this->enroll($data);
 
         $this->assertEquals($student->id, $enrollment->student_id);
         // No new user should be created with email 'andi@example.com'
@@ -376,7 +397,7 @@ class EnrollmentServiceTest extends TestCase
             ],
         ]);
 
-        $this->service->enroll($data);
+        $this->enroll($data);
 
         $this->assertEquals('occupied', $availability->fresh()->status);
     }
@@ -385,13 +406,12 @@ class EnrollmentServiceTest extends TestCase
     public function it_creates_journal_with_bank_account_when_payment_channel_is_bank()
     {
         $program = $this->makePrivateProgram(['price' => 1_000_000]);
-        Account::factory()->create(['code' => AccountCode::BANK->value, 'name' => 'Bank']);
 
         $data = $this->baseData($program, [
             'payment_channel' => 'bank',
         ]);
 
-        $this->service->enroll($data);
+        $this->enroll($data);
 
         // Journal should exist with total 1_000_000
         $this->assertDatabaseHas('journals', ['total_amount' => 1_000_000]);
@@ -424,7 +444,7 @@ class EnrollmentServiceTest extends TestCase
             ],
         ]);
 
-        $this->service->enroll($data);
+        $this->enroll($data);
     }
 
     #[Test]
@@ -434,7 +454,7 @@ class EnrollmentServiceTest extends TestCase
         $tutor1  = Tutor::factory()->withUser()->create();
         $tutor2  = Tutor::factory()->withUser()->create();
 
-        $enrollment = $this->service->enroll(array_merge(
+        $enrollment = $this->enroll(array_merge(
             $this->baseData($program),
             ['tutor_ids' => [$tutor1->id, $tutor2->id]]
         ));

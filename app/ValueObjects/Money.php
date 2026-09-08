@@ -42,8 +42,12 @@ final class Money implements JsonSerializable, Stringable
     public function __construct(
         public readonly int $minorUnits,
         public readonly string $currency = self::DEFAULT_CURRENCY,
+        bool $allowNegative = false,
     ) {
-        if ($minorUnits < 0) {
+        // Nilai uang publik tidak boleh negatif. Hasil antara yang negatif
+        // (mis. selisih debit-kredit saat cek keseimbangan) hanya boleh lahir
+        // lewat subtract(), yang meneruskan $allowNegative = true.
+        if (! $allowNegative && $minorUnits < 0) {
             throw new InvalidArgumentException('Money amount cannot be negative. Use subtract() to compute debits/credits explicitly.');
         }
         if ($currency === '' || $currency === '0') {
@@ -107,7 +111,10 @@ final class Money implements JsonSerializable, Stringable
         // Strip any remaining non-numeric chars except dot and minus
         $normalized = preg_replace('/[^0-9.\-]/', '', $normalized);
 
-        if ($normalized === '' || $normalized === '-' || $normalized === '.') {
+        // Setelah dinormalkan, string harus benar-benar berupa angka:
+        // "-123", "123", "123.45", ".45". Selain itu (mis. "not-a-number"
+        // yang menyisakan "--", atau string kosong) dianggap sampah.
+        if (! preg_match('/^-?(\d+(\.\d+)?|\.\d+)$/', $normalized)) {
             throw new InvalidArgumentException("Cannot parse '{$amount}' as Money.");
         }
 
@@ -132,7 +139,7 @@ final class Money implements JsonSerializable, Stringable
     public function subtract(self $other): self
     {
         $this->assertSameCurrency($other);
-        return new self($this->minorUnits - $other->minorUnits, $this->currency);
+        return new self($this->minorUnits - $other->minorUnits, $this->currency, allowNegative: true);
     }
 
     public function multiply(int|float $factor): self

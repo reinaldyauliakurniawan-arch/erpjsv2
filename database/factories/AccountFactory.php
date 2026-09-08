@@ -11,7 +11,9 @@ class AccountFactory extends Factory
         return [
             'code' => fake()->numerify('####'),
             'name' => fake()->words(2, true),
-            'type' => fake()->randomElement(['asset','liability','equity','revenue','expense']),
+            // Sesuai konvensi data asli (ChartOfAccountsSeeder + validasi
+            // AccountController): tipe akun kapital, bukan huruf kecil.
+            'type' => fake()->randomElement(['Asset', 'Liability', 'Equity', 'Revenue', 'Expense']),
         ];
     }
 }

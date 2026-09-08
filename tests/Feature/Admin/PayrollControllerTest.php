@@ -2,10 +2,9 @@
 
 namespace Tests\Feature\Admin;
 
-use App\Models\Account;
 use App\Models\PayrollRun;
-use App\Models\Tutor;
 use App\Models\User;
+use Database\Seeders\ChartOfAccountsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -14,48 +13,58 @@ class PayrollControllerTest extends TestCase
 {
     use RefreshDatabase;
 
-    private User $admin;
+    private User $cfo;
 
     protected function setUp(): void
     {
         parent::setUp();
-        $this->admin = User::factory()->create(['role' => 'admin']);
 
-        Account::factory()->create(['code' => '1101', 'name' => 'Cash/Bank']);
-        Account::factory()->create(['code' => '5101', 'name' => 'Salary Expense']);
+        // Payroll ada di area /finance — hanya untuk CFO.
+        $this->cfo = User::factory()->create(['role' => 'cfo']);
+        $this->seed(ChartOfAccountsSeeder::class);
     }
 
     #[Test]
-    public function admin_can_view_payroll_index()
+    public function cfo_can_view_payroll_index()
     {
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->get(route('finance.payroll.index'))
             ->assertOk()
-            ->assertViewIs('admin.payroll.index');
+            ->assertViewIs('admin.finance.payroll.index');
     }
 
     #[Test]
-    public function admin_can_run_payroll()
+    public function cfo_can_run_payroll()
     {
-        $tutor = Tutor::factory()->withUser()->withRate()->create();
-
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->post(route('finance.payroll.store'), [
-                'period_start' => '2025-01-01',
-                'period_end'   => '2025-01-31',
+                'month' => '2025-01-01',
             ])
             ->assertRedirect()
             ->assertSessionHas('success');
 
-        $this->assertDatabaseHas('payroll_runs', ['period_start' => '2025-01-01']);
+        $this->assertTrue(
+            PayrollRun::whereDate('month', '2025-01-01')->exists(),
+            'Payroll run untuk Januari 2025 harus tercatat.'
+        );
     }
 
     #[Test]
-    public function admin_can_approve_payroll()
+    public function running_payroll_twice_for_same_month_is_rejected()
     {
-        $payroll = PayrollRun::factory()->create(['status' => 'draft']);
+        PayrollRun::factory()->create(['month' => '2025-01-01', 'status' => 'pending']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
+            ->post(route('finance.payroll.store'), ['month' => '2025-01-15'])
+            ->assertSessionHasErrors('month');
+    }
+
+    #[Test]
+    public function cfo_can_approve_payroll()
+    {
+        $payroll = PayrollRun::factory()->create(['status' => 'pending']);
+
+        $this->actingAs($this->cfo)
             ->post(route('finance.payroll.approve', $payroll->id))
             ->assertRedirect()
             ->assertSessionHas('success');
@@ -68,7 +77,7 @@ class PayrollControllerTest extends TestCase
     {
         $payroll = PayrollRun::factory()->create(['status' => 'approved']);
 
-        $this->actingAs($this->admin)
+        $this->actingAs($this->cfo)
             ->post(route('finance.payroll.approve', $payroll->id))
             ->assertSessionHasErrors('error');
     }
@@ -78,5 +87,15 @@ class PayrollControllerTest extends TestCase
     {
         $this->get(route('finance.payroll.index'))
             ->assertRedirect(route('login'));
+    }
+
+    #[Test]
+    public function admin_cannot_access_finance_payroll()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+
+        $this->actingAs($admin)
+            ->get(route('finance.payroll.index'))
+            ->assertForbidden();
     }
 }

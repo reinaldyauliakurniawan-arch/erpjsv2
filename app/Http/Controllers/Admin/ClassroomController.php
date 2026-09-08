@@ -129,7 +129,9 @@ class ClassroomController extends Controller
 
         $request->validate([
             'name'     => 'required|string|max:255',
-            'capacity' => 'nullable|integer|min:1',
+            // Kolom `capacity` NOT NULL di database — wajib diisi supaya tidak
+            // gagal insert di MySQL dan supaya cek kapasitas kelas selalu benar.
+            'capacity' => 'required|integer|min:1',
         ]);
         Classroom::create([
             'name'             => $request->name,
@@ -162,7 +164,9 @@ class ClassroomController extends Controller
 
         $request->validate([
             'name'     => 'required|string|max:255',
-            'capacity' => 'nullable|integer|min:1',
+            // Kolom `capacity` NOT NULL di database — wajib diisi supaya tidak
+            // gagal insert di MySQL dan supaya cek kapasitas kelas selalu benar.
+            'capacity' => 'required|integer|min:1',
         ]);
         $classroom->update([
             'name'             => $request->name,

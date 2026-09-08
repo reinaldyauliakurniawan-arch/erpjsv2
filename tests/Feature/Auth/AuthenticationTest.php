@@ -69,12 +69,16 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create();
 
-        for ($i = 0; $i < 6; $i++) {
-            $this->post(route('login'), ['email' => $user->email, 'password' => 'wrong']);
+        // Route login dibatasi throttle:5,1 (lihat routes/auth.php). Lima
+        // percobaan pertama lolos throttle (dan gagal karena password salah),
+        // percobaan keenam ditolak dengan HTTP 429.
+        for ($i = 0; $i < 5; $i++) {
+            $this->post(route('login'), ['email' => $user->email, 'password' => 'wrong'])
+                ->assertSessionHasErrors('email');
         }
 
         $this->post(route('login'), ['email' => $user->email, 'password' => 'wrong'])
-            ->assertSessionHasErrors('email'); // Too Many Attempts error
+            ->assertStatus(429);
     }
 
     // =========================================================
@@ -88,7 +92,7 @@ class AuthenticationTest extends TestCase
 
         $this->actingAs($user)
             ->post(route('logout'))
-            ->assertRedirect('/');
+            ->assertRedirect(route('login'));
 
         $this->assertGuest();
     }
