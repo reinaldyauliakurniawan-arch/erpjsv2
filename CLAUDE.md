@@ -74,6 +74,15 @@ Always run inbound values through **`App\Support\ScheduleFormat`** (`day()`, `ti
 `tutor_availability.status` of `occupied` is derived state — recomputed from actual class
 assignments, never set by hand.
 
+**Classroom kind** (`classrooms.kind`, `App\Enums\ClassroomKind`): `physical` (a real room
+at the JS office), `online` (class runs anywhere), `offsite` (B2B — tutor sent to a client
+site). Only `physical` counts toward room-occupancy stats and is subject to capacity / room
+double-booking checks — use `$classroom->countsForOccupancy()` / `Classroom::physical()`,
+not the legacy `is_at_just_speak` boolean (which is now derived from `kind` via
+`Classroom::saving()` and kept only for the import/export CSV). `online` and `offsite`
+classes still appear in every schedule / class-session view — they are just excluded from
+the occupancy math.
+
 ## Accounting core
 
 All money movement flows through **`App\Services`**, never controllers directly. Services

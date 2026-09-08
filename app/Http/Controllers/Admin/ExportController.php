@@ -199,8 +199,8 @@ class ExportController extends Controller
             ],
             'classrooms' => [
                 'filename' => 'template_classrooms.csv',
-                'headers'  => ['name', 'capacity', 'is_at_just_speak'],
-                'example'  => [['Ruang A', '10', 'true']],
+                'headers'  => ['name', 'capacity', 'kind'],
+                'example'  => [['Ruang A', '10', 'physical'], ['Zoom', '99', 'online'], ['Kantor Klien X', '15', 'offsite']],
             ],
             'programs' => [
                 'filename' => 'template_programs.csv',

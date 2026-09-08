@@ -306,7 +306,9 @@ class ClassSessionController extends Controller
 
             $classroom = $classSession->schedules->first()?->classroom;
 
-            if ($classroom && $currentCount >= $classroom->capacity) {
+            // Batas kapasitas hanya berlaku untuk ruang fisik. Kelas online /
+            // di luar Just Speak tidak dibatasi kapasitas ruang.
+            if ($classroom && $classroom->countsForOccupancy() && $currentCount >= $classroom->capacity) {
                 return back()->withErrors(['error' => "Kelas {$classSession->name} sudah penuh (kapasitas {$classroom->capacity} orang). Tidak bisa menambah siswa."]);
             }
 

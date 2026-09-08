@@ -30,7 +30,7 @@
             <div class="flex items-start justify-between gap-md">
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Classrooms</h4>
-                    <p class="text-body-sm text-on-surface-variant">CSV: name, capacity, is_at_just_speak</p>
+                    <p class="text-body-sm text-on-surface-variant">CSV: name, capacity, kind (physical / online / offsite)</p>
                 </div>
                 <a href="{{ route('admin.exports.template', 'classrooms') }}"
                     class="btn btn-ghost btn-sm gap-xs shrink-0">

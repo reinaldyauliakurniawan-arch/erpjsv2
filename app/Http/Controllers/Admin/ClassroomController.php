@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ClassroomKind;
 use App\Http\Controllers\Controller;
 use App\Models\Classroom;
 use App\Models\Schedule;
@@ -10,6 +11,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Validation\Rule;
 
 class ClassroomController extends Controller
 {
@@ -46,7 +48,10 @@ class ClassroomController extends Controller
 
     public function buildOccupancyStats(Carbon $from, Carbon $to): array
     {
-        $physicalClassrooms = Classroom::where('is_at_just_speak', true)->get();
+        // Hanya ruang fisik yang dihitung untuk okupansi. Kelas online (bisa
+        // dari mana saja) dan kelas di luar Just Speak / B2B tidak menempati
+        // ruang kita, jadi tidak masuk hitungan — tapi tetap tampil di jadwal.
+        $physicalClassrooms = Classroom::physical()->get();
         $physicalIds = $physicalClassrooms->pluck('id');
 
         $scheduledSlots = Schedule::whereIn('classroom_id', $physicalIds)
@@ -66,7 +71,11 @@ class ClassroomController extends Controller
             ->select('classroom_id', 'time_block', 'date')
             ->get();
 
-        $totalDays = $from->diffInDays($to) + 1;
+        // Hitung per hari kalender. `diffInDays` bisa mengembalikan pecahan
+        // (mis. Senin 00:00 -> Minggu 23:59 = 6.99) yang kalau tidak dibulatkan
+        // ke bawah membuat loop menambah satu hari ekstra dan menghitung ganda
+        // slot hari pertama.
+        $totalDays = (int) $from->copy()->startOfDay()->diffInDays($to->copy()->startOfDay()) + 1;
         $result = [];
 
         foreach ($physicalClassrooms as $room) {
@@ -127,17 +136,9 @@ class ClassroomController extends Controller
     {
         $this->authorize('create', Classroom::class);
 
-        $request->validate([
-            'name'     => 'required|string|max:255',
-            // Kolom `capacity` NOT NULL di database — wajib diisi supaya tidak
-            // gagal insert di MySQL dan supaya cek kapasitas kelas selalu benar.
-            'capacity' => 'required|integer|min:1',
-        ]);
-        Classroom::create([
-            'name'             => $request->name,
-            'capacity'         => $request->capacity,
-            'is_at_just_speak' => $request->boolean('is_at_just_speak'),
-        ]);
+        $data = $this->validatedData($request);
+        Classroom::create($data);
+
         return redirect()->route('admin.classrooms.index')->with('success', 'Classroom created.');
     }
 
@@ -162,17 +163,30 @@ class ClassroomController extends Controller
     {
         $this->authorize('update', $classroom);
 
-        $request->validate([
+        $classroom->update($this->validatedData($request));
+
+        return redirect()->route('admin.classrooms.index')->with('success', 'Classroom updated.');
+    }
+
+    /**
+     * Validasi + siapkan payload ruangan. `kind` menentukan apakah ruang
+     * dihitung untuk okupansi; `is_at_just_speak` diturunkan otomatis oleh
+     * Classroom::saving(). Form lama yang hanya mengirim checkbox
+     * `is_at_just_speak` tetap didukung.
+     */
+    private function validatedData(Request $request): array
+    {
+        $validated = $request->validate([
             'name'     => 'required|string|max:255',
             // Kolom `capacity` NOT NULL di database — wajib diisi supaya tidak
             // gagal insert di MySQL dan supaya cek kapasitas kelas selalu benar.
             'capacity' => 'required|integer|min:1',
+            'kind'     => ['nullable', Rule::in(ClassroomKind::values())],
         ]);
-        $classroom->update([
-            'name'             => $request->name,
-            'capacity'         => $request->capacity,
-            'is_at_just_speak' => $request->boolean('is_at_just_speak'),
-        ]);
-        return redirect()->route('admin.classrooms.index')->with('success', 'Classroom updated.');
+
+        $validated['kind'] = $validated['kind']
+            ?? ($request->boolean('is_at_just_speak') ? ClassroomKind::PHYSICAL->value : ClassroomKind::OFFSITE->value);
+
+        return $validated;
     }
 }

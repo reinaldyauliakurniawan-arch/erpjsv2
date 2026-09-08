@@ -170,7 +170,7 @@ class EnrollmentService
                             ->lockForUpdate()
                             ->count();
                         $classroom = Classroom::find($s['classroom_id']);
-                        if ($classroom && $roomCount >= $classroom->capacity) {
+                        if ($classroom && $classroom->countsForOccupancy() && $roomCount >= $classroom->capacity) {
                             throw new DomainException("Ruangan {$classroom->name} penuh pada {$s['day']} {$s['time_block']}. Enrollment dibatalkan.");
                         }
                     }
@@ -316,6 +316,12 @@ class EnrollmentService
     protected function validateRoomOccupancy($classroomId, $day, $timeBlock, string $incomingClassType): ?string
     {
         $classroom = Classroom::findOrFail($classroomId);
+
+        // Ruang online / di luar Just Speak tidak punya batas okupansi —
+        // banyak kelas bisa jalan bersamaan di slot yang sama.
+        if (! $classroom->countsForOccupancy()) {
+            return null;
+        }
 
         $occupyingSchedule = Schedule::with('classSession.program')
             ->where('classroom_id', $classroomId)

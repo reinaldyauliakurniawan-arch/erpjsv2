@@ -126,15 +126,15 @@ class InitialDataSeeder extends Seeder
         //      - CLASSROOM_ONLINE = 9          (online classes)
         // ──────────────────────────────────────────────────────────────
         $classrooms = [
-            ['id' => 1, 'name' => 'Studio 1',        'capacity' => 6,  'is_at_just_speak' => true],
-            ['id' => 2, 'name' => 'Room A',          'capacity' => 20, 'is_at_just_speak' => true],
-            ['id' => 3, 'name' => 'Room B',          'capacity' => 20, 'is_at_just_speak' => true],
-            ['id' => 4, 'name' => 'Room C',          'capacity' => 18, 'is_at_just_speak' => true],
-            ['id' => 5, 'name' => 'Private Room 1',  'capacity' => 4,  'is_at_just_speak' => true],
-            ['id' => 6, 'name' => 'Private Room 2',  'capacity' => 4,  'is_at_just_speak' => true],
-            ['id' => 7, 'name' => 'Private Room 3',  'capacity' => 6,  'is_at_just_speak' => true],
-            ['id' => 8, 'name' => 'Hall',            'capacity' => 25, 'is_at_just_speak' => true],
-            ['id' => 9, 'name' => 'Online',          'capacity' => 99, 'is_at_just_speak' => false],
+            ['id' => 1, 'name' => 'Studio 1',        'capacity' => 6,  'kind' => 'physical', 'is_at_just_speak' => true],
+            ['id' => 2, 'name' => 'Room A',          'capacity' => 20, 'kind' => 'physical', 'is_at_just_speak' => true],
+            ['id' => 3, 'name' => 'Room B',          'capacity' => 20, 'kind' => 'physical', 'is_at_just_speak' => true],
+            ['id' => 4, 'name' => 'Room C',          'capacity' => 18, 'kind' => 'physical', 'is_at_just_speak' => true],
+            ['id' => 5, 'name' => 'Private Room 1',  'capacity' => 4,  'kind' => 'physical', 'is_at_just_speak' => true],
+            ['id' => 6, 'name' => 'Private Room 2',  'capacity' => 4,  'kind' => 'physical', 'is_at_just_speak' => true],
+            ['id' => 7, 'name' => 'Private Room 3',  'capacity' => 6,  'kind' => 'physical', 'is_at_just_speak' => true],
+            ['id' => 8, 'name' => 'Hall',            'capacity' => 25, 'kind' => 'physical', 'is_at_just_speak' => true],
+            ['id' => 9, 'name' => 'Online',          'capacity' => 99, 'kind' => 'online',   'is_at_just_speak' => false],
         ];
 
         foreach ($classrooms as $c) {

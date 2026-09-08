@@ -149,10 +149,21 @@ class ImportController extends Controller
                         continue;
                     }
                     $capacity = isset($row[1]) && is_numeric($row[1]) && (int) $row[1] > 0 ? (int) $row[1] : 1;
-                    $isAtJustSpeak = isset($row[2]) ? filter_var(trim($row[2]), FILTER_VALIDATE_BOOLEAN) : true;
+
+                    // Kolom ke-3 = jenis ruangan (physical/online/offsite). CSV
+                    // lama yang isinya boolean is_at_just_speak tetap didukung:
+                    // true -> physical, false -> offsite. Nama "online" -> online.
+                    $raw = isset($row[2]) ? strtolower(trim($row[2])) : '';
+                    $kind = match (true) {
+                        in_array($raw, \App\Enums\ClassroomKind::values(), true) => $raw,
+                        str_contains(strtolower(trim($row[0])), 'online') => \App\Enums\ClassroomKind::ONLINE->value,
+                        $raw === '' || filter_var($raw, FILTER_VALIDATE_BOOLEAN) => \App\Enums\ClassroomKind::PHYSICAL->value,
+                        default => \App\Enums\ClassroomKind::OFFSITE->value,
+                    };
+
                     Classroom::updateOrCreate(
                         ['name' => trim($row[0])],
-                        ['capacity' => $capacity, 'is_at_just_speak' => $isAtJustSpeak]
+                        ['capacity' => $capacity, 'kind' => $kind]
                     );
                     $imported++;
                 }

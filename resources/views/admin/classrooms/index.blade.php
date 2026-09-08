@@ -76,6 +76,7 @@
                     <p class="text-label-lg text-on-surface-variant uppercase tracking-widest">Occupancy Rate</p>
                     <p class="text-headline-lg font-bold text-on-surface mt-xs">{{ $occupancyRate }}%</p>
                     <p class="text-body-sm text-on-surface-variant mt-xs">{{ $from->format('d M') }} – {{ $to->format('d M Y') }}</p>
+                    <p class="text-body-sm text-on-surface-variant">Hanya ruang fisik. Kelas online &amp; di luar Just Speak tidak dihitung.</p>
                 </div>
             </div>
         </div>
@@ -168,9 +169,12 @@
                                     @else
                                         <span class="text-on-surface-variant">—</span>
                                     @endif
-                                    <span class="badge badge-soft text-xs mt-xs {{ $classroom->is_at_just_speak ?'badge-success' : 'badge-ghost' }}">
-                                        {{ $classroom->is_at_just_speak ? 'Just Speak' : 'Eksternal' }}
+                                    <span class="badge badge-soft text-xs mt-xs {{ $classroom->isPhysical() ? 'badge-success' : 'badge-ghost' }}">
+                                        {{ $classroom->kind?->label() ?? 'Ruang Fisik' }}
                                     </span>
+                                    @unless($classroom->isPhysical())
+                                        <span class="badge badge-ghost text-[10px] mt-xs">tidak dihitung okupansi</span>
+                                    @endunless
                                 </td>
                                 <td class="px-lg py-md text-right">
                                     <div class="flex items-center justify-end gap-xs">
@@ -178,7 +182,7 @@
                                             data-id="{{ $classroom->id }}"
                                             data-name="{{ $classroom->name }}"
                                             data-capacity="{{ $classroom->capacity }}"
-                                            data-at-just-speak="{{ $classroom->is_at_just_speak ? 1 : 0 }}"
+                                            data-kind="{{ $classroom->kind?->value ?? 'physical' }}"
                                             onclick="openEditModal(this.dataset)"
                                             class="btn btn-ghost btn-sm text-on-surface-variant hover:text-secondary"
                                             title="Edit">
@@ -225,11 +229,14 @@
                     @error('capacity')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
                 <div class="fieldset">
-                    <label class="fieldset-legend text-on-surface">Lokasi</label>
-                    <label class="flex items-center gap-sm cursor-pointer mt-xs">
-                        <input type="checkbox" name="is_at_just_speak" value="1" class="checkbox" checked />
-                        <span class="text-body-md text-on-surface">Ruangan di Just Speak</span>
-                    </label>
+                    <label class="fieldset-legend text-on-surface">Jenis Ruangan</label>
+                    <select name="kind" class="select w-full @error('kind') select-error @enderror">
+                        @foreach(\App\Enums\ClassroomKind::cases() as $k)
+                            <option value="{{ $k->value }}" @selected(old('kind', 'physical') === $k->value)>{{ $k->label() }}</option>
+                        @endforeach
+                    </select>
+                    <p class="label text-on-surface-variant">Hanya "Ruang Fisik" yang dihitung untuk okupansi & batas kapasitas.</p>
+                    @error('kind')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
                 <div class="modal-action">
                     <button type="button" onclick="document.getElementById('modal-create').close()" class="btn btn-ghost">Batal</button>
@@ -261,11 +268,13 @@
                         class="input w-full" placeholder="10" min="1" required />
                 </div>
                 <div class="fieldset">
-                    <label class="fieldset-legend text-on-surface">Lokasi</label>
-                    <label class="flex items-center gap-sm cursor-pointer mt-xs">
-                        <input type="checkbox" name="is_at_just_speak" id="edit-is-at-js" value="1" class="checkbox" />
-                        <span class="text-body-md text-on-surface">Ruangan di Just Speak</span>
-                    </label>
+                    <label class="fieldset-legend text-on-surface">Jenis Ruangan</label>
+                    <select name="kind" id="edit-kind" class="select w-full">
+                        @foreach(\App\Enums\ClassroomKind::cases() as $k)
+                            <option value="{{ $k->value }}">{{ $k->label() }}</option>
+                        @endforeach
+                    </select>
+                    <p class="label text-on-surface-variant">Hanya "Ruang Fisik" yang dihitung untuk okupansi & batas kapasitas.</p>
                 </div>
                 <div class="modal-action">
                     <button type="button" onclick="document.getElementById('modal-edit').close()" class="btn btn-ghost">Batal</button>
@@ -301,7 +310,7 @@
     function openEditModal(d) {
         document.getElementById('edit-name').value     = d.name;
         document.getElementById('edit-capacity').value = d.capacity !== 'null' ? d.capacity : '';
-        document.getElementById('edit-is-at-js').checked = d.atJustSpeak == 1;
+        document.getElementById('edit-kind').value = d.kind || 'physical';
         document.getElementById('form-edit').action    = `/admin/classrooms/${d.id}`;
         document.getElementById('modal-edit').showModal();
     }

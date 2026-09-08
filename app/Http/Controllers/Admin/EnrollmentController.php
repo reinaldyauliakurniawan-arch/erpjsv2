@@ -367,7 +367,10 @@ class EnrollmentController extends Controller
             $activeCount = $session->active_count;
             $finished = $finishedMap->get($session->id, 0);
             $schedule = $session->schedules->first();
-            $capacity = $schedule?->classroom?->capacity ?? 999;
+            // Kapasitas ruang hanya membatasi kelas di ruang fisik. Kelas
+            // online / di luar Just Speak tidak dibatasi ruang.
+            $classroom = $schedule?->classroom;
+            $capacity = ($classroom && $classroom->countsForOccupancy()) ? $classroom->capacity : 999;
 
             if (! $isPrivate && $activeCount >= $capacity) {
                 return null;

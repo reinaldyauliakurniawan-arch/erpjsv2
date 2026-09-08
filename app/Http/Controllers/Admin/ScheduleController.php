@@ -41,7 +41,8 @@ class ScheduleController extends Controller
         $weekStart = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeeks($weekOffset);
         $weekEnd   = $weekStart->copy()->endOfWeek();
 
-        $physicalClassrooms = Classroom::where('is_at_just_speak', true)->get();
+        // Okupansi ruangan hanya menghitung ruang fisik (bukan online / B2B).
+        $physicalClassrooms = Classroom::physical()->get();
 
         // N+1 fix: previously ran 2 COUNT queries PER tutor in a loop
         // (2 × 30 tutors = 60 queries). Now a single GROUP BY query fetches
