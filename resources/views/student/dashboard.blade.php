@@ -53,19 +53,30 @@
             </div>
         </div>
 
-        {{-- Next Session --}}
+        {{-- Next Session (sudah memperhitungkan pertemuan yang di-skip) --}}
         @if($next && $enrollment->status === 'active')
-        <div class="flex items-center gap-sm px-md py-sm rounded-lg {{ $next['is_today'] ? 'bg-primary-container/20 border border-primary-container/40' : 'bg-surface border border-surface-border' }}">
-            <span class="material-symbols-outlined {{ $next['is_today'] ? 'text-primary-container' : 'text-on-surface-variant' }} text-base">
-                {{ $next['is_today'] ? 'today' : 'event' }}
-            </span>
-            <div>
-                <p class="text-xs font-semibold {{ $next['is_today'] ? 'text-primary-container' : 'text-on-surface-variant' }} uppercase tracking-wide">
-                    {{ $next['is_today'] ? 'Sesi Hari Ini' : 'Sesi Berikutnya' }}
+        <div class="space-y-xs">
+            @if(!empty($next['skipped_before']))
+            <div class="flex items-center gap-sm px-md py-sm rounded-lg bg-warning/10 border border-warning/30">
+                <span class="material-symbols-outlined text-warning text-base">event_busy</span>
+                <p class="text-xs text-on-surface">
+                    <span class="font-semibold text-warning uppercase tracking-wide">Diliburkan</span> —
+                    sesi {{ $next['skipped_before']['day'] }}, {{ $next['skipped_before']['date'] }} ditiadakan.
                 </p>
-                <p class="text-sm text-on-surface">
-                    {{ $next['day'] }}, {{ $next['date'] }} · {{ $next['time_block'] }} · {{ $next['classroom'] }}
-                </p>
+            </div>
+            @endif
+            <div class="flex items-center gap-sm px-md py-sm rounded-lg {{ $next['is_today'] ? 'bg-primary-container/20 border border-primary-container/40' : 'bg-surface border border-surface-border' }}">
+                <span class="material-symbols-outlined {{ $next['is_today'] ? 'text-primary-container' : 'text-on-surface-variant' }} text-base">
+                    {{ $next['is_today'] ? 'today' : 'event' }}
+                </span>
+                <div>
+                    <p class="text-xs font-semibold {{ $next['is_today'] ? 'text-primary-container' : 'text-on-surface-variant' }} uppercase tracking-wide">
+                        {{ $next['is_today'] ? 'Sesi Hari Ini' : 'Sesi Berikutnya' }}
+                    </p>
+                    <p class="text-sm text-on-surface">
+                        {{ $next['day'] }}, {{ $next['date'] }} · {{ $next['time_block'] }} · {{ $next['classroom'] }}
+                    </p>
+                </div>
             </div>
         </div>
         @endif

@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Student;
 
+use App\Enums\DayOfWeek;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Enrollment;
+use App\Models\RoomBooking;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Carbon\Carbon;
@@ -50,32 +52,65 @@ class DashboardController extends Controller
             ->limit(50)
             ->get();
 
-        // Next session per enrollment
-        $days = ['Senin' => 1, 'Selasa' => 2, 'Rabu' => 3, 'Kamis' => 4, 'Jumat' => 5, 'Sabtu' => 6, 'Minggu' => 0];
+        // ── Sesi berikutnya per enrollment (sadar "skip") ────────────────
+        // Kalau tutor/admin men-skip satu pertemuan, sesi itu dilewati di sini
+        // juga — jadi jadwal yang dilihat siswa selalu cocok dengan yang
+        // dilihat tutor & admin.
         $today = Carbon::today();
-        $todayDow = $today->dayOfWeek; // 0=Sun, 1=Mon...
+
+        // Semua skip mendatang untuk class session yang diikuti siswa ini.
+        $sessionIds = $enrollments->pluck('class_session_id')->filter()->unique();
+        $skips = RoomBooking::where('type', 'regular_skip')
+            ->whereDate('date', '>=', $today->toDateString())
+            ->when($sessionIds->isNotEmpty(), fn ($q) => $q->where(fn ($w) => $w
+                ->whereIn('schedule_id', function ($s) use ($sessionIds) {
+                    $s->select('id')->from('schedules')->whereIn('class_session_id', $sessionIds);
+                })
+                ->orWhereIn('classroom_id', function ($s) use ($sessionIds) {
+                    $s->select('classroom_id')->from('schedules')->whereIn('class_session_id', $sessionIds);
+                })))
+            ->get(['classroom_id', 'time_block', 'date']);
+
+        $isSkipped = fn (string $classroomId, string $block, Carbon $date) => $skips->contains(
+            fn ($b) => (int) $b->classroom_id === (int) $classroomId
+                && $b->time_block === $block
+                && Carbon::parse($b->date)->toDateString() === $date->toDateString()
+        );
 
         $nextSessions = [];
         foreach ($enrollments as $enrollment) {
-            $next = null;
-            $minDiff = PHP_INT_MAX;
-            foreach ($enrollment->schedules as $schedule) {
-                $scheduleDow = $days[$schedule->day] ?? null;
-                if ($scheduleDow === null) continue;
-                $diff = ($scheduleDow - $todayDow + 7) % 7;
-                if ($diff === 0) $diff = 0; // hari ini
-                if ($diff < $minDiff) {
-                    $minDiff = $diff;
-                    $next = [
-                        'day'        => $schedule->day,
-                        'time_block' => $schedule->time_block,
-                        'classroom'  => $schedule->classroom?->name ?? '—',
-                        'date'       => $today->copy()->addDays($diff)->isoFormat('D MMM YYYY'),
-                        'is_today'   => $diff === 0,
-                    ];
-                }
+            $nextSessions[$enrollment->id] = null;
+            if ($enrollment->status !== 'active' || $enrollment->schedules->isEmpty()) {
+                continue;
             }
-            $nextSessions[$enrollment->id] = $next;
+
+            $skippedBefore = null;
+            for ($i = 0; $i <= 21; $i++) {
+                $date = $today->copy()->addDays($i);
+                $dayName = DayOfWeek::fromDate($date)->value;
+                $slot = $enrollment->schedules->firstWhere('day', $dayName);
+                if (! $slot) {
+                    continue;
+                }
+
+                $entry = [
+                    'day' => $slot->day,
+                    'time_block' => $slot->time_block,
+                    'classroom' => $slot->classroom?->name ?? '—',
+                    'date' => $date->isoFormat('D MMM YYYY'),
+                    'is_today' => $i === 0,
+                ];
+
+                if ($isSkipped((string) $slot->classroom_id, $slot->time_block, $date)) {
+                    $skippedBefore ??= $entry; // catat sesi terdekat yang diliburkan
+
+                    continue;
+                }
+
+                $entry['skipped_before'] = $skippedBefore; // sesi sebelumnya yang libur (kalau ada)
+                $nextSessions[$enrollment->id] = $entry;
+                break;
+            }
         }
 
         return view('student.dashboard', compact(

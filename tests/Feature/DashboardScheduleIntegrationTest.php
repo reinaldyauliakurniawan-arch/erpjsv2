@@ -9,6 +9,7 @@ use App\Models\Enrollment;
 use App\Models\Program;
 use App\Models\RoomBooking;
 use App\Models\Schedule;
+use App\Models\Student;
 use App\Models\Tutor;
 use App\Models\User;
 use App\Services\TutorAssignmentService;
@@ -105,5 +106,42 @@ class DashboardScheduleIntegrationTest extends TestCase
         $this->actingAs($admin)->get(route('admin.dashboard'))
             ->assertOk()
             ->assertDontSee('Kelas Nonaktif');
+    }
+
+    #[Test]
+    public function student_dashboard_next_session_skips_a_skipped_meeting(): void
+    {
+        [$tutorU, $tutor, $cs, $schedule] = $this->classWithTutorToday();
+
+        $studentU = User::factory()->create(['role' => 'student']);
+        $student = Student::factory()->create(['user_id' => $studentU->id]);
+        Enrollment::factory()->create([
+            'student_id' => $student->id,
+            'program_id' => $cs->program_id,
+            'class_session_id' => $cs->id,
+            'status' => 'active',
+        ]);
+
+        // Belum ada skip: sesi berikutnya = hari ini.
+        $this->actingAs($studentU)->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertSee('Sesi Hari Ini')
+            ->assertDontSee('Diliburkan');
+
+        // Tutor skip pertemuan hari ini.
+        RoomBooking::create([
+            'classroom_id' => $schedule->classroom_id,
+            'schedule_id' => $schedule->id,
+            'date' => now()->toDateString(),
+            'time_block' => '09:00-10:30',
+            'type' => 'regular_skip',
+            'tutor_id' => $tutor->id,
+        ]);
+
+        // Dashboard siswa harus melewati sesi itu & memberi tahu diliburkan.
+        $this->actingAs($studentU)->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertSee('Diliburkan')
+            ->assertSee('Sesi Berikutnya');
     }
 }
