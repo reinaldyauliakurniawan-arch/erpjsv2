@@ -21,8 +21,9 @@ use Tests\TestCase;
  * Halaman absensi harus nyambung dengan jadwal:
  *  - form absensi tutor auto-isi jam & ruang dari jadwal kelas, dan
  *    memperingatkan kalau tanggal itu di-skip / dipindah;
- *  - status "skipped" yang di-set admin di halaman absensi tercermin sebagai
- *    skip di jadwal (dan sebaliknya).
+ *  - absensi yang SUDAH tercatat tidak bisa ditandai "skip/ditunda" (pertemuan
+ *    yang sudah jalan tidak bisa dibatalkan lewat ganti status) — koreksi lewat
+ *    reverse/hapus absensi.
  */
 class AttendanceScheduleIntegrationTest extends TestCase
 {
@@ -90,7 +91,7 @@ class AttendanceScheduleIntegrationTest extends TestCase
     }
 
     #[Test]
-    public function admin_marking_attendance_skipped_creates_a_schedule_skip_and_undo_removes_it(): void
+    public function recorded_attendance_cannot_be_marked_skipped_or_postponed(): void
     {
         foreach (['1001', '1002', '1003', '2002', '2003', '4101', '5001'] as $c) {
             Account::factory()->create(['code' => $c]);
@@ -120,16 +121,20 @@ class AttendanceScheduleIntegrationTest extends TestCase
             'students' => [['enrollment_id' => $enrollment->id, 'is_present' => true]],
         ]);
 
-        // Admin -> status "skipped": harus muncul regular_skip di jadwal.
+        // "skipped" / "postponed" ditolak — pertemuan yang sudah tercatat tidak
+        // bisa dibatalkan lewat ganti status.
         $this->actingAs($admin)->patch(route('admin.attendance.update', $attendance->id), ['status' => 'skipped'])
-            ->assertRedirect();
-        $this->assertDatabaseHas('room_bookings', [
+            ->assertSessionHasErrors('status');
+        $this->actingAs($admin)->patch(route('admin.attendance.update', $attendance->id), ['status' => 'postponed'])
+            ->assertSessionHasErrors('status');
+        $this->assertDatabaseMissing('room_bookings', [
             'class_session_id' => $cs->id, 'time_block' => '09:00-10:30', 'type' => 'regular_skip',
         ]);
 
-        // Kembalikan ke "finished": skip di jadwal ikut hilang.
+        // Status yang valid tetap bisa di-set, tanpa efek ke jadwal.
         $this->actingAs($admin)->patch(route('admin.attendance.update', $attendance->id), ['status' => 'finished'])
             ->assertRedirect();
+        $this->assertDatabaseHas('attendance', ['id' => $attendance->id, 'status' => 'finished']);
         $this->assertDatabaseMissing('room_bookings', [
             'class_session_id' => $cs->id, 'time_block' => '09:00-10:30', 'type' => 'regular_skip',
         ]);

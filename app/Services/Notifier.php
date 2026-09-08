@@ -94,6 +94,20 @@ class Notifier
             route('tutor.dashboard'));
     }
 
+    /**
+     * Ada honor tutor yang baru tercatat untuk bulan yang payroll-nya SUDAH
+     * dijalankan — kalau tidak dibayar susulan, honor ini terlewat. Kabari CFO.
+     */
+    public function feeAfterPayrollApproved(Tutor|int $tutor, string $monthLabel): void
+    {
+        $tutor = $tutor instanceof Tutor ? $tutor : Tutor::with('user')->find($tutor);
+        $this->toRole('cfo', 'fee_after_payroll',
+            'Honor tutor terlewat dari payroll',
+            "Honor {$tutor?->user?->name} untuk {$monthLabel} baru tercatat padahal payroll bulan itu sudah dijalankan. "
+            .'Buat payroll run bulan itu sekali lagi untuk membayar susulan.',
+            route('finance.payroll.index'));
+    }
+
     public function overdueInstallments(int $count, float $total): void
     {
         if ($count < 1) {

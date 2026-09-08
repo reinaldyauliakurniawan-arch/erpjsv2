@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class AdjustingJournal extends Model
@@ -12,7 +13,7 @@ class AdjustingJournal extends Model
     ];
 
     protected $casts = [
-        'period'       => 'date',
+        'period' => 'date',
         'total_amount' => 'decimal:2',
     ];
 
@@ -34,12 +35,15 @@ class AdjustingJournal extends Model
     // Generate referensi otomatis: AJE-2024-01-001
     public static function generateReference(string $period): string
     {
-        $prefix = 'AJE-' . \Carbon\Carbon::parse($period)->format('Y-m');
-        $last = static::where('reference', 'like', $prefix . '%')
-            ->orderByRaw("CAST(SUBSTRING_INDEX(reference, '-', -1) AS UNSIGNED) DESC")
+        $prefix = 'AJE-'.Carbon::parse($period)->format('Y-m');
+        // Portable (jangan pakai SUBSTRING_INDEX yang MySQL-only): ambil semua
+        // referensi bulan itu, cari nomor urut terbesar di sisi PHP.
+        $lastNumber = (int) static::where('reference', 'like', $prefix.'-%')
             ->lockForUpdate()
-            ->value('reference');
-        $lastNumber = $last ? (int) substr($last, strrpos($last, '-') + 1) : 0;
-        return $prefix . '-' . str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
+            ->pluck('reference')
+            ->map(fn ($r) => (int) substr($r, strrpos($r, '-') + 1))
+            ->max();
+
+        return $prefix.'-'.str_pad($lastNumber + 1, 3, '0', STR_PAD_LEFT);
     }
 }

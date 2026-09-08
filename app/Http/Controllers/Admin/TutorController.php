@@ -13,6 +13,7 @@ use App\Models\TutorRate;
 use App\Models\User;
 use App\Services\TutorAssignmentService;
 use App\Support\ScheduleFormat;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -91,6 +92,33 @@ class TutorController extends Controller
                 'after_or_equal:'.($tutor->salaried_since?->toDateString() ?? '1970-01-01'),
             ],
         ]);
+
+        // Cegah dobel bayar: kalau tutor dijadikan tetap dengan tanggal "mulai
+        // tetap" mundur melewati pertemuan yang sudah TERLANJUR tercatat sebagai
+        // honor freelance (accrued / menunggu tarif), payroll bulan itu akan
+        // membayar gaji tetap PLUS honor per-pertemuan lama itu. Tanggal "mulai
+        // tetap" harus setelah pertemuan freelance terakhir yang tercatat.
+        if ($validated['employment_type'] === 'permanent'
+            && ! empty($validated['salaried_since'])
+            && (string) $validated['salaried_since'] !== (string) $tutor->salaried_since?->toDateString()) {
+            $lastFreelanceMeeting = DB::table('attendance_tutor')
+                ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+                ->where('attendance_tutor.tutor_id', $tutor->id)
+                ->where(fn ($q) => $q->where('attendance_tutor.payable_amount', '>', 0)
+                    ->orWhere('attendance_tutor.pending_rate', true))
+                ->max('attendance.date');
+
+            if ($lastFreelanceMeeting
+                && Carbon::parse($validated['salaried_since'])->startOfDay()
+                    ->lte(Carbon::parse($lastFreelanceMeeting)->startOfDay())) {
+                return back()->withInput()->withErrors([
+                    'salaried_since' => 'Tanggal "mulai tetap" harus setelah '
+                        .Carbon::parse($lastFreelanceMeeting)->isoFormat('D MMM YYYY')
+                        .' — pertemuan freelance terakhir tutor ini yang sudah tercatat honornya. '
+                        .'Kalau tidak, payroll bulan itu akan membayar gaji tetap sekaligus honor per-pertemuan lama.',
+                ]);
+            }
+        }
 
         $tutor->user->update([
             'name' => $validated['name'],

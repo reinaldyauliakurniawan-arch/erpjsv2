@@ -120,8 +120,6 @@
                     <option value="scheduled">Scheduled</option>
                     <option value="ongoing">Ongoing</option>
                     <option value="finished">Finished</option>
-                    <option value="skipped">Skipped</option>
-                    <option value="postponed">Postponed</option>
                 </select>
             </div>
 
@@ -169,8 +167,6 @@
                        <option value="scheduled">Scheduled</option>
                        <option value="ongoing">Ongoing</option>
                        <option value="finished">Finished</option>
-                       <option value="skipped">Skipped</option>
-                       <option value="postponed">Postponed</option>
                     </select>
                 </div>
                 <div class="modal-action">
@@ -414,8 +410,6 @@
                                 if (s === 'finished')  return `<span class="badge badge-soft badge-success">Finished</span>`;
                                 if (s === 'ongoing')   return `<span class="badge badge-soft badge-neutral">Ongoing</span>`;
                                 if (s === 'scheduled') return `<span class="badge badge-soft badge-warning">Scheduled</span>`;
-                                if (s === 'skipped')   return `<span class="badge badge-soft badge-error">Skipped</span>`;
-                                if (s === 'postponed') return `<span class="badge badge-soft badge-neutral">Postponed</span>`;
                                 return `<span class="badge badge-soft badge-ghost">${s ?? '—'}</span>`;
                             },
                         },

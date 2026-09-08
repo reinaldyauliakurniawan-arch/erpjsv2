@@ -9,9 +9,11 @@ use App\Models\Attendance;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
 use App\Models\Journal;
+use App\Models\PayrollRun;
 use App\Models\RoomBooking;
 use App\Models\Tutor;
 use App\Models\TutorRate;
+use Carbon\Carbon;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -248,6 +250,8 @@ class AttendanceService
                 'pending_rate' => false,
                 'journal_id' => $journal->id,
             ], $pivotExtra));
+
+            $this->warnIfPayrollAlreadyRan($tutor, $date);
         } else {
             $attendance->tutors()->attach($tutor->id, array_merge([
                 'payable_amount' => 0,
@@ -256,7 +260,23 @@ class AttendanceService
             ], $pivotExtra));
 
             // Integrasi ke keuangan: belum ada tarif -> honor belum bisa diposting.
-            app(\App\Services\Notifier::class)->pendingRate($tutor, (string) $date);
+            app(Notifier::class)->pendingRate($tutor, (string) $date);
+        }
+    }
+
+    /**
+     * Kalau payroll bulan pertemuan ini sudah di-approve, honor yang baru
+     * tercatat ini akan terlewat sampai ada pembayaran susulan — kabari CFO.
+     */
+    protected function warnIfPayrollAlreadyRan(Tutor $tutor, string $date): void
+    {
+        $monthStart = Carbon::parse($date)->startOfMonth()->toDateString();
+        $ranAlready = PayrollRun::whereDate('month', $monthStart)->where('status', 'approved')->exists();
+        if ($ranAlready) {
+            app(Notifier::class)->feeAfterPayrollApproved(
+                $tutor,
+                Carbon::parse($date)->translatedFormat('F Y'),
+            );
         }
     }
 
@@ -342,9 +362,24 @@ class AttendanceService
                 }
             }
 
+            $classSessionId = $attendance->class_session_id;
+
             $attendance->students()->detach();
             $attendance->tutors()->detach();
             $attendance->delete();
+
+            // Reverse bisa mengembalikan enrollment dari "lulus/hangus" ke
+            // "aktif" — jam tutor kelas ini harus dihitung ulang supaya slot
+            // yang tadinya bebas kembali jadi "terisi".
+            if ($classSessionId) {
+                $tutorIds = DB::table('class_session_tutor')
+                    ->where('class_session_id', $classSessionId)
+                    ->pluck('tutor_id');
+                $assignment = app(TutorAssignmentService::class);
+                foreach ($tutorIds as $tutorId) {
+                    $assignment->recomputeAvailability((int) $tutorId);
+                }
+            }
         });
     }
 }

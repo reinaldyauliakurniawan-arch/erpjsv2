@@ -9,7 +9,9 @@ use App\Http\Controllers\Controller;
 use App\Models\Account;
 use App\Models\Enrollment;
 use App\Models\Journal;
+use App\Models\PayrollRun;
 use App\Services\AccountingService;
+use App\Services\Notifier;
 use App\Services\RevenueRecognitionService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -388,6 +390,24 @@ class FinanceController extends Controller
             // Fall through to success — the rate is assigned.
         } catch (DomainException $e) {
             return back()->with('error', $e->getMessage());
+        }
+
+        // Kalau payroll bulan pertemuan ini sudah dijalankan, honor yang baru
+        // di-assign ini akan terlewat sampai ada pembayaran susulan — kabari CFO.
+        $meeting = DB::table('attendance_tutor')
+            ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+            ->where('attendance_tutor.id', $attendanceTutorId)
+            ->select('attendance.date', 'attendance_tutor.tutor_id')
+            ->first();
+        if ($meeting) {
+            $monthStart = Carbon::parse($meeting->date)->startOfMonth()->toDateString();
+            $ranAlready = PayrollRun::whereDate('month', $monthStart)->where('status', 'approved')->exists();
+            if ($ranAlready) {
+                app(Notifier::class)->feeAfterPayrollApproved(
+                    (int) $meeting->tutor_id,
+                    Carbon::parse($meeting->date)->translatedFormat('F Y'),
+                );
+            }
         }
 
         return back()->with('success', 'Rate berhasil di-assign.');

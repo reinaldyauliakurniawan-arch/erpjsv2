@@ -6,6 +6,7 @@ use App\Models\Journal;
 use App\Models\Tutor;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Kelola status "tutor tetap" (gaji bulanan pasti) seorang tutor.
@@ -87,6 +88,26 @@ class SetTutorPermanent extends Command
             $sinceDate = Carbon::parse($since)->startOfDay();
         } catch (\Throwable $e) {
             $this->error("Tanggal tidak valid: {$since}");
+
+            return self::FAILURE;
+        }
+
+        // Cegah dobel bayar: tanggal "mulai tetap" tidak boleh mundur melewati
+        // pertemuan freelance yang sudah tercatat honornya — kalau tidak, payroll
+        // bulan itu bayar gaji tetap + honor per-pertemuan lama sekaligus.
+        $lastFreelanceMeeting = DB::table('attendance_tutor')
+            ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+            ->where('attendance_tutor.tutor_id', $tutor->id)
+            ->where(fn ($q) => $q->where('attendance_tutor.payable_amount', '>', 0)
+                ->orWhere('attendance_tutor.pending_rate', true))
+            ->max('attendance.date');
+        if ($lastFreelanceMeeting && $sinceDate->lte(Carbon::parse($lastFreelanceMeeting)->startOfDay())) {
+            $this->error(sprintf(
+                'Tanggal "mulai tetap" (%s) harus setelah %s — pertemuan freelance terakhir yang sudah tercatat honornya. '
+                .'Kalau tidak, payroll bulan itu akan dobel bayar (gaji tetap + honor per-pertemuan).',
+                $sinceDate->toDateString(),
+                Carbon::parse($lastFreelanceMeeting)->toDateString()
+            ));
 
             return self::FAILURE;
         }

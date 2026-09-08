@@ -6,13 +6,10 @@ use App\Enums\DayOfWeek;
 use App\Exceptions\DomainException;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
-use App\Models\RoomBooking;
-use App\Models\Schedule;
 use App\Models\Tutor;
 use App\Services\AttendanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class AttendanceController extends Controller
 {
@@ -141,51 +138,19 @@ class AttendanceController extends Controller
 
     public function update(int $id, Request $request)
     {
+        // Baris absensi hanya lahir setelah tutor mengisinya — artinya
+        // pertemuannya MEMANG sudah terjadi. Jadi "skip/ditunda" tidak berlaku
+        // di sini (tidak bisa membatalkan pertemuan yang sudah jalan). Untuk
+        // meniadakan pertemuan yang belum jalan, pakai tombol "skip" di halaman
+        // Jadwal. Untuk absensi yang telanjur salah dicatat, pakai tombol
+        // hapus/reverse di tabel ini (mengembalikan pendapatan, honor tutor,
+        // dan sisa pertemuan siswa).
         $request->validate([
-            'status' => 'required|in:scheduled,ongoing,finished,skipped,postponed',
+            'status' => 'required|in:scheduled,ongoing,finished',
         ]);
 
         $attendance = Attendance::findOrFail($id);
-        $newStatus = $request->input('status');
-        $wasSkipping = in_array($attendance->status, ['skipped', 'postponed'], true);
-        $isSkipping = in_array($newStatus, ['skipped', 'postponed'], true);
-
-        DB::transaction(function () use ($attendance, $newStatus, $wasSkipping, $isSkipping) {
-            $attendance->update(['status' => $newStatus]);
-
-            // Jaga sinkron dengan jadwal: status "skipped/postponed" di halaman
-            // absensi = pertemuan reguler yang tidak jalan. Cerminkan ke
-            // room_bookings supaya halaman Jadwal & semua dashboard ikut tahu.
-            $date = Carbon::parse($attendance->date)->toDateString();
-            $schedule = Schedule::where('class_session_id', $attendance->class_session_id)
-                ->where('classroom_id', $attendance->classroom_id)
-                ->where('time_block', $attendance->time_block)
-                ->where('day', DayOfWeek::fromDate($date)->value)
-                ->first();
-
-            if ($isSkipping && ! $wasSkipping && $attendance->classroom_id) {
-                RoomBooking::firstOrCreate(
-                    [
-                        'classroom_id' => $attendance->classroom_id,
-                        'date' => $date,
-                        'time_block' => $attendance->time_block,
-                        'type' => 'regular_skip',
-                    ],
-                    [
-                        'schedule_id' => $schedule?->id,
-                        'class_session_id' => $attendance->class_session_id,
-                        'notes' => 'Ditandai '.$newStatus.' oleh admin di halaman absensi',
-                    ],
-                );
-            } elseif ($wasSkipping && ! $isSkipping) {
-                RoomBooking::where('classroom_id', $attendance->classroom_id)
-                    ->whereDate('date', $date)
-                    ->where('time_block', $attendance->time_block)
-                    ->where('type', 'regular_skip')
-                    ->where('class_session_id', $attendance->class_session_id)
-                    ->delete();
-            }
-        });
+        $attendance->update(['status' => $request->input('status')]);
 
         return redirect()->route('admin.attendance.index')->with('success', 'Status attendance diperbarui.');
     }

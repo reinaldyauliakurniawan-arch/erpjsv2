@@ -239,21 +239,23 @@ class PayrollServiceTest extends TestCase
         $this->service->createPayrollRun('2025-06');
 
         $this->expectException(DomainException::class);
-        $this->expectExceptionMessageMatches('/sudah ada/i');
+        $this->expectExceptionMessageMatches('/belum di-approve/i');
 
         $this->service->createPayrollRun('2025-06');
     }
 
     #[Test]
-    public function cannot_create_duplicate_payroll_run_when_previous_is_approved(): void
+    public function can_create_supplementary_payroll_run_when_previous_is_approved(): void
     {
-        $this->service->createPayrollRun('2025-06');
+        // Honor yang telat masuk setelah payroll bulan itu di-approve butuh
+        // pembayaran susulan lewat run kedua.
+        $first = $this->service->createPayrollRun('2025-06');
+        $first->update(['status' => 'approved']);
 
-        // Force to approved so a new run for same month should still be blocked
-        PayrollRun::where('month', '2025-06-01')->update(['status' => 'approved']);
+        $supplementary = $this->service->createPayrollRun('2025-06');
 
-        $this->expectException(DomainException::class);
-        $this->service->createPayrollRun('2025-06');
+        $this->assertSame('pending', $supplementary->status);
+        $this->assertSame(2, PayrollRun::whereDate('month', '2025-06-01')->count());
     }
 
     #[Test]

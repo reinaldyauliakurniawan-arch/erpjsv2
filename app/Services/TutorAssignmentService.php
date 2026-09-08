@@ -212,6 +212,16 @@ class TutorAssignmentService
         }
     }
 
+    /**
+     * Evaluasi ulang aktivasi waitlist sebuah kelas (mis. setelah kuota minimum
+     * program diubah). Hanya menaikkan waitlist → aktif kalau syaratnya
+     * terpenuhi; tidak pernah menurunkan siswa aktif.
+     */
+    public function reevaluateWaitlist(ClassSession $classSession): void
+    {
+        DB::transaction(fn () => $this->maybeActivateWaitlist($classSession));
+    }
+
     private function maybeActivateWaitlist(ClassSession $classSession): void
     {
         $classSession->loadMissing('program');

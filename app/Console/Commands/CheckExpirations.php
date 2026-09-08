@@ -2,24 +2,26 @@
 
 namespace App\Console\Commands;
 
-use Illuminate\Console\Command;
 use App\Models\Enrollment;
-use App\Enums\AccountCode;
-use App\Services\AccountingService;
+use App\Models\RoomBooking;
+use App\Services\EnrollmentLedgerService;
+use App\Services\Notifier;
 use App\Services\TutorAssignmentService;
 use Carbon\Carbon;
+use Illuminate\Console\Command;
+use Illuminate\Support\Facades\DB;
 
 class CheckExpirations extends Command
 {
     protected $signature = 'app:check-expirations';
+
     protected $description = 'Check for expiring enrollments and handle automatic revenue recognition for expired ones.';
 
-    protected $accountingService;
-
-    public function __construct(AccountingService $accountingService)
-    {
+    public function __construct(
+        protected EnrollmentLedgerService $ledgerService,
+        protected TutorAssignmentService $tutorAssignment,
+    ) {
         parent::__construct();
-        $this->accountingService = $accountingService;
     }
 
     public function handle()
@@ -37,7 +39,7 @@ class CheckExpirations extends Command
             ->where('status', 'active')
             ->get();
 
-        $notifier = app(\App\Services\Notifier::class);
+        $notifier = app(Notifier::class);
         foreach ($h7 as $e) {
             $this->info("H-7 Expiry Warning: Student {$e->student->user->name} ({$e->program->name}) expires on {$e->expiry_date}");
             $notifier->enrollmentExpiring($e->student->user->name, $e->program->name, (string) $e->expiry_date, 7);
@@ -47,70 +49,53 @@ class CheckExpirations extends Command
             $notifier->enrollmentExpiring($e->student->user->name, $e->program->name, (string) $e->expiry_date, 3);
         }
 
-        // 2. Auto-recognize revenue for expired enrollments with remaining meetings
-        $expired = Enrollment::with(['student.user', 'program', 'installments', 'schedules', 'tutors'])
+        // 2. Enrollment yang sudah lewat tanggal habis → hanguskan.
+        //    Perlakuannya PERSIS sama dengan tombol "Expire" manual di halaman
+        //    Enrollment: buku besar dibangun ulang dari data operasional lewat
+        //    EnrollmentLedgerService::rebuild() — sisa "pendapatan diterima di
+        //    muka" yang benar-benar tersedia diakui jadi pendapatan (bukan
+        //    rumus lama remaining_meetings × harga-per-pertemuan yang bisa
+        //    menyeret saldo jadi minus untuk siswa cicilan yang nunggak).
+        //    Piutang siswa yang nunggak TIDAK ikut dihapus — itu tetap tagihan.
+        $expired = Enrollment::with(['student.user', 'program', 'tutors'])
             ->where('expiry_date', '<', $today)
             ->where('status', 'active')
-            ->where('remaining_meetings', '>', 0)
             ->get();
 
-        foreach ($expired as $e) {
-            // Untuk full upfront, tidak ada installment rows — pakai total_amount langsung
-            $paidAmount = $e->payment_method === 'full upfront'
-                ? (float) $e->total_amount
-                : (float) $e->installments->whereNotNull('paid_at')->sum('amount');
+        foreach ($expired as $expiredEnrollment) {
+            try {
+                DB::transaction(function () use ($expiredEnrollment, $today) {
+                    $e = Enrollment::with('program')->lockForUpdate()->find($expiredEnrollment->id);
+                    if (! $e || $e->status !== 'active') {
+                        return;
+                    }
 
-            if ($paidAmount <= 0 || $e->program->total_meetings <= 0) {
-            \App\Models\RoomBooking::where('enrollment_id', $e->id)
-                ->where('date', '>', $today->format('Y-m-d'))
-                ->delete();
-                $e->update(['status' => 'expired']);
-                $this->releaseTutorSlots($e);
-                $this->warn("Expired enrollment #{$e->id}: tidak ada pembayaran, status diupdate tanpa jurnal.");
-                continue;
-            }
+                    $tutorIds = $e->tutors()->pluck('tutors.id')->map(fn ($v) => (int) $v)->all();
 
-            $perMeetingPrice   = $paidAmount / $e->program->total_meetings;
-            $remainingDeferred = $e->remaining_meetings * $perMeetingPrice;
+                    $e->update([
+                        'status' => 'expired',
+                        'remaining_meetings' => 0,
+                    ]);
 
-            if ($remainingDeferred > 0) {
-                try {
-                    \Illuminate\Support\Facades\DB::transaction(function () use ($e, $remainingDeferred, $today) {
-                    $this->accountingService->createJournal(
-                        $today->format('Y-m-d'),
-                        "Auto Revenue Recognition on Expiry: Student {$e->student->user->name}",
-                        "MANUAL-EXPIRY-{$e->id}",
-                        [
-                            ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $remainingDeferred, 'credit' => 0],
-                            ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $remainingDeferred],
-                        ],
-                        'revenue_recognition',
-                        $e->program_id
-                    );
-                    \App\Models\RoomBooking::where('enrollment_id', $e->id)
-                        ->where('date', '>', $today->format('Y-m-d'))
+                    $e->refresh()->load('program');
+                    // Sama seperti jalur edit enrollment: buku besar dibangun
+                    // ulang dengan tanggal dasar = tanggal enrollment.
+                    $this->ledgerService->rebuild($e, optional($e->enrollment_date)->toDateString());
+
+                    // Bersihkan booking ruang masa depan + bebaskan jam tutor.
+                    RoomBooking::where('enrollment_id', $e->id)
+                        ->where('date', '>', $today->toDateString())
                         ->delete();
-                    $e->update(['status' => 'expired', 'remaining_meetings' => 0]);
-                    $this->releaseTutorSlots($e);
-                    $this->info("Expired enrollment #{$e->id}: recognized sisa IDR " . number_format($remainingDeferred));
-                    }); // end DB::transaction
-                } catch (\App\Exceptions\IdempotencyException $ex) {
-                    // Jurnal sudah ada (dari manual expire) — tetap update status enrollment
-                    $e->update(['status' => 'expired', 'remaining_meetings' => 0]);
-                    $this->warn("Enrollment #{$e->id}: jurnal sudah ada, status diupdate.");
-                } catch (\Exception $ex) {
-                    $this->error("Failed to recognize revenue for enrollment #{$e->id}: " . $ex->getMessage());
-                }
-            }
-        }
-    }
 
-    /** Bebaskan slot jam tutor setelah sebuah enrollment berakhir. */
-    private function releaseTutorSlots(Enrollment $e): void
-    {
-        $svc = app(TutorAssignmentService::class);
-        foreach ($e->tutors()->pluck('tutors.id') as $tutorId) {
-            $svc->recomputeAvailability((int) $tutorId);
+                    foreach ($tutorIds as $tutorId) {
+                        $this->tutorAssignment->recomputeAvailability($tutorId);
+                    }
+
+                    $this->info("Enrollment #{$e->id} ({$expiredEnrollment->student->user->name}) dihanguskan; buku besar disinkronkan.");
+                });
+            } catch (\Throwable $ex) {
+                $this->error("Gagal menghanguskan enrollment #{$expiredEnrollment->id}: ".$ex->getMessage());
+            }
         }
     }
 }

@@ -23,8 +23,11 @@ use App\Models\Tutor;
 use App\Services\AccountingService;
 use App\Services\EnrollmentLedgerService;
 use App\Services\EnrollmentService;
+use App\Services\Notifier;
 use App\Services\RevenueRecognitionService;
 use App\Services\TutorAssignmentService;
+use App\Support\ScheduleFormat;
+use App\Support\UpcomingSessions;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -115,8 +118,8 @@ class EnrollmentController extends Controller
             ->orderBy('name')
             ->get();
         $students = Student::with('user')->orderBy('created_at', 'desc')->get();
-        $days = \App\Support\ScheduleFormat::DAYS;
-        $timeBlocks = \App\Support\ScheduleFormat::TIME_BLOCKS;
+        $days = ScheduleFormat::DAYS;
+        $timeBlocks = ScheduleFormat::TIME_BLOCKS;
 
         return view('admin.enrollments.create', compact('programs', 'classrooms', 'classSessions', 'students', 'days', 'timeBlocks'));
     }
@@ -177,6 +180,9 @@ class EnrollmentController extends Controller
             DB::transaction(function () use ($id, $data) {
                 $enrollment = Enrollment::with('program')->lockForUpdate()->findOrFail($id);
                 Installment::where('enrollment_id', $id)->lockForUpdate()->get();
+
+                $oldClassSessionId = $enrollment->class_session_id;
+                $oldTutorIds = $enrollment->tutors()->pluck('tutors.id')->map(fn ($v) => (int) $v)->all();
 
                 $recognized = DB::table('attendance_student')->where('enrollment_id', $id)->count();
 
@@ -244,8 +250,35 @@ class EnrollmentController extends Controller
                 // Jurnal enrollment dibangun ulang dari data operasional baru:
                 // kas = uang yang benar-benar diterima, revenue recognition di-replay
                 // per pertemuan. Hasilnya selalu sinkron.
-                $enrollment->refresh()->load('program');
+                $enrollment->refresh()->load('program', 'classSession', 'student.user');
                 $this->ledgerService->rebuild($enrollment, $data['enrollment_date']);
+
+                // Pindah kelas lewat form edit: sambungkan siswa ke tutor-tutor
+                // kelas baru (muncul di dashboard tutor itu) + hitung ulang jam
+                // tutor kelas lama & baru + beri tahu tutor kelas baru.
+                if ((int) $enrollment->class_session_id !== (int) $oldClassSessionId) {
+                    if ($oldClassSessionId) {
+                        // Lepas kaitan siswa–tutor kelas lama; jam tutornya
+                        // dihitung ulang di bawah.
+                        DB::table('enrollment_tutor')
+                            ->where('enrollment_id', $enrollment->id)
+                            ->whereIn('tutor_id', function ($q) use ($oldClassSessionId) {
+                                $q->select('tutor_id')->from('class_session_tutor')
+                                    ->where('class_session_id', $oldClassSessionId);
+                            })
+                            ->delete();
+                    }
+                    if ($enrollment->class_session_id && $enrollment->classSession) {
+                        $this->tutorAssignment->syncEnrollmentToClassTutors($enrollment);
+                        app(Notifier::class)->newStudentInClass($enrollment);
+                    }
+                    $newTutorIds = $enrollment->classSession
+                        ? $enrollment->classSession->tutors()->pluck('tutors.id')->map(fn ($v) => (int) $v)->all()
+                        : [];
+                    foreach (array_unique(array_merge($oldTutorIds, $newTutorIds)) as $tid) {
+                        $this->tutorAssignment->recomputeAvailability((int) $tid);
+                    }
+                }
 
                 // Status terminal lewat form edit -> jalankan efek operasionalnya
                 // (sama seperti tombol Expire/Graduate): bersihkan booking ruangan
@@ -331,8 +364,8 @@ class EnrollmentController extends Controller
         ]);
 
         $programId = $request->program_id;
-        $day = \App\Support\ScheduleFormat::day($request->day);
-        $timeBlock = \App\Support\ScheduleFormat::timeBlock($request->time_block);
+        $day = ScheduleFormat::day($request->day);
+        $timeBlock = ScheduleFormat::timeBlock($request->time_block);
         $search = $request->q;
         $program = Program::find($programId);
         $isPrivate = $program && $program->type === ClassType::PRIVATE->value;
@@ -407,8 +440,8 @@ class EnrollmentController extends Controller
     {
         $this->authorize('viewAny', Enrollment::class);
 
-        $day = \App\Support\ScheduleFormat::day($request->input('day'));
-        $timeBlock = \App\Support\ScheduleFormat::timeBlock($request->input('time_block'));
+        $day = ScheduleFormat::day($request->input('day'));
+        $timeBlock = ScheduleFormat::timeBlock($request->input('time_block'));
 
         $tutors = Tutor::with('user')
             ->when($day && $timeBlock, function ($q) use ($day, $timeBlock) {
@@ -449,7 +482,7 @@ class EnrollmentController extends Controller
         // Pertemuan mendatang (sadar skip / pindah ruang) — sama persis dengan
         // yang dilihat siswa di dashboard-nya.
         $upcomingSessions = $enrollment->status === 'active'
-            ? \App\Support\UpcomingSessions::forEnrollment($enrollment, limit: 5)
+            ? UpcomingSessions::forEnrollment($enrollment, limit: 5)
             : [];
 
         return view('admin.enrollments.show', compact('enrollment', 'availableTutors', 'upcomingSessions'));
@@ -723,22 +756,15 @@ class EnrollmentController extends Controller
         return DB::transaction(function () use ($id) {
             $enrollment = Enrollment::with('installments')->lockForUpdate()->findOrFail($id);
 
-            // Cascade jurnal (keputusan owner 2026-09-07): hapus enrollment =
-            // hapus semua jurnal yang ber-enrollment_id itu + jurnal cicilannya.
-            // journal_items ikut lewat FK cascade; kita eksplisit + lepas dulu
-            // attendance_tutor.journal_id yang (jarang) menunjuk ke sini.
-            $journalIds = $this->relatedJournalIds($enrollment);
-            DB::table('attendance_tutor')->whereIn('journal_id', $journalIds)->update(['journal_id' => null]);
-            DB::table('journal_items')->whereIn('journal_id', $journalIds)->delete();
-            Journal::whereIn('id', $journalIds)->delete();
-
-            // enrollment_tutor / installments / attendance_student -> FK cascade.
-            // schedules / room_bookings -> enrollment_id di-null (milik class session).
+            // Cascade jurnal + jadwal + jam tutor ditangani terpusat di
+            // App\Models\Enrollment::deleting/deleted — jadi jalur mana pun
+            // (hapus enrollment, hapus siswa, ganti peran user) selalu bersih.
+            $journalCount = $this->relatedJournalIds($enrollment)->count();
             $enrollment->delete();
 
             return response()->json([
                 'success' => true,
-                'deleted' => ['journals' => $journalIds->count()],
+                'deleted' => ['journals' => $journalCount],
             ]);
         });
     }

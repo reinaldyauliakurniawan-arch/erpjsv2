@@ -28,11 +28,22 @@ class PayrollService
         $monthKey = Carbon::parse($month)->startOfMonth()->toDateString();
 
         return DB::transaction(function () use ($monthKey) {
-            $existing = PayrollRun::whereDate('month', $monthKey)->whereNotIn('status', ['reversed'])->lockForUpdate()->first();
-            if ($existing) {
-                throw new DomainException("Payroll run untuk bulan ini sudah ada (status: {$existing->status}).");
+            $existing = PayrollRun::whereDate('month', $monthKey)
+                ->whereNotIn('status', ['reversed'])
+                ->lockForUpdate()
+                ->orderByDesc('id')
+                ->first();
+
+            // Masih ada run yang belum di-approve → selesaikan itu dulu.
+            if ($existing && $existing->status === 'pending') {
+                throw new DomainException('Masih ada payroll run bulan ini yang belum di-approve.');
             }
 
+            // Sudah ada run yang approved → run baru ini otomatis jadi
+            // "pembayaran susulan": nanti saat di-approve hanya menyapu honor
+            // yang BELUM terbayar di bulan itu (mis. presensi/tarif yang baru
+            // masuk setelah payroll bulan itu berjalan). Gaji tutor tetap tidak
+            // dibayar dua kali (dijaga di approvePayrollRun()).
             return PayrollRun::create([
                 'month' => $monthKey,
                 'status' => 'pending',
@@ -57,7 +68,17 @@ class PayrollService
             // payments in a payroll run should have the same timestamp.
             $paidAt = now();
 
+            // Run lain di bulan yang sama yang sudah approved → run ini adalah
+            // pembayaran susulan. Gaji tutor tetap TIDAK dibayar ulang.
+            $priorApprovedRunIds = PayrollRun::whereDate('month', $payrollRun->month)
+                ->where('id', '!=', $payrollRun->id)
+                ->where('status', 'approved')
+                ->pluck('id');
+
             foreach ($tutors as $tutor) {
+                $salaryAlreadyPaid = $priorApprovedRunIds->contains(
+                    fn ($rid) => Journal::where('reference', "PAYROLL-{$rid}-TUTOR-{$tutor->id}-SALARY")->exists()
+                );
                 // ── 1. Tutor tetap: gaji bulanan ──────────────────────────
                 // Dibayar regardless berapa meeting yang diajar. Pro-rata per
                 // hari untuk bulan pertama/terakhir yang tidak penuh (mis.
@@ -66,7 +87,7 @@ class PayrollService
                 // supaya bulan lampau tetap benar walau statusnya sudah
                 // berubah.
                 $salary = $tutor->proratedSalaryForMonth($payrollRun->month);
-                if (bccomp($salary, '0', 2) > 0) {
+                if (! $salaryAlreadyPaid && bccomp($salary, '0', 2) > 0) {
                     try {
                         $this->accountingService->createJournal(
                             $date,
@@ -117,7 +138,7 @@ class PayrollService
 
                 DB::table('attendance_tutor')
                     ->whereIn('id', $unpaidAttendances->pluck('id'))
-                    ->update(['paid_at' => $paidAt]);
+                    ->update(['paid_at' => $paidAt, 'payroll_run_id' => $payrollRun->id]);
 
                 $this->notifier->payrollPaid($tutor, Carbon::parse($payrollRun->month)->translatedFormat('F Y'), (float) $totalAmount);
             }
@@ -184,14 +205,34 @@ class PayrollService
                     'payroll'
                 );
 
-                DB::table('attendance_tutor')
-                    ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
-                    ->where('attendance_tutor.tutor_id', $tutor->id)
-                    ->whereNotNull('attendance_tutor.paid_at')
-                    ->where('attendance_tutor.pending_rate', false)
-                    ->whereYear('attendance.date', Carbon::parse($payrollRun->month)->year)
-                    ->whereMonth('attendance.date', Carbon::parse($payrollRun->month)->month)
-                    ->update(['attendance_tutor.paid_at' => null]);
+                // Presisi: hanya baris presensi yang dibayar OLEH run ini yang
+                // dikembalikan ke "belum dibayar". Ini penting kalau ada
+                // pembayaran susulan di bulan yang sama — reverse satu run tidak
+                // boleh merusak status pembayaran run lain.
+                $rowsForThisRun = DB::table('attendance_tutor')
+                    ->where('tutor_id', $tutor->id)
+                    ->where('payroll_run_id', $payrollRun->id)
+                    ->exists();
+
+                if ($rowsForThisRun) {
+                    DB::table('attendance_tutor')
+                        ->where('tutor_id', $tutor->id)
+                        ->where('payroll_run_id', $payrollRun->id)
+                        ->update(['paid_at' => null, 'payroll_run_id' => null]);
+                } else {
+                    // Run lama (di-approve sebelum kolom payroll_run_id ada):
+                    // baris yang dibayarnya tidak tertaut. Fallback ke filter
+                    // bulan, tapi hanya untuk baris yang belum tertaut run mana pun.
+                    DB::table('attendance_tutor')
+                        ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+                        ->where('attendance_tutor.tutor_id', $tutor->id)
+                        ->whereNotNull('attendance_tutor.paid_at')
+                        ->whereNull('attendance_tutor.payroll_run_id')
+                        ->where('attendance_tutor.pending_rate', false)
+                        ->whereYear('attendance.date', Carbon::parse($payrollRun->month)->year)
+                        ->whereMonth('attendance.date', Carbon::parse($payrollRun->month)->month)
+                        ->update(['attendance_tutor.paid_at' => null]);
+                }
             }
 
             $payrollRun->update([
