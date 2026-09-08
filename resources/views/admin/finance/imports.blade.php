@@ -24,6 +24,7 @@
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Chart of Accounts (COA)</h4>
                     <p class="text-body-sm text-on-surface-variant">CSV: code, name, type (Asset/Liability/Equity/Revenue/Expense)</p>
+                    <p class="text-body-sm text-on-surface-variant mt-xs">Baris yang bermasalah dilaporkan satu per satu (mis. tipe akun tak dikenal, atau kode yang sudah dipakai akun lain yang sudah ada transaksinya). Baris yang benar tetap masuk; baris yang salah dilewati dengan alasannya.</p>
                 </div>
                 <a href="{{ route('finance.exports.coa') }}"
                     class="btn btn-ghost btn-sm gap-xs shrink-0">
@@ -52,6 +53,7 @@
                 <div>
                     <h4 class="text-headline-md font-semibold text-on-surface">Journals</h4>
                     <p class="text-body-sm text-on-surface-variant">CSV: date, description, reference, account_code, debit, credit</p>
+                    <p class="text-body-sm text-on-surface-variant mt-xs">Tiap jurnal (dikelompokkan per reference) dicek: tanggal masuk akal, kode akun ada, debit = kredit. Jurnal yang gagal dilaporkan lengkap dengan alasannya (mis. selisih debit-kredit sekian, kode akun mana yang tidak ketemu); reference yang sudah ada dilewati.</p>
                 </div>
                 <a href="{{ route('finance.exports.journals') }}"
                     class="btn btn-ghost btn-sm gap-xs shrink-0">

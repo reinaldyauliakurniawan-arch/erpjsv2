@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\ClassroomKind;
 use App\Enums\PaymentStatus;
 use App\Enums\Role;
 use App\Exceptions\AccountNotFoundException;
@@ -24,6 +25,9 @@ use App\Models\TutorAvailability;
 use App\Models\TutorRate;
 use App\Models\User;
 use App\Services\AccountingService;
+use App\Services\DepreciationService;
+use App\Services\EnrollmentLedgerService;
+use App\Services\TutorAssignmentService;
 use App\Support\ScheduleFormat;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -33,7 +37,41 @@ use Illuminate\Support\Str;
 
 class ImportController extends Controller
 {
-    public function __construct(protected AccountingService $accountingService) {}
+    public function __construct(
+        protected AccountingService $accountingService,
+        protected EnrollmentLedgerService $ledgerService,
+        protected TutorAssignmentService $tutorAssignment,
+        protected DepreciationService $depreciationService,
+    ) {}
+
+    /**
+     * Jalankan efek aplikasi untuk sekumpulan enrollment setelah impor:
+     * bangun ulang buku besar (kas + pengakuan pendapatan dari data operasional),
+     * sambungkan siswa ke tutor kelasnya, hitung ulang jam tutor.
+     */
+    private function runEnrollmentProcesses(array $enrollmentIds): void
+    {
+        $tutorIds = [];
+        foreach (Enrollment::with(['program', 'classSession'])->whereIn('id', array_unique($enrollmentIds))->get() as $enrollment) {
+            $this->ledgerService->rebuild($enrollment, optional($enrollment->enrollment_date)->toDateString());
+            if ($enrollment->class_session_id && $enrollment->classSession) {
+                $this->tutorAssignment->syncEnrollmentToClassTutors($enrollment);
+                $tutorIds = array_merge($tutorIds, $enrollment->classSession->tutors()->pluck('tutors.id')->all());
+            }
+            $tutorIds = array_merge($tutorIds, $enrollment->tutors()->pluck('tutors.id')->all());
+        }
+        foreach (array_unique(array_map('intval', $tutorIds)) as $tid) {
+            $this->tutorAssignment->recomputeAvailability($tid);
+        }
+    }
+
+    /** Hitung ulang jam sejumlah tutor. */
+    private function recomputeTutorHours(array $tutorIds): void
+    {
+        foreach (array_unique(array_map('intval', $tutorIds)) as $tid) {
+            $this->tutorAssignment->recomputeAvailability($tid);
+        }
+    }
 
     public function index()
     {
@@ -90,19 +128,35 @@ class ImportController extends Controller
                     if ($index === 0) {
                         continue;
                     }
-                    if (count($row) < 3) {
+                    if (count($row) < 3 || trim($row[0]) === '') {
+                        $errors[] = "Baris {$index}: format salah — butuh minimal kode, nama, dan tipe akun.";
+
                         continue;
                     }
                     $validCategories = ['cash', 'operating', 'investing', 'financing'];
                     $validTypes = ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'];
+                    $code = trim($row[0]);
                     $type = ucfirst(strtolower(trim($row[2])));
                     if (! in_array($type, $validTypes)) {
-                        $errors[] = "Row {$index}: type '{$row[2]}' tidak valid.";
+                        $errors[] = "Baris {$index}: tipe akun '{$row[2]}' tidak dikenal. Harus salah satu dari: ".implode(', ', $validTypes).'.';
 
                         continue;
                     }
+
+                    // Guardrail tabrakan: kode sudah dipakai untuk akun lain yang
+                    // SUDAH ada transaksinya, dengan tipe berbeda → tolak (mengubah
+                    // tipe akun yang sudah bersaldo merusak laporan). Kalau belum
+                    // ada transaksinya, aman ditimpa (mis. CFO merapikan COA).
+                    $existing = Account::where('code', $code)->first();
+                    if ($existing && $existing->type !== $type
+                        && DB::table('journal_items')->where('account_id', $existing->id)->exists()) {
+                        $errors[] = "Baris {$index}: kode '{$code}' sudah dipakai akun \"{$existing->name}\" (tipe {$existing->type}) yang sudah punya transaksi — tidak boleh diubah jadi tipe {$type}. Pakai kode lain atau betulkan file.";
+
+                        continue;
+                    }
+
                     Account::updateOrCreate(
-                        ['code' => trim($row[0])],
+                        ['code' => $code],
                         [
                             'name' => trim($row[1]),
                             'type' => $type,
@@ -155,10 +209,10 @@ class ImportController extends Controller
                     // true -> physical, false -> offsite. Nama "online" -> online.
                     $raw = isset($row[2]) ? strtolower(trim($row[2])) : '';
                     $kind = match (true) {
-                        in_array($raw, \App\Enums\ClassroomKind::values(), true) => $raw,
-                        str_contains(strtolower(trim($row[0])), 'online') => \App\Enums\ClassroomKind::ONLINE->value,
-                        $raw === '' || filter_var($raw, FILTER_VALIDATE_BOOLEAN) => \App\Enums\ClassroomKind::PHYSICAL->value,
-                        default => \App\Enums\ClassroomKind::OFFSITE->value,
+                        in_array($raw, ClassroomKind::values(), true) => $raw,
+                        str_contains(strtolower(trim($row[0])), 'online') => ClassroomKind::ONLINE->value,
+                        $raw === '' || filter_var($raw, FILTER_VALIDATE_BOOLEAN) => ClassroomKind::PHYSICAL->value,
+                        default => ClassroomKind::OFFSITE->value,
                     };
 
                     Classroom::updateOrCreate(
@@ -410,13 +464,15 @@ class ImportController extends Controller
     public function importEnrollments(Request $request)
     {
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
+        $runProcesses = $request->boolean('run_processes');
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
         $errors = [];
         $imported = 0;
+        $affectedIds = [];
 
         try {
-            DB::transaction(function () use ($data, &$imported, &$errors) {
+            DB::transaction(function () use ($data, &$imported, &$errors, &$affectedIds) {
                 foreach ($data as $index => $row) {
                     if ($index === 0) {
                         continue;
@@ -481,7 +537,7 @@ class ImportController extends Controller
                         continue;
                     }
 
-                    Enrollment::updateOrCreate(
+                    $enrollment = Enrollment::updateOrCreate(
                         ['student_id' => $student->id, 'program_id' => $program->id, 'enrollment_date' => $parsedEnrollmentDate->toDateString()],
                         [
                             'class_session_id' => $classSession?->id,
@@ -494,6 +550,7 @@ class ImportController extends Controller
                             'remaining_meetings' => (int) $remainingMeetings ?: $program->total_meetings,
                         ]
                     );
+                    $affectedIds[] = $enrollment->id;
                     $imported++;
                 }
             });
@@ -501,26 +558,35 @@ class ImportController extends Controller
             return back()->with('error', 'Import dibatalkan total (rollback), tidak ada data tersimpan: '.$e->getMessage());
         }
 
+        if ($runProcesses && $affectedIds) {
+            $this->runEnrollmentProcesses($affectedIds);
+        }
+
         $msg = "Imported: {$imported} enrollments.";
         if ($errors) {
             $msg .= ' Errors: '.implode(' | ', $errors);
         }
 
-        return back()
-            ->with($errors ? 'error' : 'success', $msg)
-            ->with('warning', '⚠️ Jurnal akuntansi tidak dibuat otomatis via import. Gunakan fitur import jurnal terpisah untuk mencatat pembayaran historis agar laporan keuangan akurat.');
+        $flash = back()->with($errors ? 'error' : 'success', $msg);
+        if (! $runProcesses) {
+            $flash->with('warning', '⚠️ Anda memilih "data mentah saja" — jurnal akuntansi & sambungan tutor TIDAK dibuat. Impor jurnal terpisah, atau ulangi impor ini dengan pilihan "jalankan proses aplikasi" dicentang.');
+        }
+
+        return $flash;
     }
 
     public function importInstallments(Request $request)
     {
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
+        $runProcesses = $request->boolean('run_processes');
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
         $errors = [];
         $imported = 0;
+        $affectedIds = [];
 
         try {
-            DB::transaction(function () use ($data, &$imported, &$errors) {
+            DB::transaction(function () use ($data, &$imported, &$errors, &$affectedIds) {
                 foreach ($data as $index => $row) {
                     if ($index === 0) {
                         continue;
@@ -579,6 +645,7 @@ class ImportController extends Controller
                             : PaymentStatus::PARTIAL->value,
                     ]);
 
+                    $affectedIds[] = $enrollment->id;
                     $imported++;
                 }
             });
@@ -586,9 +653,18 @@ class ImportController extends Controller
             return back()->with('error', 'Import dibatalkan total (rollback), tidak ada data tersimpan: '.$e->getMessage());
         }
 
+        if ($runProcesses && $affectedIds) {
+            foreach (Enrollment::with('program')->whereIn('id', array_unique($affectedIds))->get() as $enrollment) {
+                $this->ledgerService->rebuild($enrollment, optional($enrollment->enrollment_date)->toDateString());
+            }
+        }
+
         $msg = "Imported: {$imported} installments.";
         if ($errors) {
             $msg .= ' Errors: '.implode(' | ', $errors);
+        }
+        if (! $runProcesses) {
+            $msg .= ' (Data mentah saja — jurnal penerimaan kas tidak dibuat.)';
         }
 
         return back()->with($errors ? 'error' : 'success', $msg);
@@ -597,13 +673,15 @@ class ImportController extends Controller
     public function importSchedules(Request $request)
     {
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
+        $runProcesses = $request->boolean('run_processes');
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
         $errors = [];
         $imported = 0;
+        $tutorIds = [];
 
         try {
-            DB::transaction(function () use ($data, &$imported, &$errors) {
+            DB::transaction(function () use ($data, &$imported, &$errors, &$tutorIds) {
                 foreach ($data as $index => $row) {
                     if ($index === 0) {
                         continue;
@@ -653,11 +731,18 @@ class ImportController extends Controller
                             'class_session_id' => $classSession?->id,
                         ]
                     );
+                    if ($classSession) {
+                        $tutorIds = array_merge($tutorIds, $classSession->tutors()->pluck('tutors.id')->all());
+                    }
                     $imported++;
                 }
             });
         } catch (\Throwable $e) {
             return back()->with('error', 'Import dibatalkan total (rollback), tidak ada data tersimpan: '.$e->getMessage());
+        }
+
+        if ($runProcesses && $tutorIds) {
+            $this->recomputeTutorHours($tutorIds);
         }
 
         $msg = "Imported: {$imported} schedules.";
@@ -671,13 +756,15 @@ class ImportController extends Controller
     public function importTutorAvailability(Request $request)
     {
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
+        $runProcesses = $request->boolean('run_processes');
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
         $errors = [];
         $imported = 0;
+        $tutorIds = [];
 
         try {
-            DB::transaction(function () use ($data, &$imported, &$errors) {
+            DB::transaction(function () use ($data, &$imported, &$errors, &$tutorIds) {
                 foreach ($data as $index => $row) {
                     if ($index === 0) {
                         continue;
@@ -702,11 +789,16 @@ class ImportController extends Controller
                         ],
                         ['status' => trim($status) ?: 'available']
                     );
+                    $tutorIds[] = $tutor->id;
                     $imported++;
                 }
             });
         } catch (\Throwable $e) {
             return back()->with('error', 'Import dibatalkan total (rollback), tidak ada data tersimpan: '.$e->getMessage());
+        }
+
+        if ($runProcesses && $tutorIds) {
+            $this->recomputeTutorHours($tutorIds);
         }
 
         $msg = "Imported: {$imported} tutor availability.";
@@ -812,13 +904,15 @@ class ImportController extends Controller
     public function importFixedAssets(Request $request)
     {
         $request->validate(['file' => 'required|file|mimes:csv,txt']);
+        $runProcesses = $request->boolean('run_processes');
         $path = $request->file('file')->getRealPath();
         $data = array_map('str_getcsv', file($path));
         $errors = [];
         $imported = 0;
+        $assetIds = [];
 
         try {
-            DB::transaction(function () use ($data, &$imported, &$errors) {
+            DB::transaction(function () use ($data, &$imported, &$errors, &$assetIds) {
                 foreach ($data as $index => $row) {
                     if ($index === 0) {
                         continue;
@@ -872,7 +966,7 @@ class ImportController extends Controller
                         continue;
                     }
 
-                    FixedAsset::updateOrCreate(
+                    $asset = FixedAsset::updateOrCreate(
                         ['name' => trim($name)],
                         [
                             'category' => trim($category),
@@ -887,6 +981,7 @@ class ImportController extends Controller
                             'is_active' => filter_var($isActive ?? true, FILTER_VALIDATE_BOOLEAN),
                         ]
                     );
+                    $assetIds[] = $asset->id;
                     $imported++;
                 }
             });
@@ -894,9 +989,18 @@ class ImportController extends Controller
             return back()->with('error', 'Import dibatalkan total (rollback), tidak ada data tersimpan: '.$e->getMessage());
         }
 
+        if ($runProcesses && $assetIds) {
+            foreach (FixedAsset::whereIn('id', array_unique($assetIds))->get() as $asset) {
+                $this->depreciationService->rebuildAsset($asset);
+            }
+        }
+
         $msg = "Imported: {$imported} fixed assets.";
         if ($errors) {
             $msg .= ' Errors: '.implode(' | ', $errors);
+        }
+        if (! $runProcesses) {
+            $msg .= ' (Data mentah saja — jurnal penyusutan tidak dibuat.)';
         }
 
         return back()->with($errors ? 'error' : 'success', $msg);
@@ -1016,20 +1120,23 @@ class ImportController extends Controller
             } catch (IdempotencyException $e) {
                 $skipped[] = $reference;
             } catch (BalanceMismatchException $e) {
-                $errors[] = "{$reference}: debit dan kredit tidak balance.";
+                $td = array_sum(array_column($items, 'debit'));
+                $tc = array_sum(array_column($items, 'credit'));
+                $errors[] = "{$reference}: total debit (".number_format($td, 0, ',', '.').') tidak sama dengan total kredit ('
+                    .number_format($tc, 0, ',', '.').'). Selisih '.number_format(abs($td - $tc), 0, ',', '.').'.';
             } catch (AccountNotFoundException $e) {
-                $errors[] = "{$reference}: kode akun tidak ditemukan.";
+                $errors[] = "{$reference}: ".$e->getMessage().' Impor / betulkan Chart of Accounts dulu.';
             } catch (\Exception $e) {
                 $errors[] = "{$reference}: ".$e->getMessage();
             }
         }
 
-        $msg = "Imported: {$imported} jurnal.";
+        $msg = "Berhasil impor {$imported} jurnal.";
         if ($skipped) {
-            $msg .= ' Skipped (duplikat): '.implode(', ', $skipped).'.';
+            $msg .= ' Dilewati karena referensinya sudah ada: '.implode(', ', $skipped).'.';
         }
         if ($errors) {
-            $msg .= ' Errors: '.implode(' | ', $errors);
+            $msg .= ' Gagal: '.implode(' | ', $errors);
         }
 
         return back()->with($errors ? 'error' : 'success', $msg);

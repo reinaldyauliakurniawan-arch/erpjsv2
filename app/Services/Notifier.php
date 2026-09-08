@@ -80,10 +80,14 @@ class Notifier
     public function pendingRate(Tutor|int $tutor, string $date): void
     {
         $tutor = $tutor instanceof Tutor ? $tutor : Tutor::with('user')->find($tutor);
-        $this->toRole('cfo', 'pending_rate',
-            'Honor tutor belum ada tarif',
-            "Tutor {$tutor?->user?->name} mengajar {$date} tapi belum ada tarif. Set tarif untuk memposting honornya.",
-            route('finance.index'));
+        // Admin yang menetapkan tarif (setelah konsultasi CFO). Begitu tarif
+        // disimpan di halaman Tutor, honor semua pertemuan yang menunggu
+        // langsung dicatat otomatis.
+        $this->toRole('admin', 'pending_rate',
+            'Tarif honor tutor belum diisi',
+            "Tutor {$tutor?->user?->name} sudah mengajar ({$date}) tapi tarif program-nya belum diisi. "
+            .'Isi tarif di halaman Tutor — honornya akan langsung tercatat.',
+            $tutor ? route('admin.tutors.show', $tutor->id) : route('admin.dashboard'));
     }
 
     public function payrollPaid(Tutor|int $tutor, string $monthLabel, float $amount): void

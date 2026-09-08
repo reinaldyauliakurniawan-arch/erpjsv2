@@ -265,6 +265,90 @@ class AttendanceService
     }
 
     /**
+     * Catat honor SEMUA pertemuan tutor ini yang masih "menunggu tarif" untuk
+     * satu program, begitu tarifnya ditetapkan. Dipanggil dari halaman Tutor
+     * saat admin menyimpan tarif — tidak ada lagi honor yang menggantung.
+     *
+     * @return int jumlah pertemuan yang honornya baru dicatat
+     */
+    public function backfillTutorFees(int $tutorId, int $programId, float $rate): int
+    {
+        if ($rate <= 0) {
+            return 0;
+        }
+
+        return DB::transaction(function () use ($tutorId, $programId, $rate) {
+            $tutor = Tutor::with('user')->find($tutorId);
+            if (! $tutor) {
+                return 0;
+            }
+
+            $rows = DB::table('attendance_tutor')
+                ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+                ->join('class_sessions', 'attendance.class_session_id', '=', 'class_sessions.id')
+                ->where('attendance_tutor.tutor_id', $tutorId)
+                ->where('attendance_tutor.pending_rate', true)
+                ->whereNull('attendance.deleted_at')
+                ->where('class_sessions.program_id', $programId)
+                ->select('attendance_tutor.id', 'attendance_tutor.attendance_id', 'attendance.date')
+                ->lockForUpdate()
+                ->get();
+
+            $count = 0;
+            $monthsAlreadyPaid = [];
+
+            foreach ($rows as $row) {
+                $date = $row->date instanceof \DateTimeInterface ? $row->date->format('Y-m-d') : (string) $row->date;
+
+                // Tutor sudah tetap pada tanggal itu → gaji bulanan yang menutup,
+                // bukan honor per-pertemuan.
+                if ($tutor->isSalariedOn($date)) {
+                    DB::table('attendance_tutor')->where('id', $row->id)->update([
+                        'pending_rate' => false, 'payable_amount' => 0, 'journal_id' => null,
+                    ]);
+
+                    continue;
+                }
+
+                try {
+                    $journal = $this->accountingService->createJournal(
+                        $date,
+                        "Tutor Fee: {$tutor->user->name}, Session: {$row->attendance_id}",
+                        "TUTOR-PAY-{$row->attendance_id}-{$tutorId}",
+                        [
+                            ['account_code' => AccountCode::EXPENSE_TUTOR_FEE->value, 'debit' => $rate, 'credit' => 0],
+                            ['account_code' => AccountCode::TUTOR_PAYABLE->value, 'debit' => 0, 'credit' => $rate],
+                        ],
+                        'tutor_accrual',
+                        $programId,
+                    );
+                } catch (IdempotencyException $e) {
+                    $journal = Journal::where('reference', "TUTOR-PAY-{$row->attendance_id}-{$tutorId}")->first();
+                }
+
+                DB::table('attendance_tutor')->where('id', $row->id)->update([
+                    'pending_rate' => false,
+                    'payable_amount' => $rate,
+                    'journal_id' => $journal?->id,
+                ]);
+                $count++;
+
+                $monthKey = Carbon::parse($date)->format('Y-m');
+                if (! isset($monthsAlreadyPaid[$monthKey])) {
+                    $monthStart = Carbon::parse($date)->startOfMonth()->toDateString();
+                    $monthsAlreadyPaid[$monthKey] = PayrollRun::whereDate('month', $monthStart)
+                        ->where('status', 'approved')->exists();
+                }
+                if ($monthsAlreadyPaid[$monthKey]) {
+                    app(Notifier::class)->feeAfterPayrollApproved($tutor, Carbon::parse($date)->translatedFormat('F Y'));
+                }
+            }
+
+            return $count;
+        });
+    }
+
+    /**
      * Kalau payroll bulan pertemuan ini sudah di-approve, honor yang baru
      * tercatat ini akan terlewat sampai ada pembayaran susulan — kabari CFO.
      */

@@ -11,6 +11,7 @@ use App\Models\Tutor;
 use App\Models\TutorAvailability;
 use App\Models\TutorRate;
 use App\Models\User;
+use App\Services\AttendanceService;
 use App\Services\TutorAssignmentService;
 use App\Support\ScheduleFormat;
 use Carbon\Carbon;
@@ -168,7 +169,7 @@ class TutorController extends Controller
         return back()->with('success', 'Tutor confirmed for this enrollment.');
     }
 
-    public function storeRate(Request $request, $tutorId)
+    public function storeRate(Request $request, $tutorId, AttendanceService $attendanceService)
     {
         $request->validate([
             'program_id' => 'required|exists:programs,id',
@@ -179,7 +180,20 @@ class TutorController extends Controller
             ['rate' => $request->rate]
         );
 
-        return back()->with('success', 'Tutor rate saved.');
+        // Honor semua pertemuan tutor ini di program tsb yang masih "menunggu
+        // tarif" langsung dicatat ke pembukuan — tidak ada langkah manual lagi.
+        $backfilled = $attendanceService->backfillTutorFees(
+            (int) $tutorId,
+            (int) $request->program_id,
+            (float) $request->rate,
+        );
+
+        $msg = 'Tarif tutor disimpan.';
+        if ($backfilled > 0) {
+            $msg .= " Honor {$backfilled} pertemuan yang tadinya menunggu tarif langsung dicatat.";
+        }
+
+        return back()->with('success', $msg);
     }
 
     public function storeAvailability(Request $request, $tutorId)

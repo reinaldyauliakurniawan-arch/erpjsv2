@@ -24,8 +24,9 @@
             <a href="{{ route('finance.rab.index') }}" class="btn btn-ghost btn-sm gap-xs">
                 <span class="material-symbols-outlined text-[16px]">edit</span> Edit Anggaran
             </a>
-            <button type="button" class="btn btn-ghost btn-sm gap-xs" @click="syncFromJournals()" x-bind:disabled="busy">
-                <span class="material-symbols-outlined text-[16px]">sync</span> Tarik dari Jurnal
+            <button type="button" class="btn btn-ghost btn-sm gap-xs" @click="syncFromJournals()" x-bind:disabled="busy"
+                title="Hapus semua angka yang pernah ditimpa manual, kembali sepenuhnya ke angka pembukuan.">
+                <span class="material-symbols-outlined text-[16px]">restart_alt</span> Kembalikan ke angka jurnal
             </button>
             <button type="button" class="btn btn-sm bg-secondary text-on-secondary border-none gap-xs"
                 @click="save()" x-bind:disabled="busy || !dirty">
@@ -34,6 +35,11 @@
             </button>
         </div>
     </div>
+
+    <p class="text-xs text-on-surface-variant -mt-sm">
+        Angka realisasi diambil otomatis dari pembukuan. Anda hanya perlu mengetik ulang sebuah sel
+        kalau ingin menimpanya (mis. penyesuaian kas ke akrual yang belum masuk jurnal).
+    </p>
 
     <div x-show="flash" x-transition class="alert alert-success alert-soft" role="alert">
         <span class="material-symbols-outlined">check_circle</span><span x-text="flash"></span>
@@ -508,7 +514,7 @@ function rabRealisasi() {
             if (await this.post('{{ route('finance.rab-realisasi.actuals') }}', { year: this.year, actuals: this.payload() })) this.dirty = false;
         },
         async syncFromJournals() {
-            if (!confirm('Tarik realisasi dari jurnal keuangan? Angka bulanan untuk akun yang ada jurnalnya akan ditimpa.')) return;
+            if (!confirm('Hapus semua angka realisasi beban yang pernah ditimpa manual? Halaman akan kembali sepenuhnya mengikuti angka pembukuan.')) return;
             if (await this.post('{{ route('finance.rab-realisasi.sync-journals') }}', { year: this.year })) location.reload();
         },
     };

@@ -151,15 +151,18 @@
             <span class="material-symbols-outlined text-[16px]">download</span>Template
         </a>
     </div>
-    <form method="POST" action="{{ route('admin.imports.enrollments') }}" enctype="multipart/form-data" class="flex gap-md items-end">
+    <form method="POST" action="{{ route('admin.imports.enrollments') }}" enctype="multipart/form-data" class="space-y-sm">
         @csrf
-        <div class="fieldset flex-1">
-            <label class="fieldset-legend text-on-surface">File CSV</label>
-            <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+        <x-import-process-toggle triggers="Untuk tiap baris: mencatat pembayaran yang sudah masuk ke pembukuan, menyambungkan siswa ke tutor kelasnya (muncul di dashboard tutor), dan menandai jam tutor sebagai terpakai. Impor Enrollments dulu, baru Installments." />
+        <div class="flex gap-md items-end">
+            <div class="fieldset flex-1">
+                <label class="fieldset-legend text-on-surface">File CSV</label>
+                <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+            </div>
+            <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
+                <span class="material-symbols-outlined text-[18px]">upload</span>Import
+            </button>
         </div>
-        <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
-            <span class="material-symbols-outlined text-[18px]">upload</span>Import
-        </button>
     </form>
 </div>
 
@@ -174,15 +177,18 @@
             <span class="material-symbols-outlined text-[16px]">download</span>Template
         </a>
     </div>
-    <form method="POST" action="{{ route('admin.imports.installments') }}" enctype="multipart/form-data" class="flex gap-md items-end">
+    <form method="POST" action="{{ route('admin.imports.installments') }}" enctype="multipart/form-data" class="space-y-sm">
         @csrf
-        <div class="fieldset flex-1">
-            <label class="fieldset-legend text-on-surface">File CSV</label>
-            <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+        <x-import-process-toggle triggers="Untuk tiap cicilan yang bertanda lunas: mencatat penerimaan uangnya ke pembukuan dan menyesuaikan status pembayaran & pengakuan pendapatan siswa." />
+        <div class="flex gap-md items-end">
+            <div class="fieldset flex-1">
+                <label class="fieldset-legend text-on-surface">File CSV</label>
+                <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+            </div>
+            <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
+                <span class="material-symbols-outlined text-[18px]">upload</span>Import
+            </button>
         </div>
-        <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
-            <span class="material-symbols-outlined text-[18px]">upload</span>Import
-        </button>
     </form>
 </div>
 
@@ -197,15 +203,18 @@
             <span class="material-symbols-outlined text-[16px]">download</span>Template
         </a>
     </div>
-    <form method="POST" action="{{ route('admin.imports.schedules') }}" enctype="multipart/form-data" class="flex gap-md items-end">
+    <form method="POST" action="{{ route('admin.imports.schedules') }}" enctype="multipart/form-data" class="space-y-sm">
         @csrf
-        <div class="fieldset flex-1">
-            <label class="fieldset-legend text-on-surface">File CSV</label>
-            <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+        <x-import-process-toggle triggers="Menghitung ulang jam sibuk / kosong tutor sesuai jadwal yang baru masuk." />
+        <div class="flex gap-md items-end">
+            <div class="fieldset flex-1">
+                <label class="fieldset-legend text-on-surface">File CSV</label>
+                <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+            </div>
+            <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
+                <span class="material-symbols-outlined text-[18px]">upload</span>Import
+            </button>
         </div>
-        <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
-            <span class="material-symbols-outlined text-[18px]">upload</span>Import
-        </button>
     </form>
 </div>
 
@@ -220,15 +229,18 @@
             <span class="material-symbols-outlined text-[16px]">download</span>Template
         </a>
     </div>
-    <form method="POST" action="{{ route('admin.imports.tutor-availability') }}" enctype="multipart/form-data" class="flex gap-md items-end">
+    <form method="POST" action="{{ route('admin.imports.tutor-availability') }}" enctype="multipart/form-data" class="space-y-sm">
         @csrf
-        <div class="fieldset flex-1">
-            <label class="fieldset-legend text-on-surface">File CSV</label>
-            <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+        <x-import-process-toggle triggers="Menghitung ulang status jam tutor: slot yang sebenarnya sedang dipakai kelas ditandai 'terpakai' otomatis." />
+        <div class="flex gap-md items-end">
+            <div class="fieldset flex-1">
+                <label class="fieldset-legend text-on-surface">File CSV</label>
+                <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+            </div>
+            <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
+                <span class="material-symbols-outlined text-[18px]">upload</span>Import
+            </button>
         </div>
-        <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
-            <span class="material-symbols-outlined text-[18px]">upload</span>Import
-        </button>
     </form>
 </div>
 
@@ -289,15 +301,18 @@
             <span class="material-symbols-outlined text-[16px]">download</span>Template
         </a>
     </div>
-    <form method="POST" action="{{ route('admin.imports.fixed-assets') }}" enctype="multipart/form-data" class="flex gap-md items-end">
+    <form method="POST" action="{{ route('admin.imports.fixed-assets') }}" enctype="multipart/form-data" class="space-y-sm">
         @csrf
-        <div class="fieldset flex-1">
-            <label class="fieldset-legend text-on-surface">File CSV</label>
-            <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+        <x-import-process-toggle triggers="Membuat jurnal penyusutan bulanan tiap aset sejak tanggal perolehannya sampai bulan berjalan." />
+        <div class="flex gap-md items-end">
+            <div class="fieldset flex-1">
+                <label class="fieldset-legend text-on-surface">File CSV</label>
+                <input type="file" name="file" accept=".csv,.txt" class="file-input w-full" required />
+            </div>
+            <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
+                <span class="material-symbols-outlined text-[18px]">upload</span>Import
+            </button>
         </div>
-        <button type="submit" class="btn bg-primary-container text-on-primary border-none hover:opacity-90 gap-sm mb-xs">
-            <span class="material-symbols-outlined text-[18px]">upload</span>Import
-        </button>
     </form>
 </div>
 

@@ -11,6 +11,7 @@ use App\Models\Classroom;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
 use App\Models\Program;
+use App\Models\RoomBooking;
 use App\Models\Schedule;
 use App\Models\Tutor;
 use App\Services\AttendanceService;
@@ -231,46 +232,53 @@ class ClassSessionController extends Controller
 
         $this->authorize('delete', $classSession);
 
-        // Check if there are active enrollments
-        $hasActiveEnrollments = Enrollment::where('class_session_id', $id)
-            ->where('status', 'active')
-            ->exists();
-
-        if ($hasActiveEnrollments) {
+        // Masih ada siswa aktif/waitlist → selesaikan dulu (expire/graduate/pindah).
+        if (Enrollment::where('class_session_id', $id)->whereIn('status', ['active', 'waitlist'])->exists()) {
             return redirect()->route('admin.class-sessions.index')
-                ->with('error', 'Class session cannot be deleted because there are active students enrolled.');
+                ->with('error', 'Kelas ini masih punya siswa aktif/waitlist. Expire, graduate, atau pindahkan siswanya dulu.');
         }
 
-        // Check if there are any paid attendances for tutors
-        $hasPaidAttendance = DB::table('attendance_tutor')
-            ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
-            ->where('attendance.class_session_id', $id)
-            ->whereNotNull('attendance_tutor.paid_at')
-            ->exists();
-
-        if ($hasPaidAttendance) {
+        // Punya riwayat absensi → JANGAN dihapus (menghapus = kehilangan jejak
+        // pertemuan yang pernah jalan + honor tutor yang menempel). Nonaktifkan
+        // saja lewat Edit Kelas (status → inactive): kelas hilang dari daftar
+        // aktif tapi semua riwayatnya tetap ada.
+        if (Attendance::where('class_session_id', $id)->withTrashed()->exists()) {
             return redirect()->route('admin.class-sessions.index')
-                ->with('error', 'Class session cannot be deleted because there are tutors who have been paid for this session.');
+                ->with('error', 'Kelas ini sudah punya riwayat absensi, jadi tidak bisa dihapus. Nonaktifkan saja lewat Edit Kelas (status → inactive) — riwayat absensi & keuangannya tetap tersimpan.');
         }
 
         try {
-            DB::transaction(function () use ($classSession) {
-                // Reverse all attendances for this class session
-                $attendances = Attendance::where('class_session_id', $classSession->id)->get();
-                foreach ($attendances as $attendance) {
-                    $this->attendanceService->reverseAttendance($attendance);
-                }
+            $tutorIds = $classSession->tutors()->pluck('tutors.id')->map(fn ($v) => (int) $v)->all();
+            $enrollmentIds = Enrollment::where('class_session_id', $classSession->id)->pluck('id');
 
-                // Delete the class session (this will cascade to related records like schedules, etc.)
+            DB::transaction(function () use ($classSession, $enrollmentIds) {
+                // Lepas siswa non-aktif dari kelas (riwayat enrollment-nya tetap
+                // ada — program, tanggal, jurnal). Karena tidak ada absensi,
+                // tidak ada pendapatan/honor yang perlu dibatalkan.
+                Enrollment::whereIn('id', $enrollmentIds)->update(['class_session_id' => null]);
+                DB::table('enrollment_tutor')->whereIn('enrollment_id', $enrollmentIds)->delete();
+
+                // Bersihkan jadwal & booking ruang kelas ini secara eksplisit —
+                // jangan andalkan nullOnDelete yang meninggalkan baris jadwal
+                // "hantu" tanpa kelas (masih ikut terhitung okupansi ruang).
+                Schedule::where('class_session_id', $classSession->id)->delete();
+                RoomBooking::where('class_session_id', $classSession->id)->delete();
+
+                // Hapus kelasnya (class_session_tutor ikut lewat cascade).
                 $classSession->delete();
             });
+
+            foreach (array_unique($tutorIds) as $tid) {
+                $this->tutorAssignment->recomputeAvailability((int) $tid);
+            }
 
             Log::info('Class session deleted successfully', [
                 'class_session_id' => $id,
                 'user_id' => auth()->id(),
             ]);
 
-            return redirect()->route('admin.class-sessions.index')->with('success', 'Class session deleted successfully.');
+            return redirect()->route('admin.class-sessions.index')
+                ->with('success', 'Kelas dihapus. Jadwal & jam tutor disinkronkan; riwayat enrollment tetap tersimpan.');
         } catch (\Exception $e) {
             Log::error('Failed to delete class session', [
                 'error' => $e->getMessage(),

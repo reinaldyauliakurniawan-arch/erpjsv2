@@ -28,8 +28,11 @@ use Illuminate\Support\Facades\DB;
  *     bulan berjalan ÷ jumlah bulan berjalan × 12.
  *  4. Serapan tahunan tetap ditampilkan sebagai informasi.
  *
- * Realisasi bersumber dari `rab_monthly_actuals` (dicatat manual selama masa
- * peralihan pencatatan). Tombol "Tarik dari Jurnal" mengisinya dari journal_items.
+ * Realisasi diambil OTOMATIS dari pembukuan (journal_items) setiap halaman
+ * dibuka — selalu ikut kondisi buku besar terkini. `rab_monthly_actuals` hanya
+ * dipakai sebagai penimpa manual per sel (untuk penyesuaian kas→akrual yang
+ * belum tercermin di jurnal). Kalau sebuah sel tidak ditimpa manual, angkanya =
+ * angka jurnal. Tombol "Kembalikan ke angka jurnal" menghapus penimpa manual.
  */
 class RabRealisasiController extends Controller
 {
@@ -57,13 +60,20 @@ class RabRealisasiController extends Controller
         $actuals = RabMonthlyActual::where('year', $year)->get()->groupBy('account_code')
             ->map(fn ($g) => $g->pluck('amount', 'month')->all());
 
-        $rows = $rabRows->map(function ($rab) use ($actuals, $months, $monthsElapsed) {
+        // Angka realisasi per akun per bulan langsung dari pembukuan.
+        $journalByAccount = $this->journalMonthlyByAccount($year);
+
+        $rows = $rabRows->map(function ($rab) use ($actuals, $journalByAccount, $months, $monthsElapsed) {
             $manual = $actuals->get($rab->account_code, []);
+            $fromJournal = $journalByAccount[$rab->account_code] ?? [];
 
             $m = [];
             $realTotal = 0;
             foreach ($months as $mm) {
-                $v = (int) ($manual[$mm] ?? 0);
+                // Penimpa manual menang; kalau tidak ada, pakai angka jurnal.
+                $v = array_key_exists($mm, $manual)
+                    ? (int) $manual[$mm]
+                    : (int) round($fromJournal[$mm] ?? 0);
                 $m[$mm] = $v;
                 $realTotal += $v;
             }
@@ -264,22 +274,20 @@ class RabRealisasiController extends Controller
         return response()->json(['success' => true, 'message' => 'Realisasi bulanan disimpan.']);
     }
 
+    /**
+     * Hapus SEMUA penimpa manual realisasi beban tahun ini, supaya halaman
+     * kembali sepenuhnya mengikuti angka pembukuan. (Baris pendapatan/target
+     * pendapatan tidak tersentuh — target itu memang manual.)
+     */
     public function syncFromJournals(Request $request)
     {
         $year = (int) $request->validate(['year' => 'required|integer'])['year'];
 
-        DB::transaction(function () use ($year) {
-            foreach ($this->journalMonthlyByAccount($year) as $code => $byMonth) {
-                foreach ($byMonth as $m => $amount) {
-                    RabMonthlyActual::updateOrCreate(
-                        ['year' => $year, 'account_code' => $code, 'month' => $m],
-                        ['amount' => (int) round($amount)],
-                    );
-                }
-            }
-        });
+        RabMonthlyActual::where('year', $year)
+            ->whereNotIn('account_code', [self::REVENUE_CODE, self::REVENUE_TARGET_CODE])
+            ->delete();
 
-        return response()->json(['success' => true, 'message' => 'Realisasi disinkron dari jurnal keuangan.']);
+        return response()->json(['success' => true, 'message' => 'Semua penimpa manual dihapus — realisasi kembali mengikuti pembukuan.']);
     }
 
     /**

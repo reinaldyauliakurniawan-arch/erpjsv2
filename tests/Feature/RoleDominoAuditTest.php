@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Enums\AccountCode;
 use App\Models\Account;
 use App\Models\Attendance;
 use App\Models\Classroom;
@@ -11,6 +12,7 @@ use App\Models\FixedAsset;
 use App\Models\Installment;
 use App\Models\Journal;
 use App\Models\Program;
+use App\Models\Rab;
 use App\Models\Schedule;
 use App\Models\Student;
 use App\Models\Tutor;
@@ -25,6 +27,7 @@ use App\Services\PayrollService;
 use App\Services\TutorAssignmentService;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\Testing\File;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -53,14 +56,16 @@ class RoleDominoAuditTest extends TestCase
     }
 
     /** @return array{0:Enrollment,1:User,2:Tutor} */
-    private function activeEnrollmentWithTutor(int $meetings, int $total, string $method = 'full upfront'): array
+    private function activeEnrollmentWithTutor(int $meetings, int $total, string $method = 'full upfront', bool $withRate = true): array
     {
         $program = Program::factory()->create(['total_meetings' => $meetings, 'price' => $total, 'min_quota' => 1]);
         $cs = ClassSession::factory()->create(['program_id' => $program->id, 'status' => 'active']);
         $tutorUser = User::factory()->create(['role' => 'tutor']);
         $tutor = Tutor::factory()->create(['user_id' => $tutorUser->id]);
         $cs->tutors()->attach($tutor->id, ['status' => 'confirmed']);
-        TutorRate::factory()->create(['tutor_id' => $tutor->id, 'program_id' => $program->id, 'rate' => 100_000]);
+        if ($withRate) {
+            TutorRate::factory()->create(['tutor_id' => $tutor->id, 'program_id' => $program->id, 'rate' => 100_000]);
+        }
         Schedule::factory()->create([
             'class_session_id' => $cs->id, 'classroom_id' => Classroom::factory()->create()->id,
             'day' => 'Senin', 'time_block' => '08:00-09:30',
@@ -342,5 +347,157 @@ class RoleDominoAuditTest extends TestCase
 
         $this->assertSame('active', $e1->fresh()->status);
         $this->assertSame('active', $e2->fresh()->status);
+    }
+
+    // ── Ronde 2 ───────────────────────────────────────────────────────────
+
+    #[Test]
+    public function setting_tutor_rate_backfills_honor_for_past_pending_meetings(): void
+    {
+        [$enrollment, $tutorUser, $tutor] = $this->activeEnrollmentWithTutor(10, 2_000_000, 'full upfront', withRate: false);
+        // Belum ada TutorRate → dua pertemuan tercatat "menunggu tarif".
+        $a1 = $this->mark($enrollment, $tutorUser, '2026-01-06');
+        $a2 = $this->mark($enrollment, $tutorUser, '2026-01-13');
+        $this->assertSame(2, DB::table('attendance_tutor')->where('tutor_id', $tutor->id)->where('pending_rate', true)->count());
+        $this->assertDatabaseMissing('journals', ['type' => 'tutor_accrual']);
+
+        $this->actingAs($this->admin)->post(route('admin.tutors.rates.store', $tutor), [
+            'program_id' => $enrollment->program_id, 'rate' => 150_000,
+        ])->assertRedirect()->assertSessionHas('success');
+
+        $this->assertSame(0, DB::table('attendance_tutor')->where('tutor_id', $tutor->id)->where('pending_rate', true)->count());
+        $this->assertDatabaseHas('journals', ['reference' => "TUTOR-PAY-{$a1->id}-{$tutor->id}", 'total_amount' => 150_000]);
+        $this->assertDatabaseHas('journals', ['reference' => "TUTOR-PAY-{$a2->id}-{$tutor->id}", 'total_amount' => 150_000]);
+        $this->assertSame(150_000.0, (float) DB::table('attendance_tutor')->where('attendance_id', $a1->id)->value('payable_amount'));
+        $this->assertBalanced();
+    }
+
+    #[Test]
+    public function manual_expire_does_not_pretend_an_underpaid_student_is_paid_up(): void
+    {
+        [$enrollment, $tutorUser] = $this->activeEnrollmentWithTutor(10, 2_000_000, 'installment');
+        Installment::create(['enrollment_id' => $enrollment->id, 'amount' => 200_000, 'due_date' => '2026-01-05', 'paid_at' => '2026-01-05', 'payment_channel' => 'bank']);
+        Installment::create(['enrollment_id' => $enrollment->id, 'amount' => 1_800_000, 'due_date' => '2026-02-01', 'payment_channel' => 'bank']);
+        $this->mark($enrollment, $tutorUser, '2026-01-06');
+
+        $this->actingAs($this->admin)->post(route('admin.enrollments.expire', $enrollment->id))->assertRedirect();
+
+        $fresh = $enrollment->fresh()->load('program');
+        $this->assertSame('expired', $fresh->status);
+        // Baru bayar 200rb dari 2jt → tetap "partial", bukan dipaksa "full".
+        $this->assertSame('partial', $fresh->payment_status);
+        $this->assertTrue(app(EnrollmentLedgerService::class)->isInSync($fresh));
+        $this->assertBalanced();
+    }
+
+    #[Test]
+    public function rab_realisasi_reads_expense_from_the_ledger_automatically(): void
+    {
+        $cfo = User::factory()->create(['role' => 'cfo']);
+        Account::where('code', '5001')->exists() ?: Account::factory()->create(['code' => '5001', 'type' => 'Expense', 'name' => 'Beban Tutor']);
+        Rab::create([
+            'year' => now()->year, 'division' => 'OPS', 'account_name' => 'Beban Tutor', 'account_code' => '5001',
+            'rab_prev' => 0, 'annual_budget' => 120_000_000, 'q1' => 30_000_000, 'q2' => 30_000_000, 'q3' => 30_000_000, 'q4' => 30_000_000,
+        ]);
+        // Jurnal beban langsung (tanpa pernah klik "tarik dari jurnal").
+        app(AccountingService::class)->createJournal(now()->startOfMonth()->toDateString(), 'Beban tutor', 'MAN-RAB-1', [
+            ['account_code' => '5001', 'debit' => 7_000_000, 'credit' => 0],
+            ['account_code' => AccountCode::BANK->value, 'debit' => 0, 'credit' => 7_000_000],
+        ]);
+
+        $res = $this->actingAs($cfo)->get(route('finance.rab-realisasi.index', ['year' => now()->year]))->assertOk();
+        $row = collect($res->viewData('rows'))->firstWhere('account_code', '5001');
+        $this->assertSame(7_000_000, $row['real_total']);
+    }
+
+    #[Test]
+    public function class_session_with_attendance_history_cannot_be_hard_deleted(): void
+    {
+        [$enrollment, $tutorUser] = $this->activeEnrollmentWithTutor(10, 2_000_000);
+        $this->mark($enrollment, $tutorUser, '2026-01-06');
+        $csId = $enrollment->class_session_id;
+        $enrollment->update(['status' => 'graduate']);
+
+        $this->actingAs($this->admin)->delete(route('admin.class-sessions.destroy', $csId))
+            ->assertRedirect()->assertSessionHas('error');
+
+        $this->assertDatabaseHas('class_sessions', ['id' => $csId]);
+    }
+
+    #[Test]
+    public function empty_class_session_deletes_cleanly_and_frees_tutor_hours(): void
+    {
+        $program = Program::factory()->create(['type' => 'group', 'total_meetings' => 10, 'min_quota' => 1, 'price' => 1_000_000]);
+        $cs = ClassSession::factory()->create(['program_id' => $program->id, 'status' => 'active']);
+        $tutor = Tutor::factory()->create();
+        $cs->tutors()->attach($tutor->id, ['status' => 'confirmed']);
+        $schedule = Schedule::factory()->create([
+            'class_session_id' => $cs->id, 'classroom_id' => Classroom::factory()->create()->id,
+            'day' => 'Kamis', 'time_block' => '09:00-10:30',
+        ]);
+        TutorAvailability::create(['tutor_id' => $tutor->id, 'day' => 'Kamis', 'time_block' => '09:00-10:30', 'status' => 'occupied']);
+
+        $this->actingAs($this->admin)->delete(route('admin.class-sessions.destroy', $cs->id))
+            ->assertRedirect()->assertSessionHas('success');
+
+        $this->assertDatabaseMissing('class_sessions', ['id' => $cs->id]);
+        $this->assertDatabaseMissing('schedules', ['id' => $schedule->id]);
+        $this->assertNotSame('occupied', TutorAvailability::where('tutor_id', $tutor->id)->where('day', 'Kamis')->value('status'));
+    }
+
+    #[Test]
+    public function bulk_enrollment_import_with_processes_on_creates_the_payment_journal(): void
+    {
+        $program = Program::factory()->create(['name' => 'IELTS', 'total_meetings' => 10, 'price' => 3_000_000, 'min_quota' => 1]);
+        $student = Student::factory()->create();
+        $student->user->forceFill(['role' => 'student', 'email' => 'imp@js.test'])->save();
+
+        $csv = "student_email,program_name,class_session_name,enrollment_date,expiry_date,payment_method,payment_channel,total_amount,payment_status,status,remaining_meetings\n"
+            ."imp@js.test,IELTS,,2026-01-05,2026-04-05,full upfront,bank,3000000,full,active,10\n";
+        $file = File::createWithContent('e.csv', $csv);
+
+        $this->actingAs($this->admin)->post(route('admin.imports.enrollments'), ['file' => $file, 'run_processes' => '1'])
+            ->assertRedirect();
+
+        $enr = Enrollment::where('student_id', $student->id)->firstOrFail();
+        $this->assertDatabaseHas('journals', ['reference' => "PAYMENT-ENROLL-{$enr->id}", 'total_amount' => 3_000_000]);
+        $this->assertBalanced();
+    }
+
+    #[Test]
+    public function bulk_enrollment_import_raw_only_does_not_touch_the_ledger(): void
+    {
+        $program = Program::factory()->create(['name' => 'IELTS2', 'total_meetings' => 10, 'price' => 3_000_000, 'min_quota' => 1]);
+        $student = Student::factory()->create();
+        $student->user->forceFill(['role' => 'student', 'email' => 'imp2@js.test'])->save();
+
+        $csv = "student_email,program_name,class_session_name,enrollment_date,expiry_date,payment_method,payment_channel,total_amount,payment_status,status,remaining_meetings\n"
+            ."imp2@js.test,IELTS2,,2026-01-05,2026-04-05,full upfront,bank,3000000,full,active,10\n";
+        $file = File::createWithContent('e.csv', $csv);
+
+        $this->actingAs($this->admin)->post(route('admin.imports.enrollments'), ['file' => $file])
+            ->assertRedirect();
+
+        $enr = Enrollment::where('student_id', $student->id)->firstOrFail();
+        $this->assertDatabaseMissing('journals', ['reference' => "PAYMENT-ENROLL-{$enr->id}"]);
+    }
+
+    #[Test]
+    public function coa_import_refuses_to_retype_an_account_that_already_has_transactions(): void
+    {
+        $cfo = User::factory()->create(['role' => 'cfo']);
+        $bank = Account::where('code', AccountCode::BANK->value)->firstOrFail();
+        app(AccountingService::class)->createJournal('2026-01-05', 'x', 'X1', [
+            ['account_code' => $bank->code, 'debit' => 100, 'credit' => 0],
+            ['account_code' => AccountCode::CASH->value, 'debit' => 0, 'credit' => 100],
+        ]);
+
+        $csv = "code,name,type\n{$bank->code},Salah Ketik,Expense\n";
+        $file = File::createWithContent('coa.csv', $csv);
+
+        $this->actingAs($cfo)->post(route('finance.imports.coa'), ['file' => $file])
+            ->assertRedirect()->assertSessionHas('error');
+
+        $this->assertSame('Asset', $bank->fresh()->type);
     }
 }

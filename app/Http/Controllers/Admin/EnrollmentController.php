@@ -6,7 +6,6 @@ use App\Enums\AccountCode;
 use App\Enums\ClassType;
 use App\Enums\PaymentStatus;
 use App\Exceptions\DomainException;
-use App\Exceptions\IdempotencyException;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreEnrollmentRequest;
 use App\Http\Requests\Admin\UpdateEnrollmentRequest;
@@ -564,11 +563,12 @@ class EnrollmentController extends Controller
     {
         $this->authorize('update', Enrollment::findOrFail($id));
 
-        // Atomicity fix: previously, journal creation, enrollment update, and
-        // room booking deletion were 3 separate writes with no transaction.
-        // If the enrollment update failed after the journal was created, we'd
-        // have a revenue recognition journal for an enrollment that's still
-        // active — leading to double revenue recognition later.
+        // Perlakuannya PERSIS sama dengan kedaluwarsa otomatis (app:check-expirations):
+        // status jadi hangus, buku besar dibangun ulang dari data operasional
+        // (sisa "pendapatan diterima di muka" yang benar-benar tersedia diakui
+        // jadi pendapatan; piutang siswa yang nunggak TIDAK dihapus — tetap
+        // tagihan). payment_status diturunkan dari uang yang benar-benar masuk,
+        // jadi siswa yang mangkir tetap kelihatan menunggak.
         return DB::transaction(function () use ($id) {
             $enrollment = Enrollment::with(['student.user', 'program'])->lockForUpdate()->findOrFail($id);
 
@@ -576,58 +576,22 @@ class EnrollmentController extends Controller
                 return back()->withErrors(['error' => 'Enrollment tidak aktif.']);
             }
 
-            // GAP #14 fix: write off saldo Deferred Revenue yang BENAR-BENAR
-            // tersedia sekarang (totalPaid - totalRevenueRecognizedSoFar),
-            // bukan remaining_meetings * (paidAmount lama / total_meetings).
-            // Formula lama mengasumsikan semua sisa meeting akan dibayar
-            // lunas dengan rate paidAmount SAAT ITU — salah untuk kontrak
-            // installment yang paidAmount-nya berubah-ubah. Kalau ada
-            // Piutang outstanding (siswa nunggak, revenue sudah diakui
-            // duluan), itu TIDAK di-write-off di sini — itu tetap piutang
-            // yang harus ditagih terpisah, bukan bagian dari Deferred Revenue.
-            $remainingDeferred = $this->revenueRecognitionService->availableDeferredRevenue($enrollment);
+            $tutorIds = $enrollment->tutors()->pluck('tutors.id')->map(fn ($v) => (int) $v)->all();
 
-            if (bccomp($remainingDeferred, '0', 2) > 0) {
-                try {
-                    $this->accountingService->createJournal(
-                        now()->toDateString(),
-                        "Manual Expiry - Student {$enrollment->student->user->name}",
-                        "MANUAL-EXPIRY-{$enrollment->id}",
-                        [
-                            ['account_code' => AccountCode::DEFERRED_REVENUE->value,     'debit' => $remainingDeferred, 'credit' => 0],
-                            ['account_code' => AccountCode::REVENUE_TUITION_FEES->value, 'debit' => 0, 'credit' => $remainingDeferred],
-                        ],
-                        'revenue_recognition',
-                        $enrollment->program_id,
-                        $enrollment->id
-                    );
-                } catch (IdempotencyException $e) {
-                    // Journal sudah ada — lanjut update status
-                }
-                // Note: DomainException is intentionally NOT caught here.
-                // Previously, catching it and returning back()->withErrors()
-                // from inside the transaction callback caused Laravel to COMMIT
-                // the transaction (return = success), leaving partial writes
-                // (e.g. journal rows) committed while the enrollment status
-                // was NOT updated — half-state. Now we let DomainException
-                // bubble up and roll back the entire transaction.
-            }
-
-            $enrollment->update([
-                'status' => 'expired',
-                'remaining_meetings' => 0,
-                'payment_status' => PaymentStatus::FULL->value,
-            ]);
+            $enrollment->update(['status' => 'expired', 'remaining_meetings' => 0]);
+            $enrollment->refresh()->load('program');
+            $this->ledgerService->rebuild($enrollment, optional($enrollment->enrollment_date)->toDateString());
+            $enrollment->update(['payment_status' => $this->derivePaymentStatus($enrollment)]);
 
             RoomBooking::where('enrollment_id', $enrollment->id)
                 ->where('date', '>', now()->toDateString())
                 ->delete();
 
-            foreach ($enrollment->tutors()->pluck('tutors.id') as $tid) {
-                $this->tutorAssignment->recomputeAvailability((int) $tid);
+            foreach ($tutorIds as $tid) {
+                $this->tutorAssignment->recomputeAvailability($tid);
             }
 
-            return back()->with('success', 'Enrollment marked as expired, remaining revenue recognized.');
+            return back()->with('success', 'Enrollment dihanguskan. Sisa pendapatan diakui; piutang yang belum dibayar tetap tercatat sebagai tagihan.');
         });
     }
 
@@ -655,10 +619,14 @@ class EnrollmentController extends Controller
                 return back()->withErrors(['error' => "Masih ada {$unpaidInstallments} cicilan belum lunas."]);
             }
 
-            $enrollment->update(['status' => 'graduate']);
+            $tutorIds = $enrollment->tutors()->pluck('tutors.id')->map(fn ($v) => (int) $v)->all();
 
-            foreach ($enrollment->tutors()->pluck('tutors.id') as $tid) {
-                $this->tutorAssignment->recomputeAvailability((int) $tid);
+            $enrollment->update(['status' => 'graduate']);
+            $enrollment->refresh()->load('program');
+            $this->ledgerService->rebuild($enrollment, optional($enrollment->enrollment_date)->toDateString());
+
+            foreach ($tutorIds as $tid) {
+                $this->tutorAssignment->recomputeAvailability($tid);
             }
 
             return back()->with('success', 'Student marked as graduate.');
