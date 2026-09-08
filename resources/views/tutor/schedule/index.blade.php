@@ -167,6 +167,15 @@ function guardSlot(dateStr, timeBlock, callback) {
                                     @if($skipBooking?->notes)
                                         <span class="block text-on-surface-variant font-normal italic">{{ $skipBooking->notes }}</span>
                                     @endif
+                                    @if($skipBooking && $skipBooking->tutor_id === $tutor->id)
+                                        <form method="POST" action="{{ url('tutor/room-bookings/'.$skipBooking->id) }}" class="inline"
+                                            onsubmit="return confirm('Batalkan skip? Kelas akan dianggap jalan lagi.')">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-xs btn-ghost text-primary-container hover:bg-primary-container/10">
+                                                <span class="material-symbols-outlined text-[14px]">undo</span> Batal skip
+                                            </button>
+                                        </form>
+                                    @endif
                                 </div>
                                 @endif
                             </td>
@@ -225,7 +234,6 @@ function guardSlot(dateStr, timeBlock, callback) {
             </nav>
         </div>
 
-@php $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
 
         <div class="overflow-x-auto">
         <div class="min-w-[700px] space-y-xs">
@@ -261,10 +269,13 @@ function guardSlot(dateStr, timeBlock, callback) {
                         $schedule  = $daySchedules->where('time_block', $block)->first();
                         $slotBookings = $dayBookings->where('classroom_id', $classroom->id)->where('time_block', $block);
                         $booking   = $slotBookings->where('type', 'temporary')->first() ?? $slotBookings->where('type', 'regular_skip')->first();
+                        $skipBooking = $slotBookings->where('type', 'regular_skip')->first();
                         $isSkipped = $slotBookings->where('type', 'regular_skip')->isNotEmpty() && !$slotBookings->where('type', 'temporary')->count();
                         $isTemp    = $booking && $booking->type === 'temporary';
                         $isMyTemp  = $isTemp && $booking->tutor_id === $tutor->id;
                         $isMySlot  = $schedule && $schedule->classSession?->tutors?->contains('id', $tutor->id);
+                        $isMySkip  = $skipBooking && $skipBooking->tutor_id === $tutor->id;
+                        $bookedBy  = $isTemp ? ($booking->tutor?->user?->name ?? 'Admin') : null;
                     @endphp
 
                     @if($schedule && !$isSkipped && !$isTemp)
@@ -288,10 +299,21 @@ function guardSlot(dateStr, timeBlock, callback) {
                         </button>
 
                     @elseif($isTemp)
-                        <div class="bg-warning/10 border border-amber-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs opacity-60">
+                        <div class="bg-warning/10 border border-amber-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs opacity-70"
+                            title="Dibooking oleh {{ $bookedBy }}{{ $booking->notes ? ' — '.$booking->notes : '' }}">
                             <span class="material-symbols-outlined text-warning text-sm">event_busy</span>
-                            <span class="text-[9px] font-bold text-warning text-center leading-tight">Penuh</span>
+                            <span class="text-[9px] font-bold text-warning text-center leading-tight truncate w-full">{{ $bookedBy }}</span>
                         </div>
+
+                    @elseif($isSkipped && $isMySkip && !$isPast)
+                        {{-- Skip yang aku buat sendiri — bisa dibatalkan (kelas jalan lagi) --}}
+                        <button type="button"
+                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "cancel"; selectedRoom = @json($classroom->name); selectedBlock = @json($block); selectedDate = @json($date); bookingId = {{ $skipBooking->id }}; bookingNotes = @json($skipBooking->notes ?? ""); })'
+                            class="bg-warning/10 border border-warning/40 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-warning/20 transition-colors"
+                            title="Skip olehmu — klik untuk batalkan (kelas jalan lagi)">
+                            <span class="material-symbols-outlined text-warning text-sm">undo</span>
+                            <span class="text-[9px] font-bold text-warning text-center leading-tight">Batal skip</span>
+                        </button>
 
                     @elseif($isSkipped || !$schedule)
                         @if($isPast)
@@ -301,7 +323,8 @@ function guardSlot(dateStr, timeBlock, callback) {
                         @else
                         <button type="button"
                             @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "book"; selectedRoom = @json($classroom->name); selectedBlock = @json($block); selectedDate = @json($date); classroomId = @json($classroom->id); })'
-                            class="{{ $isSkipped ?'bg-warning/10 border-warning/30 hover:bg-warning/20' : 'bg-success/10 border-success/30 hover:bg-success/20' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors">
+                            class="{{ $isSkipped ?'bg-warning/10 border-warning/30 hover:bg-warning/20' : 'bg-success/10 border-success/30 hover:bg-success/20' }} border px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs transition-colors"
+                            title="{{ $isSkipped ? 'Kelas reguler di-skip — slot bebas dibooking' : 'Kosong — klik untuk booking' }}">
                             <span class="material-symbols-outlined {{ $isSkipped ?'text-warning' : 'text-success' }} text-sm">add_circle</span>
                             <span class="text-[9px] font-bold {{ $isSkipped ?'text-warning' : 'text-success' }} text-center">
                                 {{ $isSkipped ? 'Skip' : 'Kosong' }}
@@ -319,7 +342,7 @@ function guardSlot(dateStr, timeBlock, callback) {
         </div>
 
         {{-- Custom Timeblock Sessions --}}
-        @php $standardBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
+        @php $standardBlocks = $timeBlocks; @endphp
         @foreach($days as $d)
         <div x-show='day === @json($d)' x-cloak>
             @php
@@ -392,7 +415,7 @@ function guardSlot(dateStr, timeBlock, callback) {
 
             <div class="flex items-center justify-between">
                 <h4 class="text-base font-semibold text-on-surface"
-                    x-text="modalType === 'book' ? 'Book Slot' : modalType === 'skip' ? 'Skip Sesi' : 'Cancel Booking'">
+                    x-text="modalType === 'book' ? 'Book Slot' : modalType === 'skip' ? 'Skip Sesi' : 'Batalkan'">
                 </h4>
                 <button aria-label="Tutup" @click="modal = false" class="btn btn-ghost btn-sm btn-circle">
                     <span class="material-symbols-outlined text-[18px]">close</span>
@@ -463,9 +486,9 @@ function guardSlot(dateStr, timeBlock, callback) {
                 </form>
             </div>
 
-            {{-- Cancel form --}}
+            {{-- Cancel form (booking ATAU skip milik sendiri) --}}
             <div x-show="modalType === 'cancel'">
-                <p class="text-sm text-on-surface-variant mb-md">Batalkan booking slot ini?</p>
+                <p class="text-sm text-on-surface-variant mb-md">Batalkan slot ini? Kalau ini skip, kelas reguler akan dianggap jalan lagi. Admin akan diberi tahu.</p>
                 <div x-show="bookingNotes" class="p-sm bg-surface-container-low border border-surface-border rounded-lg mb-md">
                     <p class="text-[10px] font-bold uppercase text-on-surface-variant mb-xs">Catatan</p>
                     <p class="text-body-sm text-on-surface" x-text="bookingNotes"></p>

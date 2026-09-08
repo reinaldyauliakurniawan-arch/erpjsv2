@@ -5,6 +5,7 @@ use App\Models\RoomBooking;
 use App\Models\Schedule;
 use App\Models\Classroom;
 use App\Models\Tutor;
+use App\Support\ScheduleFormat;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -14,7 +15,9 @@ class ScheduleController extends Controller
     public function index(Request $request)
     {
         $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
-        $days  = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+        // Sama persis dengan grid admin (App\Support\ScheduleFormat).
+        $days = ScheduleFormat::DAYS;
+        $timeBlocks = ScheduleFormat::TIME_BLOCKS;
 
         $weekOffset = (int) $request->get('week', 0);
         $weekOffset = max(-1, min(2, $weekOffset));
@@ -57,81 +60,12 @@ class ScheduleController extends Controller
 
         return view('tutor.schedule.index', compact(
             'myByDay', 'byRoom', 'bookings',
-            'classrooms', 'days', 'weekDates',
+            'classrooms', 'days', 'timeBlocks', 'weekDates',
             'weekOffset', 'weekStart', 'tutor'
         ));
     }
 
-    public function store(Request $request)
-{
-    $request->validate([
-        'classroom_id' => 'required|exists:classrooms,id',
-        'date'         => 'required|date',
-        'time_block'   => 'required|string',
-        'type'         => 'nullable|in:regular_skip,temporary',
-        'schedule_id'  => 'nullable|exists:schedules,id',
-        'notes'        => 'nullable|string|max:255',
-    ]);
-
-    $request->merge(['time_block' => \App\Support\ScheduleFormat::timeBlock($request->time_block)]);
-
-    $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
-    $type  = $request->type ?? 'temporary';
-
-    // Cegah booking masa lampau (per time block)
-    $endTime = explode('-', $request->time_block)[1] ?? '23:59';
-    $slotEnd = \Carbon\Carbon::parse($request->date . ' ' . trim($endTime));
-    if ($slotEnd->isPast()) {
-        return back()->withErrors(['error' => 'Slot ini sudah lewat dan tidak bisa diubah.']);
-    }
-
-    $conflict = RoomBooking::where('classroom_id', $request->classroom_id)
-        ->whereDate('date', $request->date)
-        ->where('time_block', $request->time_block)
-        ->where('type', $type)
-        ->exists();
-
-    if ($conflict) {
-        return back()->with('error', 'Slot ini sudah ada booking dengan tipe yang sama.');
-    }
-
-    // Kalau mau booking temporary, pastikan tidak bentrok dengan kelas reguler aktif yang belum di-skip
-    if ($type === 'temporary') {
-        $dayName = \App\Enums\DayOfWeek::fromDate($request->date)->value; // "Senin", dst
-        $hasActiveRegularSchedule = Schedule::where('classroom_id', $request->classroom_id)
-            ->where('day', $dayName)
-            ->where('time_block', $request->time_block)
-            ->whereHas('classSession', fn($q) => $q->where('status', 'active'))
-            ->exists();
-
-        if ($hasActiveRegularSchedule) {
-            $isSkipped = RoomBooking::where('classroom_id', $request->classroom_id)
-                ->whereDate('date', $request->date)
-                ->where('time_block', $request->time_block)
-                ->where('type', 'regular_skip')
-                ->exists();
-
-            if (!$isSkipped) {
-                return back()->with('error', 'Slot ini sedang dipakai kelas reguler. Skip jadwal reguler terlebih dahulu sebelum booking.');
-            }
-        }
-    }
-
-    try {
-        RoomBooking::create([
-            'classroom_id' => $request->classroom_id,
-            'schedule_id'  => $request->schedule_id,
-            'date'         => $request->date,
-            'time_block'   => $request->time_block,
-            'type'         => $type,
-            'tutor_id'     => $tutor->id,
-            'notes'        => $request->notes,
-        ]);
-    } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
-        return back()->with('error', 'Slot ini baru saja dibooking oleh orang lain.');
-    }
-
-    $msg = $type === 'regular_skip' ? 'Sesi berhasil di-skip.' : 'Slot berhasil dibooking.';
-    return back()->with('success', $msg);
-}
+    // Catatan: pembuatan/pembatalan booking & skip untuk tutor ditangani
+    // sepenuhnya oleh App\Http\Controllers\Tutor\RoomBookingController
+    // (route tutor.room-bookings.*). Controller ini hanya menampilkan jadwal.
 }

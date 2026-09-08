@@ -169,7 +169,6 @@
                 </div>
                 <div class="overflow-x-auto">
                     <div class="min-w-[700px]">
-                        @php $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
 
                         {{-- Time block headers --}}
                         <div class="grid gap-xs mb-xs" style="grid-template-columns: 150px repeat(6, 1fr)">
@@ -198,8 +197,11 @@
                                         $schedule  = $daySchedules->where('time_block', $block)->first();
                                         $slotBookings = $dayBookings->where('classroom_id', $classroom->id)->where('time_block', $block);
                                         $booking   = $slotBookings->where('type', 'temporary')->first() ?? $slotBookings->where('type', 'regular_skip')->first();
+                                        $skipBooking = $slotBookings->where('type', 'regular_skip')->first();
                                         $isSkipped = $slotBookings->where('type', 'regular_skip')->isNotEmpty() && !$slotBookings->where('type', 'temporary')->count();
                                         $isTemp    = $booking && $booking->type === 'temporary';
+                                        $bookedBy  = $isTemp ? ($booking->tutor?->user?->name ?? 'Admin') : null;
+                                        $skippedBy = $skipBooking?->tutor?->user?->name;
                                     @endphp
 
                                     @if($schedule && !$isSkipped && !$isTemp)
@@ -232,13 +234,19 @@
                                         </button>
 
                                     @elseif($isSkipped)
-                                        {{-- Di-skip, slot available --}}
+                                        {{-- Di-skip. Admin bisa: booking slot bebas ini, ATAU batalkan skip (kelas jalan lagi). --}}
                                         <button type="button"
-                                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "temporary"; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); })'
+                                            @click='modal = true; modalType = "skip_info";
+                                                selectedRoom = @json($classroom->name);
+                                                selectedBlock = @json($block);
+                                                selectedDate = @json($date);
+                                                classroomId = @json($classroom->id);
+                                                selectedBookingId = {{ $skipBooking->id }};
+                                                bookingNotes = @json(($skippedBy ? "Di-skip oleh {$skippedBy}. " : "") . ($skipBooking->notes ?? ""));'
                                             class="bg-warning/10 border border-warning/30 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-warning/20 transition-colors"
-                                            title="Reguler skip — tersedia untuk booking">
+                                            title="{{ $skippedBy ? 'Di-skip oleh '.$skippedBy : 'Di-skip' }} — klik untuk kelola">
                                             <span class="material-symbols-outlined text-warning text-sm">event_available</span>
-                                            <span class="text-[9px] font-bold text-warning text-center leading-tight">Skip</span>
+                                            <span class="text-[9px] font-bold text-warning text-center leading-tight truncate w-full">{{ $skippedBy ? 'Skip: '.$skippedBy : 'Skip' }}</span>
                                         </button>
 
                                     @else
@@ -258,7 +266,7 @@
                 </div>
 
                 {{-- Custom Timeblock Sessions --}}
-                @php $standardBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
+                @php $standardBlocks = $timeBlocks; @endphp
                 @foreach($days as $d)
                 <div x-show='day === @json($d)' x-cloak>
                     @php
@@ -426,12 +434,37 @@
     </div>
 </div>
 
+                        {{-- SKIP INFO — slot yang di-skip: boleh dibooking, atau skip-nya dibatalkan --}}
+<div x-show="modalType === 'skip_info'">
+    <p class="text-body-sm text-on-surface-variant mb-md">Pertemuan reguler di slot ini ditiadakan. Slot bebas dipakai booking sementara, atau batalkan skip supaya kelas dianggap jalan lagi.</p>
+    <div x-show="bookingNotes" class="p-sm bg-surface-container-low border border-surface-border rounded-lg mb-md">
+        <p class="text-[10px] font-bold uppercase text-on-surface-variant mb-xs">Info skip</p>
+        <p class="text-body-sm text-on-surface" x-text="bookingNotes"></p>
+    </div>
+    <div class="flex flex-wrap justify-end gap-sm mt-md">
+        <button type="button" @click="modal = false" class="btn btn-ghost">Tutup</button>
+        <button type="button" class="btn bg-primary-container text-on-primary border-none"
+            @click='modalType = "temporary"'>
+            <span class="material-symbols-outlined text-[18px]">event_available</span>
+            Booking slot ini
+        </button>
+        <form method="POST" :action="'/admin/room-bookings/' + selectedBookingId"
+            @submit.prevent="if(confirm('Batalkan skip? Kelas reguler akan dianggap jalan lagi. Tutor akan diberi tahu.')) $el.submit()">
+            @csrf
+            @method('DELETE')
+            <button type="submit" class="btn btn-error border-none">
+                <span class="material-symbols-outlined text-[18px]">undo</span>
+                Batalkan skip
+            </button>
+        </form>
+    </div>
+</div>
+
                     </div>
                 </div>
             </div>
 
             {{-- Tabel per ruangan --}}
-            @php $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00']; @endphp
             @foreach($byRoom as $roomName => $dayGroups)
             <div class="grid grid-cols-12 gap-lg">
 

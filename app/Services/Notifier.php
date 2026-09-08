@@ -111,4 +111,68 @@ class Notifier
             "{$studentName} ({$programName}) habis {$date}.",
             route('admin.dashboard'));
     }
+
+    // ── Booking ruangan: aksi tutor -> admin, aksi admin -> tutor ──────────
+
+    /** Tutor mem-booking ruang sementara → beri tahu admin. */
+    public function roomBookedByTutor(Tutor|int $tutor, string $room, string $date, string $block, ?string $notes = null): void
+    {
+        $tutor = $tutor instanceof Tutor ? $tutor : Tutor::with('user')->find($tutor);
+        $name = $tutor?->user?->name ?? 'Tutor';
+        $extra = $notes ? " — {$notes}" : '';
+        $this->toRole('admin', 'room_booked',
+            'Tutor booking ruangan',
+            "{$name} booking {$room} pada {$date} {$block}{$extra}.",
+            route('admin.schedule.index'));
+    }
+
+    /** Tutor menandai satu pertemuan reguler sebagai skip → beri tahu admin. */
+    public function sessionSkippedByTutor(Tutor|int $tutor, ?string $sessionName, string $room, string $date, string $block, ?string $reason = null): void
+    {
+        $tutor = $tutor instanceof Tutor ? $tutor : Tutor::with('user')->find($tutor);
+        $name = $tutor?->user?->name ?? 'Tutor';
+        $extra = $reason ? " Alasan: {$reason}." : '';
+        $this->toRole('admin', 'session_skipped',
+            'Tutor skip pertemuan',
+            "{$name} skip ".($sessionName ? "kelas {$sessionName}" : 'sesi')." di {$room} pada {$date} {$block}.{$extra}",
+            route('admin.schedule.index'));
+    }
+
+    /** Tutor membatalkan booking/skip miliknya → beri tahu admin. */
+    public function roomBookingCancelledByTutor(Tutor|int $tutor, string $kindLabel, string $room, string $date, string $block): void
+    {
+        $tutor = $tutor instanceof Tutor ? $tutor : Tutor::with('user')->find($tutor);
+        $name = $tutor?->user?->name ?? 'Tutor';
+        $this->toRole('admin', 'room_booking_cancelled',
+            'Tutor batalkan '.$kindLabel,
+            "{$name} membatalkan {$kindLabel} {$room} pada {$date} {$block}.",
+            route('admin.schedule.index'));
+    }
+
+    /** Admin men-skip pertemuan reguler → beri tahu tutor-tutor kelas itu. */
+    public function sessionSkippedByAdmin(ClassSession $cs, string $date, string $block): void
+    {
+        $this->toClassTutors($cs, 'session_skipped',
+            'Pertemuan di-skip admin',
+            "Pertemuan kelas {$cs->name} pada {$date} {$block} ditiadakan oleh admin.",
+            route('tutor.schedule.index'));
+    }
+
+    /** Admin membatalkan booking/skip milik tutor → beri tahu tutor itu. */
+    public function roomBookingRemovedByAdmin(Tutor|int $tutor, string $kindLabel, string $room, string $date, string $block): void
+    {
+        $this->toTutor($tutor, 'room_booking_removed',
+            ucfirst($kindLabel).' dibatalkan admin',
+            "Admin membatalkan {$kindLabel} {$room} pada {$date} {$block}.",
+            route('tutor.schedule.index'));
+    }
+
+    /** Admin mem-booking ruang untuk seorang tutor → beri tahu tutor itu. */
+    public function roomBookedForTutorByAdmin(Tutor|int $tutor, string $room, string $date, string $block): void
+    {
+        $this->toTutor($tutor, 'room_booked',
+            'Ruangan dibooking untukmu',
+            "Admin membooking {$room} untukmu pada {$date} {$block}.",
+            route('tutor.schedule.index'));
+    }
 }

@@ -35,7 +35,10 @@ class ScheduleController extends Controller
             ->orderBy('name')
             ->get();
 
-        $days = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+        // Satu sumber untuk hari & blok jam — dipakai identik oleh grid admin
+        // dan grid tutor supaya tidak pernah beda.
+        $days = ScheduleFormat::DAYS;
+        $timeBlocks = ScheduleFormat::TIME_BLOCKS;
 
         $weekOffset = (int) request('week', 0);
         $weekStart = Carbon::now()->startOfWeek(Carbon::MONDAY)->addWeeks($weekOffset);
@@ -127,7 +130,7 @@ class ScheduleController extends Controller
 
         return view('admin.schedule.index', compact(
             'byRoom', 'byTutor', 'classrooms', 'classSessions', 'classSessionsJson',
-            'days', 'weekDates', 'bookings', 'weekOffset', 'occupancyRate', 'occupiedCount', 'totalSlots',
+            'days', 'timeBlocks', 'weekDates', 'bookings', 'weekOffset', 'occupancyRate', 'occupiedCount', 'totalSlots',
             'tutorOccupancyRate', 'tutorAvailOccupied', 'tutorAvailTotal', 'tutorStats'
         ));
     }

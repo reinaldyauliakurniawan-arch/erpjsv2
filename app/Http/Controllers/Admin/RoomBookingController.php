@@ -4,13 +4,17 @@ namespace App\Http\Controllers\Admin;
 
 use App\Enums\DayOfWeek;
 use App\Http\Controllers\Controller;
+use App\Models\ClassSession;
 use App\Models\RoomBooking;
 use App\Models\Schedule;
+use App\Services\Notifier;
 use App\Support\ScheduleFormat;
 use Illuminate\Http\Request;
 
 class RoomBookingController extends Controller
 {
+    public function __construct(private Notifier $notifier) {}
+
     public function store(Request $request)
     {
         $request->validate([
@@ -75,19 +79,72 @@ class RoomBookingController extends Controller
         }
 
         try {
-            RoomBooking::create($request->only(
-                'classroom_id', 'schedule_id', 'date', 'time_block', 'type', 'enrollment_id', 'tutor_id', 'notes', 'class_session_id'
+            $booking = RoomBooking::create($request->only(
+                'classroom_id', 'schedule_id', 'date', 'time_block', 'type', 'enrollment_id', 'tutor_id', 'notes'
             ));
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             return back()->withErrors(['error' => 'Slot ini baru saja dibooking oleh orang lain.']);
         }
+
+        $this->notifyAffectedTutors($booking);
+
         return back()->with('success', 'Booking berhasil disimpan.');
     }
 
     public function destroy($id)
     {
-        RoomBooking::findOrFail($id)->delete();
+        $booking = RoomBooking::with('classroom')->findOrFail($id);
+        $date = $booking->date?->toDateString() ?? (string) $booking->date;
+        $room = $booking->classroom?->name ?? 'ruang';
+
+        if ($booking->type === 'regular_skip') {
+            // Skip dibatalkan -> kelas dianggap jalan lagi. Beri tahu tutor kelas itu.
+            $cs = $this->classSessionFor($booking, $date);
+            if ($cs) {
+                $this->notifier->toClassTutors($cs, 'session_skipped',
+                    'Skip dibatalkan — kelas jalan lagi',
+                    "Skip pada {$date} {$booking->time_block} untuk kelas {$cs->name} dibatalkan admin.",
+                    route('tutor.schedule.index'));
+            }
+        } elseif ($booking->tutor_id) {
+            // Booking milik tutor dihapus admin.
+            $this->notifier->roomBookingRemovedByAdmin($booking->tutor_id, 'booking', $room, $date, $booking->time_block);
+        }
+
+        $booking->delete();
 
         return back()->with('success', 'Booking dihapus.');
+    }
+
+    private function classSessionFor(RoomBooking $booking, string $date): ?ClassSession
+    {
+        if ($booking->schedule_id) {
+            return Schedule::with('classSession')->find($booking->schedule_id)?->classSession;
+        }
+
+        return ClassSession::whereHas('schedules', fn ($q) => $q
+            ->where('classroom_id', $booking->classroom_id)
+            ->where('time_block', $booking->time_block)
+            ->where('day', DayOfWeek::fromDate($date)->value))->first();
+    }
+
+    /** Aksi admin yang berdampak ke tutor -> kirim notifikasi supaya sinkron. */
+    private function notifyAffectedTutors(RoomBooking $booking): void
+    {
+        $date = $booking->date?->toDateString() ?? (string) $booking->date;
+
+        if ($booking->type === 'regular_skip') {
+            $cs = $this->classSessionFor($booking, $date);
+            if ($cs) {
+                $this->notifier->sessionSkippedByAdmin($cs, $date, $booking->time_block);
+            }
+
+            return;
+        }
+
+        if ($booking->tutor_id) {
+            $room = $booking->classroom?->name ?? \App\Models\Classroom::whereKey($booking->classroom_id)->value('name') ?? 'ruang';
+            $this->notifier->roomBookedForTutorByAdmin($booking->tutor_id, $room, $date, $booking->time_block);
+        }
     }
 }
