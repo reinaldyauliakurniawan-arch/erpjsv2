@@ -36,10 +36,10 @@
         <div class="app-card">
             <p class="text-xs text-on-surface-variant uppercase tracking-wide">Anggaran Tahunan ({{ $year }})</p>
             <p class="text-headline-md font-bold text-on-surface mt-xs" id="card-total">Rp {{ number_format($totalBudget, 0, ',', '.') }}</p>
-            <p class="text-xs text-on-surface-variant mt-xs">Angka komitmen setahun (kolom "Anggaran Tahunan"). Rincian kuartal di bawah cuma pacing.</p>
+            <p class="text-xs text-on-surface-variant mt-xs">Angka komitmen setahun (kolom "Anggaran Tahunan"). Rincian kuartal di bawah hanya rencana pembagian bertahap.</p>
         </div>
         <div class="app-card">
-            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Pacing Kuartal Berjalan (Q{{ ceil(now()->month / 3) }})</p>
+            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Rencana Kuartal Berjalan (Q{{ ceil(now()->month / 3) }})</p>
             <p class="text-headline-md font-bold text-on-surface mt-xs" id="card-quarter">Rp {{ number_format($budgetQuarter, 0, ',', '.') }}</p>
         </div>
     </div>
@@ -208,8 +208,8 @@ document.addEventListener('DOMContentLoaded', function () {
                 cellEdited: cell => { recalcTotal(cell.getRow()); updateCards(); },
             },
             {
-                title: 'Σ Kuartal', field: 'total', width: 140, hozAlign: 'right', headerHozAlign: 'right',
-                tooltip: 'Jumlah Q1..Q4 (pacing). Idealnya sama dengan Anggaran Tahunan.',
+                title: 'Jumlah Kuartal', field: 'total', width: 150, hozAlign: 'right', headerHozAlign: 'right',
+                tooltip: 'Jumlah Q1–Q4 (rencana bertahap). Idealnya sama dengan Anggaran Tahunan.',
                 formatter: cell => fmt(cell.getValue()),
             },
             {

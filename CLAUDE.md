@@ -111,8 +111,14 @@ Adjusting journals have their own models/controller and a monthly scheduled gene
 
 All under `/finance/*` (`role:cfo`). `rabs` holds the budget per expense account:
 `annual_budget` (the real yearly figure, basis for per-account % absorption),
-`q1..q4` (the CFO's quarterly pacing, basis for per-quarter status), `total`
-(stored `q1+q2+q3+q4`), `rab_prev` (last year's for comparison).
+`q1..q4` (the CFO's quarterly phasing / staggered plan — "rencana pembagian
+bertahap" in the UI — basis for per-quarter status), `total` (stored
+`q1+q2+q3+q4`), `rab_prev` (last year's for comparison).
+
+User-facing copy on both RAB pages is plain Indonesian — no English finance
+jargon ("pacing", "run-rate", "budget variance", "YTD"). Use "rencana
+pembagian bertahap", "laju realisasi terkini", "selisih anggaran", "sampai
+bulan berjalan".
 
 Two pages:
 - **RAB** (`RabController`) — edit the budget.

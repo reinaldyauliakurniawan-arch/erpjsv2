@@ -18,14 +18,14 @@ class RabController extends Controller
         $accounts  = \App\Models\Account::whereIn('type', ['Expense', 'Revenue'])
             ->orderBy('code')->get(['id', 'code', 'name', 'type']);
 
-        // Summary stats — anggaran tahunan pakai annual_budget (angka otoritatif),
-        // bukan jumlah kuartal (q1..q4 cuma pacing dan sering tidak sama persis).
+        // Ringkasan — anggaran tahunan memakai annual_budget (angka acuan resmi),
+        // bukan jumlah kuartal (q1..q4 hanya rencana bertahap dan sering tidak persis sama).
         $totalBudget    = $rows->sum(fn ($r) => $r->annualBudget());
         $currentQuarter = ceil(now()->month / 3);
         $qField         = "q{$currentQuarter}";
         $budgetQuarter  = $rows->sum($qField);
 
-        // Baris untuk grid (annual_budget sudah lewat accessor: pakai fallback ke Σ kuartal).
+        // Baris untuk grid (annual_budget lewat accessor: kalau kosong, pakai jumlah kuartal).
         $tableRows = $rows->map(fn ($r) => [
             'id'            => $r->id,
             'division'      => $r->division,

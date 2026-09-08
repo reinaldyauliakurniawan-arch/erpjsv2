@@ -13,22 +13,23 @@ use Illuminate\Support\Facades\DB;
  * Realisasi RAB — halaman pemantauan anggaran vs realisasi. Khusus CFO
  * (grup rute /finance).
  *
- * Prinsip perhitungan (praktik manajemen keuangan / budget variance analysis):
+ * Prinsip perhitungan (praktik manajemen keuangan — analisis selisih anggaran):
  *
- *  1. Anggaran tahunan (`annual_budget`) adalah komitmen. Rincian per-kuartal
- *     (q1..q4) hanya "phasing / rencana pacing" — di-scale ulang supaya total
- *     phasing = anggaran tahunan (rincian yang tidak reconcile itu tanda RAB
- *     belum rapi).
- *  2. Yang dipantau bukan "% terpakai dari anggaran tahunan" (itu baru berarti
- *     di akhir tahun), tapi **realisasi vs anggaran-sampai-saat-ini**
- *     (budget-to-date, sesuai bulan berjalan). Ini "budget variance".
- *     - Selisih < 0  → hemat / favorable
- *     - Selisih > 0  → boros / unfavorable
- *  3. Proyeksi akhir tahun pakai run-rate: realisasi YTD ÷ bulan berjalan × 12.
- *  4. Serapan tahunan tetap ditampilkan sebagai info.
+ *  1. Anggaran tahunan (`annual_budget`) adalah komitmen. Rincian per kuartal
+ *     (q1..q4) hanya rencana pembagian bertahap — diskalakan ulang supaya total
+ *     rinciannya sama dengan anggaran tahunan (rincian yang tidak cocok dengan
+ *     anggaran tahunan itu tanda RAB belum rapi).
+ *  2. Yang dipantau bukan "persen terpakai dari anggaran tahunan" (itu baru
+ *     berarti di akhir tahun), tapi realisasi dibanding anggaran sampai bulan
+ *     berjalan.
+ *     - Selisih < 0  → hemat (di bawah rencana)
+ *     - Selisih > 0  → boros (di atas rencana)
+ *  3. Proyeksi akhir tahun memakai laju realisasi terkini: realisasi sampai
+ *     bulan berjalan ÷ jumlah bulan berjalan × 12.
+ *  4. Serapan tahunan tetap ditampilkan sebagai informasi.
  *
- * Realisasi bersumber dari `rab_monthly_actuals` (dicatat manual selama transisi
- * cash→accrual). Tombol "Tarik dari Jurnal" mengisinya dari journal_items.
+ * Realisasi bersumber dari `rab_monthly_actuals` (dicatat manual selama masa
+ * peralihan pencatatan). Tombol "Tarik dari Jurnal" mengisinya dari journal_items.
  */
 class RabRealisasiController extends Controller
 {
@@ -44,7 +45,7 @@ class RabRealisasiController extends Controller
         $years = range(now()->year - 2, now()->year + 2);
         $months = range(1, 12);
 
-        // Berapa bulan tahun ini yang sudah berjalan (untuk pacing / budget-to-date).
+        // Berapa bulan tahun ini yang sudah berjalan (dasar hitung anggaran sampai bulan berjalan).
         $monthsElapsed = match (true) {
             $year < now()->year => 12,
             $year > now()->year => 0,
@@ -69,8 +70,8 @@ class RabRealisasiController extends Controller
 
             $annual = $rab->annualBudget();
 
-            // Phasing bulanan: bentuk mengikuti rencana kuartal, tapi total 12
-            // bulan = anggaran tahunan (reconcile).
+            // Pembagian anggaran bulanan: bentuknya mengikuti rencana kuartal,
+            // tapi jumlah 12 bulan dibuat sama dengan anggaran tahunan.
             $qRaw = [(int) $rab->q1, (int) $rab->q2, (int) $rab->q3, (int) $rab->q4];
             $qSum = array_sum($qRaw) ?: $annual;
             $monthlyBudget = [];
@@ -247,7 +248,7 @@ class RabRealisasiController extends Controller
             'actuals' => 'required|array',
             'actuals.*.account_code' => 'required|string|max:25',
             'actuals.*.month' => 'required|integer|min:1|max:12',
-            // Bisa negatif: koreksi / pengembalian beban (credit note).
+            // Boleh negatif: untuk koreksi atau pengembalian beban.
             'actuals.*.amount' => 'required|numeric',
         ]);
 
@@ -282,11 +283,11 @@ class RabRealisasiController extends Controller
     }
 
     /**
-     * Status budget variance (praktik FM):
-     *  - anggaran tahunan sudah terlampaui                → Kritis
-     *  - realisasi > 110% dari rencana-sampai-saat-ini    → Kritis (boros)
-     *  - 100–110%                                          → Waspada
-     *  - ≤ 100%                                            → Aman (on/under plan)
+     * Status selisih anggaran (praktik manajer keuangan):
+     *  - anggaran tahunan sudah terlampaui                  → Kritis
+     *  - realisasi > 110% dari rencana sampai bulan ini     → Kritis (boros)
+     *  - 100–110%                                            → Waspada
+     *  - ≤ 100%                                              → Aman (sesuai / di bawah rencana)
      */
     private function status(?float $pace, float $absorption): string
     {

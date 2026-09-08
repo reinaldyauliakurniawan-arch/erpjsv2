@@ -9,7 +9,7 @@
             <h3 class="text-headline-lg font-semibold text-on-surface">Realisasi RAB {{ $year }}</h3>
             <p class="text-sm text-on-surface-variant mt-xs">
                 Anggaran vs realisasi — dipantau terhadap <span class="font-medium">rencana sampai bulan berjalan</span>,
-                bukan cuma total tahunan.
+                bukan hanya total tahunan.
                 @if($monthsElapsed > 0 && $monthsElapsed < 12)
                     <span class="text-on-surface">Per akhir {{ $monthNames[$monthsElapsed - 1] }} ({{ round($monthsElapsed / 12 * 100) }}% tahun berjalan).</span>
                 @endif
@@ -127,7 +127,7 @@
         </div>
         <div class="app-card">
             <h4 class="text-title-sm font-semibold text-on-surface">Kurva Serapan Anggaran</h4>
-            <p class="text-xs text-on-surface-variant">Realisasi kumulatif vs kurva rencana (mengikuti pacing per kuartal).</p>
+            <p class="text-xs text-on-surface-variant">Realisasi kumulatif vs kurva rencana (mengikuti pembagian anggaran per kuartal).</p>
             <div class="mt-md" style="height:280px"><canvas id="chartAbsorption"></canvas></div>
         </div>
         <div class="app-card">
@@ -158,7 +158,7 @@
                         <th class="text-right">Realisasi</th>
                         <th class="text-right" title="Selisih realisasi s/d bulan berjalan vs rencana s/d bulan berjalan">Selisih</th>
                         <th class="text-right" title="Realisasi s/d kini ÷ rencana s/d kini">vs Rencana</th>
-                        <th class="text-right" title="Proyeksi belanja setahun berdasarkan run-rate">Proyeksi</th>
+                        <th class="text-right" title="Proyeksi belanja setahun berdasarkan laju realisasi terkini">Proyeksi</th>
                         <th class="text-center">Status</th>
                     </tr>
                 </thead>
@@ -385,7 +385,7 @@ function rabRealisasi() {
         qStatusLabel(rowId, q, budget) { const p = this.qPct(rowId, q, budget); return p === null ? '—' : p > 110 ? 'Kritis' : p > 100 ? 'Waspada' : 'Aman'; },
         qStatusClass(rowId, q, budget) { const p = this.qPct(rowId, q, budget); return p === null ? 'badge-ghost' : p > 110 ? 'badge-error' : p > 100 ? 'badge-warning' : 'badge-success'; },
 
-        // ── status budget variance ─────────────────────────────────
+        // ── status selisih anggaran ────────────────────────────────
         statusOf(pace, absorption) {
             if (absorption >= 100) return 'Kritis';
             if (pace === null) return 'Belum mulai';

@@ -7,9 +7,9 @@ use Illuminate\Support\Facades\Schema;
 
 /**
  * `rabs.annual_budget` — anggaran tahunan (kolom "Anggaran Tahun" di
- * spreadsheet CFO). Berbeda dari q1+q2+q3+q4 (yang merupakan rencana pacing
- * per-kuartal). Realisasi & % serapan per-akun dihitung terhadap
- * annual_budget; status per-kuartal terhadap q1..q4.
+ * spreadsheet CFO). Berbeda dari q1+q2+q3+q4 (yang merupakan rencana
+ * pembagian bertahap per kuartal). Realisasi & persen serapan per akun
+ * dihitung terhadap annual_budget; status per kuartal terhadap q1..q4.
  */
 return new class extends Migration
 {
