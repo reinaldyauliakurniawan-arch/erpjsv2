@@ -305,6 +305,12 @@ class ClassSessionController extends Controller
         $request->validate(['enrollment_id' => 'required|exists:enrollments,id']);
 
         return DB::transaction(function () use ($request, $id, $classSession) {
+            // Kunci baris INDUK kelas — `lockForUpdate()->count()` di bawah tidak
+            // mengunci apa pun kalau kelasnya masih kosong, jadi dua "assign"
+            // paralel ke kelas hampir penuh bisa sama-sama lolos. Lock kelasnya
+            // dulu supaya request kedua antre.
+            ClassSession::where('id', $id)->lockForUpdate()->first();
+
             $currentCount = Enrollment::where('class_session_id', $id)
                 ->whereIn('status', ['active', 'waitlist'])
                 ->lockForUpdate()

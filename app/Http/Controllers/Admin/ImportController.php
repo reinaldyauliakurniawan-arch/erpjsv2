@@ -52,17 +52,30 @@ class ImportController extends Controller
     private function runEnrollmentProcesses(array $enrollmentIds): void
     {
         $tutorIds = [];
-        foreach (Enrollment::with(['program', 'classSession'])->whereIn('id', array_unique($enrollmentIds))->get() as $enrollment) {
-            $this->ledgerService->rebuild($enrollment, optional($enrollment->enrollment_date)->toDateString());
-            if ($enrollment->class_session_id && $enrollment->classSession) {
-                $this->tutorAssignment->syncEnrollmentToClassTutors($enrollment);
-                $tutorIds = array_merge($tutorIds, $enrollment->classSession->tutors()->pluck('tutors.id')->all());
-            }
-            $tutorIds = array_merge($tutorIds, $enrollment->tutors()->pluck('tutors.id')->all());
+        // Per enrollment: transaction + lockForUpdate — kontrak wajib
+        // EnrollmentLedgerService::rebuild() (yang menghapus jurnal lama lalu
+        // posting ulang). Kalau satu enrollment gagal, hanya transaction-nya yang
+        // roll back — enrollment lain yang sudah beres tetap tersimpan.
+        foreach (array_unique($enrollmentIds) as $eid) {
+            $ids = DB::transaction(function () use ($eid) {
+                $enrollment = Enrollment::with(['program', 'classSession'])->lockForUpdate()->find($eid);
+                if (! $enrollment) {
+                    return [];
+                }
+                $this->ledgerService->rebuild($enrollment, optional($enrollment->enrollment_date)->toDateString());
+
+                $collected = $enrollment->tutors()->pluck('tutors.id')->all();
+                if ($enrollment->class_session_id && $enrollment->classSession) {
+                    $this->tutorAssignment->syncEnrollmentToClassTutors($enrollment);
+                    $collected = array_merge($collected, $enrollment->classSession->tutors()->pluck('tutors.id')->all());
+                }
+
+                return $collected;
+            });
+            $tutorIds = array_merge($tutorIds, $ids);
         }
-        foreach (array_unique(array_map('intval', $tutorIds)) as $tid) {
-            $this->tutorAssignment->recomputeAvailability($tid);
-        }
+
+        $this->recomputeTutorHours($tutorIds);
     }
 
     /** Hitung ulang jam sejumlah tutor. */
@@ -654,8 +667,13 @@ class ImportController extends Controller
         }
 
         if ($runProcesses && $affectedIds) {
-            foreach (Enrollment::with('program')->whereIn('id', array_unique($affectedIds))->get() as $enrollment) {
-                $this->ledgerService->rebuild($enrollment, optional($enrollment->enrollment_date)->toDateString());
+            foreach (array_unique($affectedIds) as $eid) {
+                DB::transaction(function () use ($eid) {
+                    $enrollment = Enrollment::with('program')->lockForUpdate()->find($eid);
+                    if ($enrollment) {
+                        $this->ledgerService->rebuild($enrollment, optional($enrollment->enrollment_date)->toDateString());
+                    }
+                });
             }
         }
 

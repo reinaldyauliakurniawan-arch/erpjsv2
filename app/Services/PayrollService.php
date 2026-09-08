@@ -53,13 +53,17 @@ class PayrollService
 
     public function approvePayrollRun(int $payrollRunId, int $approvedBy): PayrollRun
     {
-        $payrollRun = PayrollRun::findOrFail($payrollRunId);
+        return DB::transaction(function () use ($payrollRunId, $approvedBy) {
+            // Lock baris run — cegah dua "approve" paralel sama-sama menyapu &
+            // memposting jurnal. Status di-cek ULANG setelah lock.
+            $payrollRun = PayrollRun::lockForUpdate()->findOrFail($payrollRunId);
+            if ($payrollRun->status === 'approved') {
+                throw new DomainException('Payroll run ini sudah di-approve sebelumnya.');
+            }
+            if ($payrollRun->status === 'reversed') {
+                throw new DomainException('Payroll run ini sudah di-reverse — buat run baru untuk membayar.');
+            }
 
-        if ($payrollRun->status === 'approved') {
-            throw new DomainException('Payroll run ini sudah di-approve sebelumnya.');
-        }
-
-        return DB::transaction(function () use ($payrollRun, $approvedBy) {
             $tutors = Tutor::with('user')->get();
             $date = now()->toDateString();
             // Consistency fix: previously `now()` was called per-tutor inside
@@ -124,17 +128,22 @@ class PayrollService
                 $totalAmount = $unpaidAttendances->sum('payable_amount');
                 $reference = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}";
 
-                // Jurnal: Pembayaran hutang ke tutor
-                $this->accountingService->createJournal(
-                    $date,
-                    "Payroll Payment for Tutor: {$tutor->user->name} - Run #{$payrollRun->id}",
-                    $reference.'-PAY',
-                    [
-                        ['account_code' => AccountCode::TUTOR_PAYABLE->value, 'debit' => $totalAmount, 'credit' => 0],
-                        ['account_code' => AccountCode::BANK->value,          'debit' => 0,            'credit' => $totalAmount],
-                    ],
-                    'payroll'
-                );
+                // Jurnal: Pembayaran hutang ke tutor. try/catch simetris dengan
+                // cabang gaji di atas — kalau entah bagaimana sudah ada, abaikan.
+                try {
+                    $this->accountingService->createJournal(
+                        $date,
+                        "Payroll Payment for Tutor: {$tutor->user->name} - Run #{$payrollRun->id}",
+                        $reference.'-PAY',
+                        [
+                            ['account_code' => AccountCode::TUTOR_PAYABLE->value, 'debit' => $totalAmount, 'credit' => 0],
+                            ['account_code' => AccountCode::BANK->value,          'debit' => 0,            'credit' => $totalAmount],
+                        ],
+                        'payroll'
+                    );
+                } catch (IdempotencyException $e) {
+                    // Sudah pernah diposting untuk run ini — abaikan.
+                }
 
                 DB::table('attendance_tutor')
                     ->whereIn('id', $unpaidAttendances->pluck('id'))
@@ -154,18 +163,22 @@ class PayrollService
 
     public function reversePayrollRun(int $payrollRunId, int $reversedBy): PayrollRun
     {
-        $payrollRun = PayrollRun::findOrFail($payrollRunId);
+        return DB::transaction(function () use ($payrollRunId, $reversedBy) {
+            // Lock baris run + cek status ULANG di dalam transaction — cegah dua
+            // "reverse" paralel sama-sama memposting jurnal pembalik.
+            $payrollRun = PayrollRun::lockForUpdate()->findOrFail($payrollRunId);
+            if ($payrollRun->status !== 'approved') {
+                throw new DomainException('Hanya payroll run dengan status approved yang bisa di-reverse.');
+            }
 
-        if ($payrollRun->status !== 'approved') {
-            throw new DomainException('Hanya payroll run dengan status approved yang bisa di-reverse.');
-        }
-
-        return DB::transaction(function () use ($payrollRun, $reversedBy) {
             $tutors = Tutor::with('user')->get();
             $date = now()->toDateString();
+            $monthLabel = Carbon::parse($payrollRun->month)->translatedFormat('F Y');
 
             foreach ($tutors as $tutor) {
-                // ── Reverse gaji tutor tetap ─────────────────────────────
+                $reversedSomething = false;
+
+                // ── 1. Reverse jurnal gaji tutor tetap ───────────────────
                 $salaryRef = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}-SALARY";
                 $salaryJournal = Journal::where('reference', $salaryRef)->first();
                 if ($salaryJournal && ! Journal::where('reference', "REV-{$salaryRef}")->exists()) {
@@ -179,50 +192,41 @@ class PayrollService
                         ],
                         'payroll'
                     );
+                    $reversedSomething = true;
                 }
 
-                $reference = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}-PAY";
-
-                $originalJournal = Journal::where('reference', $reference)->first();
-                if (! $originalJournal) {
-                    continue;
+                // ── 2. Reverse jurnal pembayaran fee freelance ───────────
+                $payRef = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}-PAY";
+                $payJournal = Journal::where('reference', $payRef)->first();
+                if ($payJournal && ! Journal::where('reference', "REV-{$payRef}")->exists()) {
+                    $this->accountingService->createJournal(
+                        $date,
+                        "REVERSE Payroll Payment for Tutor: {$tutor->user->name} - Run #{$payrollRun->id}",
+                        "REV-{$payRef}",
+                        [
+                            ['account_code' => AccountCode::BANK->value,          'debit' => $payJournal->total_amount, 'credit' => 0],
+                            ['account_code' => AccountCode::TUTOR_PAYABLE->value, 'debit' => 0, 'credit' => $payJournal->total_amount],
+                        ],
+                        'payroll'
+                    );
+                    $reversedSomething = true;
                 }
 
-                $reverseReference = "REV-{$reference}";
-                $alreadyReversed = Journal::where('reference', $reverseReference)->exists();
-                if ($alreadyReversed) {
-                    continue;
-                }
-
-                $this->accountingService->createJournal(
-                    $date,
-                    "REVERSE Payroll Payment for Tutor: {$tutor->user->name} - Run #{$payrollRun->id}",
-                    $reverseReference,
-                    [
-                        ['account_code' => AccountCode::BANK->value,          'debit' => $originalJournal->total_amount, 'credit' => 0],
-                        ['account_code' => AccountCode::TUTOR_PAYABLE->value, 'debit' => 0, 'credit' => $originalJournal->total_amount],
-                    ],
-                    'payroll'
-                );
-
-                // Presisi: hanya baris presensi yang dibayar OLEH run ini yang
-                // dikembalikan ke "belum dibayar". Ini penting kalau ada
-                // pembayaran susulan di bulan yang sama — reverse satu run tidak
-                // boleh merusak status pembayaran run lain.
-                $rowsForThisRun = DB::table('attendance_tutor')
+                // ── 3. Kembalikan status "belum dibayar" pada presensi ───
+                // Presisi: hanya baris yang dibayar OLEH run ini. Dilakukan
+                // TERLEPAS dari keberadaan jurnal (kalau jurnalnya hilang karena
+                // diedit manual, baris tetap wajib dibersihkan).
+                $tied = DB::table('attendance_tutor')
                     ->where('tutor_id', $tutor->id)
                     ->where('payroll_run_id', $payrollRun->id)
-                    ->exists();
-
-                if ($rowsForThisRun) {
-                    DB::table('attendance_tutor')
-                        ->where('tutor_id', $tutor->id)
-                        ->where('payroll_run_id', $payrollRun->id)
-                        ->update(['paid_at' => null, 'payroll_run_id' => null]);
-                } else {
+                    ->update(['paid_at' => null, 'payroll_run_id' => null]);
+                if ($tied > 0) {
+                    $reversedSomething = true;
+                } elseif ($payJournal) {
                     // Run lama (di-approve sebelum kolom payroll_run_id ada):
-                    // baris yang dibayarnya tidak tertaut. Fallback ke filter
-                    // bulan, tapi hanya untuk baris yang belum tertaut run mana pun.
+                    // ada jurnal fee tapi baris presensinya tidak tertaut.
+                    // Fallback ke filter bulan, hanya baris yang belum tertaut
+                    // run mana pun (baris milik run lain punya payroll_run_id).
                     DB::table('attendance_tutor')
                         ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
                         ->where('attendance_tutor.tutor_id', $tutor->id)
@@ -232,6 +236,10 @@ class PayrollService
                         ->whereYear('attendance.date', Carbon::parse($payrollRun->month)->year)
                         ->whereMonth('attendance.date', Carbon::parse($payrollRun->month)->month)
                         ->update(['attendance_tutor.paid_at' => null]);
+                }
+
+                if ($reversedSomething) {
+                    $this->notifier->payrollReversed($tutor, $monthLabel);
                 }
             }
 

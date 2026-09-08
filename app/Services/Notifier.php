@@ -98,6 +98,14 @@ class Notifier
             route('tutor.dashboard'));
     }
 
+    public function payrollReversed(Tutor|int $tutor, string $monthLabel): void
+    {
+        $this->toTutor($tutor, 'payroll_reversed',
+            'Pembayaran honor dibatalkan',
+            "Pembayaran honor {$monthLabel} dibatalkan (payroll di-reverse). Akan dibayar ulang lewat payroll berikutnya.",
+            route('tutor.dashboard'));
+    }
+
     /**
      * Ada honor tutor yang baru tercatat untuk bulan yang payroll-nya SUDAH
      * dijalankan — kalau tidak dibayar susulan, honor ini terlewat. Kabari CFO.

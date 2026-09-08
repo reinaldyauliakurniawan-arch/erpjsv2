@@ -118,6 +118,29 @@ class EnrollmentService
             }
             $data['student_id'] = $student->id;
 
+            // ── Kunci sumber daya SEBELUM cek kapasitas ────────────────────
+            // `SELECT ... FOR UPDATE` tidak mengunci apa pun kalau hasilnya
+            // kosong (kelas / slot ruang masih kosong), jadi dua enrollment
+            // paralel bisa sama-sama lolos cek kapasitas. Solusinya: kunci
+            // baris INDUK — tiap ruangan yang dipakai + kelas tujuan. Dengan
+            // begitu request kedua benar-benar antre sampai yang pertama commit.
+            $lockedRooms = [];
+            foreach ($data['schedules'] ?? [] as $s) {
+                $cid = $s['classroom_id'] ?? null;
+                if ($cid && ! array_key_exists($cid, $lockedRooms)) {
+                    $lockedRooms[$cid] = Classroom::where('id', $cid)->lockForUpdate()->first();
+                }
+            }
+            if (! empty($data['class_session_id'])) {
+                ClassSession::where('id', $data['class_session_id'])->lockForUpdate()->first();
+            }
+            // Lock tutor rows juga — cek slot jam tutor di bawah bisa "kosong"
+            // hasilnya, jadi lock induk supaya dua enrollment paralel yang
+            // memakai tutor sama antre.
+            if (! empty($data['tutor_ids'])) {
+                Tutor::whereIn('id', $data['tutor_ids'])->lockForUpdate()->get();
+            }
+
             if ($classType === ClassType::PRIVATE) {
                 if (! empty($data['class_session_id'])) {
                     $classSession = ClassSession::where('id', $data['class_session_id'])
@@ -162,17 +185,16 @@ class EnrollmentService
                         || (isset($data['tutor_ids']) && ! empty($data['tutor_ids']));
                     $enrollmentStatus = ($quotaMet && $hasTutor) ? 'active' : 'waitlist';
 
-                    // Re-check kapasitas ruangan di dalam transaction setelah lock
-                    foreach ($data['schedules'] ?? [] as $s) {
-                        $roomCount = Schedule::where('classroom_id', $s['classroom_id'])
-                            ->where('day', $s['day'])
-                            ->where('time_block', $s['time_block'])
-                            ->lockForUpdate()
-                            ->count();
-                        $classroom = Classroom::find($s['classroom_id']);
-                        if ($classroom && $classroom->countsForOccupancy() && $roomCount >= $classroom->capacity) {
-                            throw new DomainException("Ruangan {$classroom->name} penuh pada {$s['day']} {$s['time_block']}. Enrollment dibatalkan.");
-                        }
+                    // Kapasitas kelas grup (jumlah siswa) — konsisten dengan
+                    // halaman Kelas & dropdown "sesi yang bisa dipilih". Baris
+                    // enrollment yang di-count sudah di-lock; kelas induk juga.
+                    $classroomForClass = ($lockedRooms[$data['schedules'][0]['classroom_id'] ?? null] ?? null)
+                        ?: $classSession->schedules()->with('classroom')->first()?->classroom;
+                    if ($classroomForClass && $classroomForClass->countsForOccupancy()
+                        && $currentCount >= $classroomForClass->capacity) {
+                        throw new DomainException(
+                            "Kelas {$classSession->name} sudah penuh (kapasitas {$classroomForClass->capacity} orang). Enrollment dibatalkan."
+                        );
                     }
 
                     if ($quotaMet && $hasTutor) {
@@ -200,6 +222,39 @@ class EnrollmentService
                     } else {
                         $classSession = null;
                         $enrollmentStatus = 'waitlist';
+                    }
+                }
+            }
+
+            // ── Re-cek okupansi ruang (locked) untuk SEMUA slot ───────────
+            // Berlaku untuk private maupun grup, sesi baru maupun sesi yang
+            // sudah ada. Ruangan sudah di-lock di atas.
+            foreach ($data['schedules'] ?? [] as $s) {
+                $this->assertRoomAvailableLocked(
+                    $lockedRooms[$s['classroom_id']] ?? null,
+                    $s['day'],
+                    $s['time_block'],
+                    $classType,
+                    $classSession?->id,
+                );
+            }
+
+            // ── Re-cek slot jam tutor (locked) — cegah tutor dobel-booking ─
+            foreach ($data['tutor_ids'] ?? [] as $tutorId) {
+                foreach ($data['schedules'] ?? [] as $s) {
+                    $busy = Schedule::query()
+                        ->where('day', $s['day'])
+                        ->where('time_block', $s['time_block'])
+                        ->when($classSession, fn ($q) => $q->where('class_session_id', '!=', $classSession->id))
+                        ->whereHas('classSession.tutors', fn ($q) => $q->where('tutor_id', $tutorId))
+                        ->whereHas('classSession.enrollments', fn ($q) => $q->whereIn('status', ['active', 'waitlist']))
+                        ->lockForUpdate()
+                        ->exists();
+                    if ($busy) {
+                        $t = Tutor::with('user')->find($tutorId);
+                        throw new DomainException(
+                            "Tutor {$t?->user?->name} sudah mengajar kelas lain pada {$s['day']} {$s['time_block']}."
+                        );
                     }
                 }
             }
@@ -311,6 +366,51 @@ class EnrollmentService
         $this->notifier->newStudentInClass($result[0]);
 
         return $result;
+    }
+
+    /**
+     * Cek okupansi ruang versi TERKUNCI — dipanggil di dalam transaction setelah
+     * baris ruangan di-lock. Selalu melempar (bukan mengembalikan catatan) kalau
+     * slot tidak boleh dipakai:
+     *   - kelas private butuh ruang sendiri (tidak boleh ada kelas lain di slot),
+     *   - tidak boleh masuk ke slot yang sudah dipakai kelas private,
+     *   - jumlah kelas berbeda di satu slot ruang tidak boleh melebihi kapasitas.
+     */
+    protected function assertRoomAvailableLocked(?Classroom $room, string $day, string $timeBlock, ClassType $incomingType, ?int $ownClassSessionId): void
+    {
+        if (! $room || ! $room->countsForOccupancy()) {
+            return;
+        }
+
+        $others = Schedule::with('classSession.program')
+            ->where('classroom_id', $room->id)
+            ->where('day', $day)
+            ->where('time_block', $timeBlock)
+            ->when($ownClassSessionId, fn ($q) => $q->where(fn ($qq) => $qq
+                ->whereNull('class_session_id')
+                ->orWhere('class_session_id', '!=', $ownClassSessionId)))
+            ->lockForUpdate()
+            ->get();
+
+        if ($others->isEmpty()) {
+            return;
+        }
+
+        if ($incomingType === ClassType::PRIVATE) {
+            throw new DomainException("Ruangan {$room->name} sudah dipakai kelas lain pada {$day} {$timeBlock} — kelas private butuh ruang sendiri.");
+        }
+        if ($others->contains(fn ($sch) => $sch->classSession?->program?->type === ClassType::PRIVATE->value)) {
+            throw new DomainException("Ruangan {$room->name} sudah dipakai kelas private pada {$day} {$timeBlock}.");
+        }
+
+        // Kelas ini akan menambah 1 kelas ke slot HANYA kalau belum punya jadwal
+        // di sana (join kelas grup yang sudah terjadwal = tidak menambah kelas).
+        $ownAlreadyScheduled = $ownClassSessionId && Schedule::where('class_session_id', $ownClassSessionId)
+            ->where('classroom_id', $room->id)->where('day', $day)->where('time_block', $timeBlock)->exists();
+        $distinctOthers = $others->pluck('class_session_id')->filter()->unique()->count();
+        if (! $ownAlreadyScheduled && ($distinctOthers + 1) > $room->capacity) {
+            throw new DomainException("Ruangan {$room->name} sudah penuh pada {$day} {$timeBlock}.");
+        }
     }
 
     protected function validateRoomOccupancy($classroomId, $day, $timeBlock, string $incomingClassType): ?string
