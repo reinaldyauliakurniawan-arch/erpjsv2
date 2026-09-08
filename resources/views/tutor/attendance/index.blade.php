@@ -241,17 +241,36 @@
             {{-- Form Detail (muncul setelah kelas dipilih) --}}
             <div x-show="modal.selectedId" x-transition style="display:none;" class="space-y-md">
 
+                {{-- Jadwal kelas (referensi) --}}
+                <template x-if="modal.scheduledSlots.length">
+                    <p class="text-xs text-on-surface-variant">
+                        Jadwal kelas ini:
+                        <template x-for="(s, i) in modal.scheduledSlots" :key="i">
+                            <span class="text-on-surface font-medium" x-text="`${s.day} ${s.time_block} @ ${s.classroom_name || '—'}${i < modal.scheduledSlots.length - 1 ? ', ' : ''}`"></span>
+                        </template>
+                    </p>
+                </template>
+
+                {{-- Peringatan skip / pindah ruang untuk tanggal yang dipilih --}}
+                <template x-if="modal.scheduleHint">
+                    <div class="flex items-start gap-sm px-md py-sm rounded-lg text-xs"
+                         :class="modal.scheduleHint.kind === 'skipped' ? 'bg-warning/10 border border-warning/40 text-warning' : 'bg-secondary/10 border border-secondary/40 text-secondary'">
+                        <span class="material-symbols-outlined text-sm" x-text="modal.scheduleHint.kind === 'skipped' ? 'event_busy' : 'moving'"></span>
+                        <span class="text-on-surface" x-text="modal.scheduleHint.text"></span>
+                    </div>
+                </template>
+
                 {{-- Detail Sesi --}}
                 <div class="grid gap-md" style="grid-template-columns: 1fr 1fr 1fr;">
                     <div class="fieldset">
                         <label class="fieldset-legend">Tanggal <span class="text-error">*</span></label>
-                        <input type="date" x-model="modal.date" class="input w-full" required>
+                        <input type="date" x-model="modal.date" @change="checkScheduleForDate()" class="input w-full" required>
                     </div>
                     <div class="fieldset">
                         <label class="fieldset-legend">Sesi <span class="text-error">*</span></label>
-                        <select x-model="modal.time_block" class="select w-full" required>
+                        <select x-model="modal.time_block" @change="checkScheduleForDate()" class="select w-full" required>
                             <option value="">— Pilih —</option>
-                            @foreach(['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'] as $block)
+                            @foreach($timeBlocks as $block)
                             <option value="{{ $block }}">{{ $block }}</option>
                             @endforeach
                         </select>
@@ -412,6 +431,9 @@ function attendancePage() {
             coTutorCandidates: [],
             selectedCoTutors: [],
             submitting:       false,
+            scheduledSlots:   [],
+            roomBookings:     [],
+            scheduleHint:     null,
         },
 
         init() {
@@ -443,6 +465,9 @@ function attendancePage() {
             this.modal.assignedTutors   = [];
             this.modal.coTutorCandidates = [];
             this.modal.selectedCoTutors = [];
+            this.modal.scheduledSlots   = [];
+            this.modal.roomBookings     = [];
+            this.modal.scheduleHint     = null;
         },
 
         setMode(mode) {
@@ -466,14 +491,16 @@ function attendancePage() {
         },
 
         selectSession(item) {
-            this.modal.selectedId   = item.id;
-            this.modal.selectedName = item.name;
-            this.modal.query        = item.name;
-            this.modal.results      = [];
-            if (item.last_classroom_id) {
-                this.modal.classroom_id = String(item.last_classroom_id);
-            }
+            this.modal.selectedId     = item.id;
+            this.modal.selectedName   = item.name;
+            this.modal.query          = item.name;
+            this.modal.results        = [];
+            this.modal.scheduledSlots = item.scheduled_slots || [];
+            // Auto-isi jam & ruang sesuai jadwal kelas (bukan diketik ulang).
+            if (item.default_time_block) this.modal.time_block = item.default_time_block;
+            if (item.default_classroom_id) this.modal.classroom_id = String(item.default_classroom_id);
             this.loadHistory(item.id);
+            this.checkScheduleForDate();
         },
 
         loadHistory(classSessionId) {
@@ -482,13 +509,35 @@ function attendancePage() {
                 .then(data => {
                     this.modal.assignedTutors    = data.assigned_tutors;
                     this.modal.coTutorCandidates = data.co_tutor_candidates;
+                    this.modal.roomBookings      = data.room_bookings || [];
                     this.modal.students          = data.enrollments.map(e => ({
                         enrollment_id: e.enrollment_id,
                         name:          e.name,
                         is_present:    true,
                         notes:         '',
                     }));
+                    this.checkScheduleForDate();
                 });
+        },
+
+        // Cek jadwal untuk tanggal + jam yang dipilih: apakah di-skip / pindah ruang.
+        checkScheduleForDate() {
+            this.modal.scheduleHint = null;
+            if (!this.modal.date || !this.modal.time_block) return;
+            const d = this.modal.date, tb = this.modal.time_block;
+
+            const move = (this.modal.roomBookings || []).find(b =>
+                b.type === 'temporary' && b.date === d && b.time_block === tb);
+            if (move) {
+                if (move.classroom_id) this.modal.classroom_id = String(move.classroom_id);
+                this.modal.scheduleHint = { kind: 'moved', text: `Pertemuan ini dipindah ke ${move.classroom_name || 'ruang lain'} pada tanggal ini.` };
+                return;
+            }
+            const skip = (this.modal.roomBookings || []).find(b =>
+                b.type === 'regular_skip' && b.date === d && b.time_block === tb);
+            if (skip) {
+                this.modal.scheduleHint = { kind: 'skipped', text: `Pertemuan ini ditandai DI-SKIP pada tanggal ini. Pastikan kelas benar-benar berjalan sebelum menyimpan.` };
+            }
         },
 
         toggleCoTutor(id) {

@@ -7,8 +7,10 @@ use App\Models\Attendance;
 use App\Models\ClassSession;
 use App\Models\Classroom;
 use App\Models\Enrollment;
+use App\Models\RoomBooking;
 use App\Models\Tutor;
 use App\Services\AttendanceService;
+use App\Support\ScheduleFormat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -47,9 +49,10 @@ class AttendanceController extends Controller
             ->count();
 
         $classrooms = Classroom::orderBy('name')->get();
+        $timeBlocks = ScheduleFormat::TIME_BLOCKS;
 
         return view('tutor.attendance.index', compact(
-            'unpaidTotal', 'paidThisMonth', 'pendingRateCount', 'classrooms'
+            'unpaidTotal', 'paidThisMonth', 'pendingRateCount', 'classrooms', 'timeBlocks'
         ));
     }
 
@@ -109,7 +112,7 @@ class AttendanceController extends Controller
         $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
         $q     = $request->input('q', '');
 
-        $query = ClassSession::with('program')
+        $query = ClassSession::with(['program', 'schedules.classroom'])
             ->where('status', 'active')
             ->where(function ($query) use ($q) {
                 $query->where('name', 'like', "%{$q}%")
@@ -127,10 +130,22 @@ class AttendanceController extends Controller
                     ->orderByDesc('date')
                     ->value('classroom_id');
 
+                // Slot terjadwal — dipakai form absensi untuk auto-isi jam & ruang
+                // sesuai jadwal, bukan diketik ulang manual.
+                $slots = $cs->schedules->map(fn ($s) => [
+                    'day'            => $s->day,
+                    'time_block'     => $s->time_block,
+                    'classroom_id'   => $s->classroom_id,
+                    'classroom_name' => $s->classroom?->name,
+                ])->values();
+
                 return [
                     'id'                  => $cs->id,
                     'name'                => $cs->name . ' — ' . $cs->program->name,
                     'last_classroom_id'   => $lastClassroomId,
+                    'scheduled_slots'     => $slots,
+                    'default_time_block'  => $slots->first()['time_block'] ?? null,
+                    'default_classroom_id' => $slots->first()['classroom_id'] ?? $lastClassroomId,
                 ];
             })
         );
@@ -201,11 +216,27 @@ class AttendanceController extends Controller
             ->get()
             ->map(fn($t) => ['id' => $t->id, 'name' => $t->user->name]);
 
+        // Skip / pindah-ruang untuk sesi ini (untuk peringatan di form absensi).
+        $scheduleIds = \App\Models\Schedule::where('class_session_id', $request->class_session_id)->pluck('id');
+        $bookings = RoomBooking::with('classroom')
+            ->where(fn ($q) => $q->where('class_session_id', $request->class_session_id)
+                ->orWhereIn('schedule_id', $scheduleIds))
+            ->get()
+            ->map(fn ($b) => [
+                'type'           => $b->type,
+                'date'           => \Carbon\Carbon::parse($b->date)->toDateString(),
+                'time_block'     => $b->time_block,
+                'classroom_id'   => $b->classroom_id,
+                'classroom_name' => $b->classroom?->name,
+                'notes'          => $b->notes,
+            ]);
+
         return response()->json([
             'sessions'        => $sessions,
             'matrix'          => $matrix,
             'co_tutor_candidates' => $coTutorCandidates,
             'assigned_tutors' => $assignedTutors,
+            'room_bookings'   => $bookings,
             'enrollments'     => $enrollments->map(fn($e) => [
                 'enrollment_id' => $e->id,
                 'name'          => $e->student->user->name,
