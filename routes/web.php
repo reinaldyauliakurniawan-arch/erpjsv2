@@ -199,13 +199,10 @@ Route::middleware('auth')->group(function () {
         Route::get('/rab/data', [RabController::class, 'data'])->name('rab.data');
         Route::delete('/rab/{rab}', [RabController::class, 'destroy'])->name('rab.destroy');
 
-        // RAB Realisasi
+        // RAB Realisasi — anggaran vs realisasi (bulanan + kuartalan + grafik)
         Route::get('/rab-realisasi', [RabRealisasiController::class, 'index'])->name('rab-realisasi.index');
-
-        // Tracker RAB (versi bulanan — meniru spreadsheet CFO)
-        Route::get('/rab-tracker', [\App\Http\Controllers\Admin\RabTrackerController::class, 'index'])->name('rab-tracker.index');
-        Route::post('/rab-tracker/actuals', [\App\Http\Controllers\Admin\RabTrackerController::class, 'saveActuals'])->name('rab-tracker.actuals');
-        Route::post('/rab-tracker/sync-journals', [\App\Http\Controllers\Admin\RabTrackerController::class, 'syncFromJournals'])->name('rab-tracker.sync-journals');
+        Route::post('/rab-realisasi/actuals', [RabRealisasiController::class, 'saveActuals'])->name('rab-realisasi.actuals');
+        Route::post('/rab-realisasi/sync-journals', [RabRealisasiController::class, 'syncFromJournals'])->name('rab-realisasi.sync-journals');
     });
 
     // Tutor routes

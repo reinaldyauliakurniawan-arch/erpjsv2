@@ -109,16 +109,26 @@ Adjusting journals have their own models/controller and a monthly scheduled gene
 
 ## Budgeting (RAB) — CFO only
 
-All under `/finance/*` (`role:cfo`). `rabs` holds the annual budget per expense
-account (quarterly split, `total` = `q1+q2+q3+q4` stored column, plus `rab_prev`).
-Three pages: **RAB** (`RabController`, edit the budget), **Realisasi RAB**
-(`RabRealisasiController`, quarterly budget-vs-actual derived from `journal_items`),
-and **Tracker RAB** (`RabTrackerController`, monthly budget-vs-actual from
-`rab_monthly_actuals` — a CFO-maintained manual store for the cash→accrual
-transition, with a "sync from journals" action and a manual `__REVENUE__` row for
-the monthly P/L). The CFO's real spreadsheet lives at
-`_migrasi/sumber/Dashboard FInance & Admin.xlsx` (gitignored); its data was loaded
-via `_migrasi/import_rab_tracker.php` (also gitignored — never commit `_migrasi/`).
+All under `/finance/*` (`role:cfo`). `rabs` holds the budget per expense account:
+`annual_budget` (the real yearly figure, basis for per-account % absorption),
+`q1..q4` (the CFO's quarterly pacing, basis for per-quarter status), `total`
+(stored `q1+q2+q3+q4`), `rab_prev` (last year's for comparison).
+
+Two pages:
+- **RAB** (`RabController`) — edit the budget.
+- **Realisasi RAB** (`RabRealisasiController`) — the single monitoring page:
+  monthly realisasi per account (editable, stored in `rab_monthly_actuals` — a
+  CFO-maintained manual store for the cash→accrual transition), quarterly rollup +
+  Aman/Waspada/Kritis status, quarterly KPIs (margin, revenue achievement, budget
+  absorption), monthly P/L, and Chart.js charts (P/L, quarter budget-vs-actual,
+  absorption curve, expense-by-category). "Tarik dari Jurnal" repopulates the
+  monthly store from `journal_items`. Special `account_code`s in
+  `rab_monthly_actuals`: `__REVENUE__` and `__REVENUE_TARGET__` hold the monthly
+  P/L revenue / target rows.
+
+The CFO's real spreadsheet is `_migrasi/sumber/Dashboard FInance & Admin.xlsx`
+(gitignored); its data was loaded via `_migrasi/import_rab_tracker.php` (also
+gitignored — never commit `_migrasi/`).
 
 ## Idempotency for money-mutating endpoints
 
