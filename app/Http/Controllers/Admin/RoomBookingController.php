@@ -26,6 +26,7 @@ class RoomBookingController extends Controller
             'tutor_id'     => 'nullable|exists:tutors,id',
             'notes'        => 'nullable|string|max:255',
             'schedule_id'   => 'nullable|exists:schedules,id',
+            'class_session_id' => 'nullable|exists:class_sessions,id',
         ]);
 
         $request->merge(['time_block' => ScheduleFormat::timeBlock($request->time_block)]);
@@ -80,7 +81,7 @@ class RoomBookingController extends Controller
 
         try {
             $booking = RoomBooking::create($request->only(
-                'classroom_id', 'schedule_id', 'date', 'time_block', 'type', 'enrollment_id', 'tutor_id', 'notes'
+                'classroom_id', 'schedule_id', 'class_session_id', 'date', 'time_block', 'type', 'enrollment_id', 'tutor_id', 'notes'
             ));
         } catch (\Illuminate\Database\UniqueConstraintViolationException $e) {
             return back()->withErrors(['error' => 'Slot ini baru saja dibooking oleh orang lain.']);

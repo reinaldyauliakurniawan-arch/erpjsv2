@@ -94,7 +94,7 @@ class ScheduleController extends Controller
             return [$day => $weekStart->copy()->addDays($i)->toDateString()];
         });
 
-        $bookings = RoomBooking::with(['tutor.user'])
+        $bookings = RoomBooking::with(['tutor.user', 'classSession'])
             ->whereBetween('date', [
                 $weekStart->toDateString(),
                 $weekStart->copy()->endOfWeek()->toDateString()

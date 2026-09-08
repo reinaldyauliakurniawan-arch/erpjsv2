@@ -227,9 +227,9 @@
                                                 bookingNotes = @json($booking->notes ?? "");'
                                             class="bg-amber-50 border border-amber-200 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-amber-100 transition-colors"
                                             title="Temporary booking">
-                                            <span class="material-symbols-outlined text-warning text-sm">event</span>
+                                            <span class="material-symbols-outlined text-warning text-sm">{{ $booking->classSession ? 'moving' : 'event' }}</span>
                                             <span class="text-[9px] font-bold text-warning text-center leading-tight truncate w-full">
-                                                {{ $booking->tutor?->user->name ?? $booking->notes ?? 'Temp' }}
+                                                {{ $booking->classSession?->name ?? $booking->tutor?->user->name ?? $booking->notes ?? 'Temp' }}
                                             </span>
                                         </button>
 
@@ -242,6 +242,7 @@
                                                 selectedDate = @json($date);
                                                 classroomId = @json($classroom->id);
                                                 selectedBookingId = {{ $skipBooking->id }};
+                                                selectedClassSessionId = @json($skipBooking->class_session_id ?? $schedule?->class_session_id ?? "");
                                                 bookingNotes = @json(($skippedBy ? "Di-skip oleh {$skippedBy}. " : "") . ($skipBooking->notes ?? ""));'
                                             class="bg-warning/10 border border-warning/30 px-xs py-xs rounded-lg flex flex-col items-center justify-center gap-xs hover:bg-warning/20 transition-colors"
                                             title="{{ $skippedBy ? 'Di-skip oleh '.$skippedBy : 'Di-skip' }} — klik untuk kelola">
@@ -252,7 +253,7 @@
                                     @else
                                         {{-- Kosong --}}
                                         <button type="button"
-                                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "temporary"; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); })'
+                                            @click='guardSlot(@json($date), @json($block), () => { modal = true; modalType = "temporary"; selectedRoom = @json($classroom->name); selectedDay = @json($d); selectedBlock = @json($block); classroomId = @json($classroom->id); selectedDate = @json($date); selectedClassSessionId = ""; })'
                                             class="bg-success/10 border border-success/30 px-xs py-xs rounded-lg flex items-center justify-center hover:bg-success/20 transition-colors"
                                             title="Kosong — klik untuk booking">
                                             <span class="material-symbols-outlined text-success text-sm">add_circle</span>
@@ -390,13 +391,14 @@
                                         </select>
                                     </div>
                                     <div class="fieldset">
-                                        <label class="fieldset-legend">Class Session (opsional)</label>
-                                        <select name="class_session_id" class="select w-full">
-                                            <option value="">— Tanpa class session —</option>
+                                        <label class="fieldset-legend">Kelas yang dipindahkan (opsional)</label>
+                                        <select name="class_session_id" class="select w-full" x-model="selectedClassSessionId">
+                                            <option value="">— Tanpa kelas (booking bebas) —</option>
                                             @foreach($classSessions as $cs)
                                                 <option value="{{ $cs->id }}">{{ $cs->name }} — {{ $cs->program->name }}</option>
                                             @endforeach
                                         </select>
+                                        <p class="label text-on-surface-variant">Isi kalau ini pengganti pertemuan kelas yang di-skip — supaya siswa lihat "pindah ke ruang ini".</p>
                                     </div>
                                     <div class="fieldset">
                                         <label class="fieldset-legend">Catatan</label>

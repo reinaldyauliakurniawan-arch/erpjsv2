@@ -130,9 +130,24 @@ class RoomBookingController extends Controller
 
         $notes = 'Booked by tutor: '.Auth::user()->name.($request->notes ? ' — '.$request->notes : '');
 
+        // "Pindah ruang": kalau tutor punya kelas di slot jam/hari ini yang
+        // pertemuannya sudah di-skip pada tanggal ini, tautkan booking baru
+        // ke kelas itu supaya siswa lihat "kelas dipindah ke <ruang>".
+        $day = DayOfWeek::fromDate($request->date)->value;
+        $movedClassSessionId = Schedule::query()
+            ->where('day', $day)
+            ->where('time_block', $request->time_block)
+            ->whereHas('classSession.tutors', fn ($q) => $q->where('tutor_id', $tutor->id))
+            ->whereExists(fn ($q) => $q->from('room_bookings')
+                ->whereColumn('room_bookings.schedule_id', 'schedules.id')
+                ->where('room_bookings.type', 'regular_skip')
+                ->whereDate('room_bookings.date', $request->date))
+            ->value('class_session_id');
+
         try {
             RoomBooking::create([
                 'classroom_id' => $request->classroom_id,
+                'class_session_id' => $movedClassSessionId,
                 'date' => $request->date,
                 'time_block' => $request->time_block,
                 'type' => 'temporary',

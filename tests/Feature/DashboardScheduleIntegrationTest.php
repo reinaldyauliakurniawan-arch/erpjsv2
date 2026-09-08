@@ -144,4 +144,44 @@ class DashboardScheduleIntegrationTest extends TestCase
             ->assertSee('Diliburkan')
             ->assertSee('Sesi Berikutnya');
     }
+
+    #[Test]
+    public function student_dashboard_shows_a_room_move(): void
+    {
+        [$tutorU, $tutor, $cs, $schedule] = $this->classWithTutorToday();
+        $newRoom = Classroom::factory()->create(['name' => 'Stanford']);
+
+        $studentU = User::factory()->create(['role' => 'student']);
+        $student = Student::factory()->create(['user_id' => $studentU->id]);
+        Enrollment::factory()->create([
+            'student_id' => $student->id,
+            'program_id' => $cs->program_id,
+            'class_session_id' => $cs->id,
+            'status' => 'active',
+        ]);
+
+        // Pertemuan hari ini di-skip di ruang asli...
+        RoomBooking::create([
+            'classroom_id' => $schedule->classroom_id,
+            'schedule_id' => $schedule->id,
+            'date' => now()->toDateString(),
+            'time_block' => '09:00-10:30',
+            'type' => 'regular_skip',
+            'tutor_id' => $tutor->id,
+        ]);
+        // ...dan dipindah ke ruang lain (booking sementara tertaut ke kelas).
+        RoomBooking::create([
+            'classroom_id' => $newRoom->id,
+            'class_session_id' => $cs->id,
+            'date' => now()->toDateString(),
+            'time_block' => '09:00-10:30',
+            'type' => 'temporary',
+            'tutor_id' => $tutor->id,
+        ]);
+
+        $this->actingAs($studentU)->get(route('student.dashboard'))
+            ->assertOk()
+            ->assertSee('pindah ke Stanford')
+            ->assertDontSee('Diliburkan'); // bukan libur — cuma pindah
+    }
 }

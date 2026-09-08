@@ -51,7 +51,7 @@ class ScheduleController extends Controller
             fn($s) => $s->groupBy('day')
         );
 
-        $bookings = RoomBooking::with(['tutor.user'])
+        $bookings = RoomBooking::with(['tutor.user', 'classSession'])
             ->whereBetween('date', [$weekStart->toDateString(), $weekEnd->toDateString()])
             ->get()
             ->groupBy(fn($b) => Carbon::parse($b->date)->format('Y-m-d'));

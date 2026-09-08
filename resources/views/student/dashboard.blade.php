@@ -66,16 +66,24 @@
             </div>
             @endif
             <div class="flex items-center gap-sm px-md py-sm rounded-lg {{ $next['is_today'] ? 'bg-primary-container/20 border border-primary-container/40' : 'bg-surface border border-surface-border' }}">
-                <span class="material-symbols-outlined {{ $next['is_today'] ? 'text-primary-container' : 'text-on-surface-variant' }} text-base">
-                    {{ $next['is_today'] ? 'today' : 'event' }}
+                <span class="material-symbols-outlined {{ !empty($next['moved_to']) ? 'text-secondary' : ($next['is_today'] ? 'text-primary-container' : 'text-on-surface-variant') }} text-base">
+                    {{ !empty($next['moved_to']) ? 'moving' : ($next['is_today'] ? 'today' : 'event') }}
                 </span>
                 <div>
                     <p class="text-xs font-semibold {{ $next['is_today'] ? 'text-primary-container' : 'text-on-surface-variant' }} uppercase tracking-wide">
                         {{ $next['is_today'] ? 'Sesi Hari Ini' : 'Sesi Berikutnya' }}
                     </p>
+                    @if(!empty($next['moved_to']))
+                    <p class="text-sm text-on-surface">
+                        {{ $next['day'] }}, {{ $next['date'] }} · {{ $next['time_block'] }} ·
+                        <span class="text-secondary font-semibold">pindah ke {{ $next['moved_to'] }}</span>
+                        <span class="text-on-surface-variant line-through">{{ $next['classroom'] }}</span>
+                    </p>
+                    @else
                     <p class="text-sm text-on-surface">
                         {{ $next['day'] }}, {{ $next['date'] }} · {{ $next['time_block'] }} · {{ $next['classroom'] }}
                     </p>
+                    @endif
                 </div>
             </div>
         </div>

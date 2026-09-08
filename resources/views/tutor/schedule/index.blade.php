@@ -275,7 +275,7 @@ function guardSlot(dateStr, timeBlock, callback) {
                         $isMyTemp  = $isTemp && $booking->tutor_id === $tutor->id;
                         $isMySlot  = $schedule && $schedule->classSession?->tutors?->contains('id', $tutor->id);
                         $isMySkip  = $skipBooking && $skipBooking->tutor_id === $tutor->id;
-                        $bookedBy  = $isTemp ? ($booking->tutor?->user?->name ?? 'Admin') : null;
+                        $bookedBy  = $isTemp ? ($booking->classSession?->name ?? $booking->tutor?->user?->name ?? 'Admin') : null;
                     @endphp
 
                     @if($schedule && !$isSkipped && !$isTemp)
