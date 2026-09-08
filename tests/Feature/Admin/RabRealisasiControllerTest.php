@@ -58,9 +58,16 @@ class RabRealisasiControllerTest extends TestCase
         $this->assertSame(44_000_000, $row['real_q1']);          // Jan+Feb+Mar
         $this->assertSame(0, $row['real_q2']);
 
+        // Phasing kuartal di-scale ke anggaran tahunan: q1 245jt × 66/214 ≈ 75,56jt.
+        $expectedBudgetQ1 = (int) round(245_000_000 * (66 / 214));
+        $this->assertSame($expectedBudgetQ1, $row['budget_q1']);
+
         $q1 = $res->viewData('quarters')[0];
-        $this->assertSame(66_000_000, $q1['budget']);            // pacing kuartal
-        $this->assertSame(66.7, $q1['budget_realization']);      // 44jt / 66jt
+        $this->assertSame($expectedBudgetQ1, $q1['budget']);
+        $this->assertSame(
+            round(44_000_000 / $expectedBudgetQ1 * 100, 1),
+            $q1['budget_realization']                            // realisasi q1 vs anggaran q1 (ter-scale)
+        );
         $this->assertSame(83.3, $q1['revenue_achievement']);     // 100jt / 120jt
 
         $charts = $res->viewData('charts');

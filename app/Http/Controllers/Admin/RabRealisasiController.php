@@ -10,17 +10,24 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Realisasi RAB — halaman tunggal untuk memantau anggaran vs realisasi
- * (menggantikan sekaligus "Tracker RAB" lama). Khusus CFO (grup rute /finance).
+ * Realisasi RAB — halaman pemantauan anggaran vs realisasi. Khusus CFO
+ * (grup rute /finance).
  *
- * Isi:
- *  - realisasi PER BULAN per akun beban (rab_monthly_actuals, bisa diedit CFO),
- *  - ringkasan per KUARTAL + status Aman/Waspada/Kritis,
- *  - ringkasan laba–rugi bulanan (pendapatan manual / dari jurnal),
- *  - grafik: revenue vs beban, laba/rugi, serapan anggaran, per-kuartal,
- *  - KPI per kuartal: profit %, pencapaian pendapatan, serapan anggaran.
+ * Prinsip perhitungan (praktik manajemen keuangan / budget variance analysis):
  *
- * Realisasi bersumber dari rab_monthly_actuals (dicatat manual selama transisi
+ *  1. Anggaran tahunan (`annual_budget`) adalah komitmen. Rincian per-kuartal
+ *     (q1..q4) hanya "phasing / rencana pacing" — di-scale ulang supaya total
+ *     phasing = anggaran tahunan (rincian yang tidak reconcile itu tanda RAB
+ *     belum rapi).
+ *  2. Yang dipantau bukan "% terpakai dari anggaran tahunan" (itu baru berarti
+ *     di akhir tahun), tapi **realisasi vs anggaran-sampai-saat-ini**
+ *     (budget-to-date, sesuai bulan berjalan). Ini "budget variance".
+ *     - Selisih < 0  → hemat / favorable
+ *     - Selisih > 0  → boros / unfavorable
+ *  3. Proyeksi akhir tahun pakai run-rate: realisasi YTD ÷ bulan berjalan × 12.
+ *  4. Serapan tahunan tetap ditampilkan sebagai info.
+ *
+ * Realisasi bersumber dari `rab_monthly_actuals` (dicatat manual selama transisi
  * cash→accrual). Tombol "Tarik dari Jurnal" mengisinya dari journal_items.
  */
 class RabRealisasiController extends Controller
@@ -31,36 +38,66 @@ class RabRealisasiController extends Controller
 
     private const REVENUE_TARGET_CODE = '__REVENUE_TARGET__';
 
-    private const SPECIAL_CODES = [self::REVENUE_CODE, self::REVENUE_TARGET_CODE];
-
     public function index(Request $request)
     {
         $year = (int) $request->input('year', now()->year);
         $years = range(now()->year - 2, now()->year + 2);
+        $months = range(1, 12);
+
+        // Berapa bulan tahun ini yang sudah berjalan (untuk pacing / budget-to-date).
+        $monthsElapsed = match (true) {
+            $year < now()->year => 12,
+            $year > now()->year => 0,
+            default => (int) now()->month,
+        };
 
         $rabRows = Rab::where('year', $year)->orderBy('division')->orderBy('account_name')->get();
 
         $actuals = RabMonthlyActual::where('year', $year)->get()->groupBy('account_code')
             ->map(fn ($g) => $g->pluck('amount', 'month')->all());
 
-        [$quarterOf, $months] = [fn (int $m) => (int) ceil($m / 3), range(1, 12)];
-
-        $rows = $rabRows->map(function ($rab) use ($actuals, $months, $quarterOf) {
+        $rows = $rabRows->map(function ($rab) use ($actuals, $months, $monthsElapsed) {
             $manual = $actuals->get($rab->account_code, []);
 
             $m = [];
-            $realQ = [1 => 0, 2 => 0, 3 => 0, 4 => 0];
             $realTotal = 0;
             foreach ($months as $mm) {
                 $v = (int) ($manual[$mm] ?? 0);
                 $m[$mm] = $v;
                 $realTotal += $v;
-                $realQ[$quarterOf($mm)] += $v;
             }
 
-            $budget = $rab->annualBudget();
-            $budgetQ = ['q1' => (int) $rab->q1, 'q2' => (int) $rab->q2, 'q3' => (int) $rab->q3, 'q4' => (int) $rab->q4];
-            $pct = $budget > 0 ? round($realTotal / $budget * 100, 1) : 0;
+            $annual = $rab->annualBudget();
+
+            // Phasing bulanan: bentuk mengikuti rencana kuartal, tapi total 12
+            // bulan = anggaran tahunan (reconcile).
+            $qRaw = [(int) $rab->q1, (int) $rab->q2, (int) $rab->q3, (int) $rab->q4];
+            $qSum = array_sum($qRaw) ?: $annual;
+            $monthlyBudget = [];
+            foreach ($months as $mm) {
+                $q = (int) ceil($mm / 3);
+                $monthlyBudget[$mm] = $qSum > 0 ? $annual * ($qRaw[$q - 1] / $qSum) / 3 : $annual / 12;
+            }
+
+            $budgetToDate = 0;
+            $realToDate = 0;
+            for ($mm = 1; $mm <= $monthsElapsed; $mm++) {
+                $budgetToDate += $monthlyBudget[$mm];
+                $realToDate += $m[$mm];
+            }
+
+            $budgetQ = [];
+            $realQ = [];
+            foreach ([1, 2, 3, 4] as $q) {
+                $budgetQ["q$q"] = (int) round($annual * ($qRaw[$q - 1] / $qSum));
+                $realQ["q$q"] = $m[$q * 3 - 2] + $m[$q * 3 - 1] + $m[$q * 3];
+            }
+
+            $absorption = $annual > 0 ? round($realTotal / $annual * 100, 1) : 0;
+            $pace = $budgetToDate > 0 ? round($realToDate / $budgetToDate * 100, 1) : null;
+            $varianceYtd = (int) round($realToDate - $budgetToDate);
+            $forecast = $monthsElapsed > 0 ? (int) round($realTotal / $monthsElapsed * 12) : null;
+            $forecastVariance = $forecast !== null ? $forecast - $annual : null;
 
             return [
                 'id' => $rab->id,
@@ -70,36 +107,44 @@ class RabRealisasiController extends Controller
                 'rab_prev' => (int) $rab->rab_prev,
                 'budget_q1' => $budgetQ['q1'], 'budget_q2' => $budgetQ['q2'],
                 'budget_q3' => $budgetQ['q3'], 'budget_q4' => $budgetQ['q4'],
-                'budget_total' => $budget,
+                'budget_total' => $annual,
+                'budget_to_date' => (int) round($budgetToDate),
                 'months' => $m,
-                'real_q1' => $realQ[1], 'real_q2' => $realQ[2], 'real_q3' => $realQ[3], 'real_q4' => $realQ[4],
+                'real_q1' => $realQ['q1'], 'real_q2' => $realQ['q2'], 'real_q3' => $realQ['q3'], 'real_q4' => $realQ['q4'],
                 'real_total' => $realTotal,
-                'pct' => $pct,
-                'sisa' => $budget - $realTotal,
-                'status' => $this->status($pct),
-                'status_q1' => $this->status($budgetQ['q1'] > 0 ? $realQ[1] / $budgetQ['q1'] * 100 : 0),
-                'status_q2' => $this->status($budgetQ['q2'] > 0 ? $realQ[2] / $budgetQ['q2'] * 100 : 0),
-                'status_q3' => $this->status($budgetQ['q3'] > 0 ? $realQ[3] / $budgetQ['q3'] * 100 : 0),
-                'status_q4' => $this->status($budgetQ['q4'] > 0 ? $realQ[4] / $budgetQ['q4'] * 100 : 0),
+                'sisa' => $annual - $realTotal,
+                'absorption' => $absorption,
+                'pace' => $pace,
+                'variance_ytd' => $varianceYtd,
+                'variance_ytd_pct' => $budgetToDate > 0 ? round($varianceYtd / $budgetToDate * 100, 1) : null,
+                'forecast' => $forecast,
+                'forecast_variance' => $forecastVariance,
+                'status' => $this->status($pace, $absorption),
             ];
         })->values();
 
-        // Totals
+        // ── Totals ───────────────────────────────────────────────────
         $totals = [
             'budget_total' => (int) $rows->sum('budget_total'),
+            'budget_to_date' => (int) $rows->sum('budget_to_date'),
             'real_total' => (int) $rows->sum('real_total'),
+            'real_to_date' => (int) $rows->sum(fn ($r) => array_sum(array_slice($r['months'], 0, $monthsElapsed, true))),
             'months' => collect($months)->mapWithKeys(fn ($mm) => [$mm => (int) $rows->sum(fn ($r) => $r['months'][$mm])])->all(),
         ];
-        foreach (['q1', 'q2', 'q3', 'q4'] as $q) {
-            $totals["budget_$q"] = (int) $rows->sum("budget_$q");
-            $totals["real_$q"] = (int) $rows->sum("real_$q");
+        foreach ([1, 2, 3, 4] as $q) {
+            $totals["budget_q$q"] = (int) $rows->sum("budget_q$q");
+            $totals["real_q$q"] = (int) $rows->sum("real_q$q");
         }
         $totals['sisa'] = $totals['budget_total'] - $totals['real_total'];
-        $totals['pct'] = $totals['budget_total'] > 0 ? round($totals['real_total'] / $totals['budget_total'] * 100, 1) : 0;
+        $totals['absorption'] = $totals['budget_total'] > 0 ? round($totals['real_total'] / $totals['budget_total'] * 100, 1) : 0;
+        $totals['pace'] = $totals['budget_to_date'] > 0 ? round($totals['real_to_date'] / $totals['budget_to_date'] * 100, 1) : null;
+        $totals['variance_ytd'] = $totals['real_to_date'] - $totals['budget_to_date'];
+        $totals['forecast'] = $monthsElapsed > 0 ? (int) round($totals['real_total'] / $monthsElapsed * 12) : null;
+        $totals['forecast_variance'] = $totals['forecast'] !== null ? $totals['forecast'] - $totals['budget_total'] : null;
 
-        // Pendapatan + target (manual atau jurnal)
-        $manualRevenue = ($actuals->get(self::REVENUE_CODE, []));
-        $manualTarget = ($actuals->get(self::REVENUE_TARGET_CODE, []));
+        // ── Pendapatan + target ──────────────────────────────────────
+        $manualRevenue = $actuals->get(self::REVENUE_CODE, []);
+        $manualTarget = $actuals->get(self::REVENUE_TARGET_CODE, []);
         $journalRevenue = $this->journalMonthly($year, 'Revenue');
 
         $revenueRow = [];
@@ -117,34 +162,45 @@ class RabRealisasiController extends Controller
             'profit' => $revenueRow[$mm] - $totals['months'][$mm],
         ]);
 
-        // ── KPI per kuartal ────────────────────────────────────────────
+        // ── KPI per kuartal ──────────────────────────────────────────
         $quarters = [];
         foreach ([1, 2, 3, 4] as $q) {
-            $mm = range(($q - 1) * 3 + 1, $q * 3);
+            $mm = range($q * 3 - 2, $q * 3);
             $rev = array_sum(array_map(fn ($x) => $revenueRow[$x], $mm));
             $tgt = array_sum(array_map(fn ($x) => $targetRow[$x], $mm));
             $exp = $totals["real_q$q"];
             $bud = $totals["budget_q$q"];
+            // Kuartal dianggap "berjalan/selesai" kalau minimal 1 bulannya sudah lewat.
+            $started = $monthsElapsed >= $q * 3 - 2;
             $quarters[] = [
                 'label' => "Q$q",
                 'revenue' => $rev,
+                'target' => $tgt,
                 'expense' => $exp,
                 'budget' => $bud,
                 'profit' => $rev - $exp,
-                'profit_pct' => $rev > 0 ? round(($rev - $exp) / $rev * 100, 1) : null,
-                'revenue_achievement' => $tgt > 0 ? round($rev / $tgt * 100, 1) : null,
-                'budget_realization' => $bud > 0 ? round($exp / $bud * 100, 1) : null,
+                'profit_pct' => ($started && $rev > 0) ? round(($rev - $exp) / $rev * 100, 1) : null,
+                'revenue_achievement' => ($started && $tgt > 0) ? round($rev / $tgt * 100, 1) : null,
+                'budget_realization' => ($started && $bud > 0) ? round($exp / $bud * 100, 1) : null,
+                'variance' => $rev - $exp,
             ];
         }
 
-        // ── Data grafik ───────────────────────────────────────────────
-        $idealCurve = [];
+        // ── Data grafik ──────────────────────────────────────────────
+        // Kurva rencana = akumulasi anggaran per bulan (bentuk mengikuti
+        // rencana kuartal), bukan garis lurus rata.
+        $planCurve = [];
         $actualCurve = [];
-        $cum = 0;
+        $cumPlan = 0;
+        $cumActual = 0;
         foreach ($months as $mm) {
-            $cum += $totals['months'][$mm];
-            $actualCurve[] = $totals['budget_total'] > 0 ? round($cum / $totals['budget_total'] * 100, 1) : 0;
-            $idealCurve[] = round($mm / 12 * 100, 1);
+            $q = (int) ceil($mm / 3);
+            $cumPlan += $totals['budget_total'] > 0 ? $totals["budget_q$q"] / 3 : 0;
+            $cumActual += $totals['months'][$mm];
+            $planCurve[] = $totals['budget_total'] > 0 ? round($cumPlan / $totals['budget_total'] * 100, 1) : 0;
+            $actualCurve[] = ($totals['budget_total'] > 0 && $mm <= $monthsElapsed)
+                ? round($cumActual / $totals['budget_total'] * 100, 1)
+                : null;
         }
 
         $byCategory = $rows->sortByDesc('real_total')->take(10)->map(fn ($r) => [
@@ -155,6 +211,7 @@ class RabRealisasiController extends Controller
 
         $charts = [
             'months' => self::MONTHS,
+            'months_elapsed' => $monthsElapsed,
             'revenue' => array_values($revenueRow),
             'target' => array_values($targetRow),
             'expense' => array_map(fn ($mm) => $totals['months'][$mm], $months),
@@ -163,7 +220,7 @@ class RabRealisasiController extends Controller
             'quarter_budget' => array_map(fn ($q) => $totals["budget_q$q"], [1, 2, 3, 4]),
             'quarter_real' => array_map(fn ($q) => $totals["real_q$q"], [1, 2, 3, 4]),
             'absorption_actual' => $actualCurve,
-            'absorption_ideal' => $idealCurve,
+            'absorption_plan' => $planCurve,
             'category' => $byCategory,
         ];
 
@@ -171,6 +228,7 @@ class RabRealisasiController extends Controller
             'year' => $year,
             'years' => $years,
             'monthNames' => self::MONTHS,
+            'monthsElapsed' => $monthsElapsed,
             'rows' => $rows,
             'totals' => $totals,
             'plMonthly' => $plMonthly,
@@ -189,7 +247,8 @@ class RabRealisasiController extends Controller
             'actuals' => 'required|array',
             'actuals.*.account_code' => 'required|string|max:25',
             'actuals.*.month' => 'required|integer|min:1|max:12',
-            'actuals.*.amount' => 'required|numeric|min:0',
+            // Bisa negatif: koreksi / pengembalian beban (credit note).
+            'actuals.*.amount' => 'required|numeric',
         ]);
 
         DB::transaction(function () use ($data) {
@@ -209,12 +268,11 @@ class RabRealisasiController extends Controller
         $year = (int) $request->validate(['year' => 'required|integer'])['year'];
 
         DB::transaction(function () use ($year) {
-            $monthly = $this->journalMonthlyByAccount($year);
-            foreach ($monthly as $code => $byMonth) {
+            foreach ($this->journalMonthlyByAccount($year) as $code => $byMonth) {
                 foreach ($byMonth as $m => $amount) {
                     RabMonthlyActual::updateOrCreate(
                         ['year' => $year, 'account_code' => $code, 'month' => $m],
-                        ['amount' => max(0, (int) round($amount))],
+                        ['amount' => (int) round($amount)],
                     );
                 }
             }
@@ -223,12 +281,32 @@ class RabRealisasiController extends Controller
         return response()->json(['success' => true, 'message' => 'Realisasi disinkron dari jurnal keuangan.']);
     }
 
-    private function status(float $pct): string
+    /**
+     * Status budget variance (praktik FM):
+     *  - anggaran tahunan sudah terlampaui                → Kritis
+     *  - realisasi > 110% dari rencana-sampai-saat-ini    → Kritis (boros)
+     *  - 100–110%                                          → Waspada
+     *  - ≤ 100%                                            → Aman (on/under plan)
+     */
+    private function status(?float $pace, float $absorption): string
     {
-        return $pct >= 100 ? 'Lewat' : ($pct >= 95 ? 'Kritis' : ($pct >= 80 ? 'Waspada' : 'Aman'));
+        if ($absorption >= 100) {
+            return 'Kritis';
+        }
+        if ($pace === null) {
+            return 'Belum mulai';
+        }
+        if ($pace > 110) {
+            return 'Kritis';
+        }
+        if ($pace > 100) {
+            return 'Waspada';
+        }
+
+        return 'Aman';
     }
 
-    /** account_code => [month => amount] (beban; bulan diambil di PHP → portabel). */
+    /** account_code => [month => amount] (beban: debit − credit). Bulan diambil di PHP → portabel. */
     private function journalMonthlyByAccount(int $year): array
     {
         $out = [];
@@ -240,7 +318,7 @@ class RabRealisasiController extends Controller
         return $out;
     }
 
-    /** @return array<int,int> month => total (revenue = credit-debit, expense = debit-credit) */
+    /** @return array<int,int> month => total (revenue: credit − debit; expense: debit − credit) */
     private function journalMonthly(int $year, string $type): array
     {
         $out = [];
