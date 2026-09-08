@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Enums\PaymentStatus;
+use App\Enums\Role;
 use App\Exceptions\AccountNotFoundException;
 use App\Exceptions\BalanceMismatchException;
 use App\Exceptions\IdempotencyException;
@@ -264,7 +265,7 @@ class ImportController extends Controller
                     $email = trim($row[1]);
 
                     if (! isset($tutorCache[$email])) {
-                        if (User::where('email', $email)->where('role', 'student')->exists()) {
+                        if (User::where('email', $email)->where('role', Role::STUDENT->value)->exists()) {
                             $errors[] = "Row {$index}: email '{$email}' sudah terdaftar sebagai student, dilewati.";
 
                             continue;
@@ -277,7 +278,7 @@ class ImportController extends Controller
                         );
                         // Set role explicitly (not mass-assignable per User model security)
                         if (! $user->role) {
-                            $user->role = 'tutor';
+                            $user->role = Role::TUTOR->value;
                             $user->save();
                         }
                         $tutor = Tutor::updateOrCreate(
@@ -356,7 +357,7 @@ class ImportController extends Controller
                         $errors[] = "Row {$index}: education_level '{$level}' tidak valid, harus SD / SMP / SMA / Kuliah / Umum. Baris tetap diimport dengan education_level kosong.";
                         $level = '';
                     }
-                    if (User::where('email', trim($row[1]))->whereIn('role', ['admin', 'tutor'])->exists()) {
+                    if (User::where('email', trim($row[1]))->whereIn('role', [Role::ADMIN->value, Role::TUTOR->value])->exists()) {
                         $errors[] = "Row {$index}: email '{$row[1]}' sudah terdaftar sebagai admin atau tutor, dilewati.";
 
                         continue;
@@ -369,7 +370,7 @@ class ImportController extends Controller
                     );
                     // Set role explicitly (not mass-assignable per User model security)
                     if (! $user->role) {
-                        $user->role = 'student';
+                        $user->role = Role::STUDENT->value;
                         $user->save();
                     }
                     Student::updateOrCreate(

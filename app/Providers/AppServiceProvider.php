@@ -11,13 +11,17 @@ class AppServiceProvider extends ServiceProvider
     }
     public function boot(): void
     {
-        // ponytail: $this->authorize() calls in EnrollmentController, ClassSessionController,
+        // $this->authorize() calls in EnrollmentController, ClassSessionController,
         // JournalController, ClassroomController have no registered Policy. Laravel denies
-        // (throws 403) when no policy/ability matches — it does NOT auto-pass. RoleMiddleware
-        // already gates these routes by role, so this restores that intended pass-through
-        // instead of building out unused Policy classes for a check that's redundant anyway.
-        Gate::before(function ($user, string $ability) {
-            return in_array($user->role, ['admin', 'cfo'], true) ? true : null;
+        // (throws 403) when no policy/ability matches — it does NOT auto-pass.
+        //
+        // PENTING: pintu akses yang sebenarnya adalah RoleMiddleware per grup rute
+        // (role:admin untuk /admin, role:cfo untuk /finance, dst). Baris di bawah
+        // hanya jalan pintas supaya authorize() di controller tidak menolak staf
+        // back-office yang SUDAH lolos middleware rute — bukan penentu akses.
+        // Jangan mengandalkannya untuk rute tanpa RoleMiddleware.
+        Gate::before(function ($user) {
+            return $user->isBackOffice() ? true : null;
         });
 
         if ($this->app->environment('production')) {

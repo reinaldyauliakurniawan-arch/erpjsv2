@@ -8,12 +8,9 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        return match($request->user()->role) {
-            'admin'   => redirect()->route('admin.dashboard'),
-            'cfo'     => redirect()->route('finance.index'),
-            'tutor'   => redirect()->route('tutor.dashboard'),
-            'student' => redirect()->route('student.dashboard'),
-            default   => abort(403),
-        };
+        // Dashboard per peran — pemetaannya ada di App\Enums\Role::homeRoute().
+        $home = $request->user()->roleEnum()?->homeRoute();
+
+        return $home ? redirect()->route($home) : abort(403);
     }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\Tutor;
@@ -11,6 +12,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\Rule;
 
 class SettingsController extends Controller
 {
@@ -26,7 +28,7 @@ class SettingsController extends Controller
             'name'     => 'required|string|max:255',
             'email'    => 'required|email|unique:users,email',
             'password' => 'required|string|min:8',
-            'role'     => 'required|in:admin,cfo,tutor,student',
+            'role'     => ['required', Rule::in(Role::values())],
             'phone'    => 'nullable|string|max:20',
         ]);
 
@@ -44,9 +46,9 @@ class SettingsController extends Controller
             $user->role = $request->role;
             $user->save();
 
-            if ($request->role === 'tutor') {
+            if ($request->role === Role::TUTOR->value) {
                 Tutor::create(['user_id' => $user->id, 'persona' => null]);
-            } elseif ($request->role === 'student') {
+            } elseif ($request->role === Role::STUDENT->value) {
                 Student::create(['user_id' => $user->id, 'notes' => null]);
             }
         });
@@ -59,7 +61,7 @@ class SettingsController extends Controller
         $request->validate([
             'name'  => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $user->id,
-            'role'  => 'required|in:admin,cfo,tutor,student',
+            'role'  => ['required', Rule::in(Role::values())],
             'phone' => 'nullable|string|max:20',
         ]);
 
@@ -74,7 +76,7 @@ class SettingsController extends Controller
         //
         // Fix: run the guard BEFORE any write, and wrap everything in a
         // transaction so role change + cleanup + new profile record are atomic.
-        if ($oldRole === 'tutor' && $newRole !== 'tutor' && $user->tutor) {
+        if ($oldRole === Role::TUTOR->value && $newRole !== Role::TUTOR->value && $user->tutor) {
             $hasUnpaidAttendance = DB::table('attendance_tutor')
                 ->where('tutor_id', $user->tutor->id)
                 ->whereNull('paid_at')
@@ -103,21 +105,21 @@ class SettingsController extends Controller
             }
 
             // Cleanup record lama jika role berubah
-            if ($oldRole === 'tutor' && $newRole !== 'tutor' && $user->tutor) {
+            if ($oldRole === Role::TUTOR->value && $newRole !== Role::TUTOR->value && $user->tutor) {
                 $user->tutor->enrollments()->detach();
                 $user->tutor->classSessions()->detach();
                 $user->tutor->availability()->delete();
                 $user->tutor->rates()->delete();
                 $user->tutor->delete();
-            } elseif ($oldRole === 'student' && $newRole !== 'student' && $user->student) {
-                $user->student->enrollments()->each(fn($e) => $e->delete());
+            } elseif ($oldRole === Role::STUDENT->value && $newRole !== Role::STUDENT->value && $user->student) {
+                $user->student->enrollments()->each(fn ($e) => $e->delete());
                 $user->student->delete();
             }
 
             // Buat record tutor/student jika role berubah ke tutor/student
-            if ($newRole === 'tutor' && !$user->fresh()->tutor) {
+            if ($newRole === Role::TUTOR->value && ! $user->fresh()->tutor) {
                 Tutor::create(['user_id' => $user->id, 'persona' => null]);
-            } elseif ($newRole === 'student' && !$user->fresh()->student) {
+            } elseif ($newRole === Role::STUDENT->value && ! $user->fresh()->student) {
                 Student::create(['user_id' => $user->id, 'notes' => null]);
             }
         });
@@ -132,7 +134,7 @@ class SettingsController extends Controller
         // failed, the tutor/student + all their data was gone but the user
         // record remained as a zombie.
         return DB::transaction(function () use ($user) {
-            if ($user->role === 'tutor') {
+            if ($user->isTutor()) {
                 $tutor = $user->tutor;
                 if ($tutor) {
                     $hasUnpaidAttendance = DB::table('attendance_tutor')
@@ -153,7 +155,7 @@ class SettingsController extends Controller
                     $tutor->rates()->delete();
                     $tutor->delete();
                 }
-            } elseif ($user->role === 'student') {
+            } elseif ($user->isStudent()) {
                 $student = $user->student;
                 if ($student) {
                     $hasActiveEnrollment = $student->enrollments()

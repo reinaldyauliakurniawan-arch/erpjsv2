@@ -39,14 +39,22 @@ checks, payment reminders, and monthly adjusting journals — `composer dev` sta
 
 ## Roles & authorization
 
-Four roles on `users.role`: `admin` (`/admin/*`), `cfo` (`/finance/*`), `tutor` (`/tutor/*`),
-`student` (`/student/*`). Routes are grouped by prefix in `routes/web.php` and gated by the
-`role` middleware alias (`->middleware('role:admin,cfo')`), which returns JSON 401/403 for
-XHR and redirects/aborts for web.
+**Four** distinct roles on `users.role`: `admin` (`/admin/*`), `cfo` (`/finance/*`),
+`tutor` (`/tutor/*`), `student` (`/student/*`). `cfo` is **not** a flavour of admin — it
+owns the finance area and admin cannot reach `/finance/*` (and vice versa). Routes are
+grouped by prefix in `routes/web.php` and gated by the `role` middleware alias
+(`->middleware('role:admin')`, `role:cfo`, …), which returns JSON 401/403 for XHR and
+redirects/aborts for web.
 
-- `role` is deliberately **not** in `User::$fillable` — set it explicitly (`$user->role = ...`)
-  to avoid mass-assignment privilege escalation.
-- `AppServiceProvider` registers `Gate::before` that auto-passes any ability for `admin`/`cfo`.
+- Canonical list: `App\Enums\Role` (`ADMIN`, `CFO`, `TUTOR`, `STUDENT`). Compare roles via
+  `User` helpers — `$user->isAdmin()`, `isCfo()`, `isTutor()`, `isStudent()`,
+  `roleEnum()`, and `isBackOffice()` (admin **or** cfo — the only place the two are
+  deliberately merged, e.g. the topbar global search). Don't write bare `$user->role === '…'`.
+- `role` is deliberately **not** in `User::$fillable` — set it explicitly
+  (`$user->role = Role::TUTOR->value`) to avoid mass-assignment privilege escalation.
+- `AppServiceProvider` registers `Gate::before` that auto-passes any ability for `admin`/`cfo`
+  (`isBackOffice()`). This is only a shortcut for `authorize()` calls behind route middleware —
+  the real gate is the route-level `role` middleware, not this.
   There are **no Policy classes**; `$this->authorize()` calls in controllers rely on this plus
   the route-level `role` middleware. Don't add Policies expecting them to be discovered.
 

@@ -12,7 +12,7 @@
     absolutely positioned relative to it.
 --}}
 @php
-    $searchPlaceholder = auth()->user()->role === 'cfo'
+    $searchPlaceholder = auth()->user()->isCfo()
         ? 'Cari akun, jurnal, payroll, aset...'
         : 'Cari student, tutor, program, enrollment...';
 @endphp

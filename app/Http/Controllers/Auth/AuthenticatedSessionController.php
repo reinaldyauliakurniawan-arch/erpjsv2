@@ -23,14 +23,10 @@ class AuthenticatedSessionController extends Controller
             $request->authenticate();
             $request->session()->regenerate();
             Log::info('User logged in successfully', ['user_id' => Auth::id()]);
-            $role = Auth::user()->role;
-            return match($role) {
-                'admin'   => redirect()->route('admin.dashboard'),
-                'cfo'     => redirect()->route('finance.index'),
-                'tutor'   => redirect()->route('tutor.dashboard'),
-                'student' => redirect()->route('student.dashboard'),
-                default   => redirect()->route('dashboard'),
-            };
+
+            // Arahkan ke dashboard sesuai peran (lihat App\Enums\Role::homeRoute()).
+            $home = Auth::user()->roleEnum()?->homeRoute();
+            return redirect()->route($home ?? 'dashboard');
         } catch (ValidationException $e) {
             Log::warning('Login validation failed', ['email' => $request->email, 'errors' => $e->errors()]);
             throw $e;

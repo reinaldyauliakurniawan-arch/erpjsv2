@@ -73,7 +73,7 @@
             <h2 class="text-headline-md font-semibold text-on-surface">{{ $title ?? 'Dashboard' }}</h2>
         </div>
 
-        @if(in_array(auth()->user()->role, ['admin', 'cfo']))
+        @if(auth()->user()->isBackOffice())
             <div class="flex-1 max-w-md hidden md:block">
                 <x-search-bar />
             </div>

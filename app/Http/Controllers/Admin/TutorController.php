@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\Role;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Admin\StoreTutorRequest;
 use App\Models\Enrollment;
@@ -55,7 +56,7 @@ class TutorController extends Controller
                 'email' => $validated['email'],
                 'password' => Hash::make($validated['password']),
             ]);
-            $user->role = 'tutor';
+            $user->role = Role::TUTOR->value;
             $user->save();
             Tutor::create([
                 'user_id' => $user->id,

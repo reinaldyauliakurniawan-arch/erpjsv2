@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\AccountCode;
 use App\Enums\ClassType;
 use App\Enums\PaymentStatus;
+use App\Enums\Role;
 use App\Exceptions\DomainException;
 use App\Models\Classroom;
 use App\Models\ClassSession;
@@ -88,7 +89,7 @@ class EnrollmentService
                     'phone' => $data['new_student']['phone'] ?? null,
                     'password' => bcrypt($plainPassword),
                 ]);
-                $user->role = 'student';
+                $user->role = Role::STUDENT->value;
                 $user->save();
                 $student = Student::create([
                     'user_id' => $user->id,

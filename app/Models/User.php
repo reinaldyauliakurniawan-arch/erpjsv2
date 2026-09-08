@@ -3,6 +3,7 @@
 namespace App\Models;
 
 // use Illuminate\Contracts\Auth\MustVerifyEmail;
+use App\Enums\Role;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
@@ -41,6 +42,50 @@ public function student()
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // ── Peran ────────────────────────────────────────────────────────────
+    // Kolom `role` tetap disimpan sebagai string. Untuk membandingkan peran,
+    // pakai helper di bawah — jangan menulis `$user->role === 'cfo'` lepas.
+
+    /** Peran sebagai enum (null kalau nilainya tidak dikenal). */
+    public function roleEnum(): ?Role
+    {
+        return Role::tryFrom((string) $this->role);
+    }
+
+    public function hasRole(Role $role): bool
+    {
+        return $this->roleEnum() === $role;
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->hasRole(Role::ADMIN);
+    }
+
+    public function isCfo(): bool
+    {
+        return $this->hasRole(Role::CFO);
+    }
+
+    public function isTutor(): bool
+    {
+        return $this->hasRole(Role::TUTOR);
+    }
+
+    public function isStudent(): bool
+    {
+        return $this->hasRole(Role::STUDENT);
+    }
+
+    /**
+     * Staf back-office (admin + cfo). Satu-satunya tempat kedua peran ini
+     * sengaja digabung — mis. kotak pencarian global di topbar.
+     */
+    public function isBackOffice(): bool
+    {
+        return (bool) $this->roleEnum()?->isBackOffice();
     }
 
     public function practices()
