@@ -528,7 +528,10 @@ class ClassSessionController extends Controller
         $totalMeetings    = $classSession->program->total_meetings;
         $remainingDefault = max(0, $totalMeetings - $finishedCount);
         $enrollmentCount  = $classSession->enrollments()->whereIn('status', ['active', 'waitlist'])->count();
-        $capacity         = $classSession->schedules->first()?->classroom?->capacity ?? null;
+        // Kapasitas hanya relevan untuk ruang fisik — kelas online / di luar
+        // Just Speak tidak dibatasi ruang.
+        $infoRoom         = $classSession->schedules->first()?->classroom;
+        $capacity         = ($infoRoom && $infoRoom->countsForOccupancy()) ? $infoRoom->capacity : null;
 
         return response()->json([
             'finished_meetings' => $finishedCount,
