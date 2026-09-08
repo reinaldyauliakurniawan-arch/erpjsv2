@@ -34,11 +34,12 @@
     {{-- Summary Cards --}}
     <div class="grid gap-md" style="grid-template-columns: repeat(2, 1fr)">
         <div class="app-card">
-            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Anggaran Tahun Berjalan ({{ $year }})</p>
+            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Anggaran Tahunan ({{ $year }})</p>
             <p class="text-headline-md font-bold text-on-surface mt-xs" id="card-total">Rp {{ number_format($totalBudget, 0, ',', '.') }}</p>
+            <p class="text-xs text-on-surface-variant mt-xs">Angka komitmen setahun (kolom "Anggaran Tahunan"). Rincian kuartal di bawah cuma pacing.</p>
         </div>
         <div class="app-card">
-            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Anggaran Kuartal Berjalan (Q{{ ceil(now()->month / 3) }})</p>
+            <p class="text-xs text-on-surface-variant uppercase tracking-wide">Pacing Kuartal Berjalan (Q{{ ceil(now()->month / 3) }})</p>
             <p class="text-headline-md font-bold text-on-surface mt-xs" id="card-quarter">Rp {{ number_format($budgetQuarter, 0, ',', '.') }}</p>
         </div>
     </div>
@@ -71,8 +72,11 @@ function recalcTotal(row) {
 const CURRENT_QUARTER = {{ ceil(now()->month / 3) }};
 
 function updateCards() {
+    if (!window.rabTable) return;
     const rows = window.rabTable.getData();
-    const grand = rows.reduce((s, r) => s + (parseInt(r.total)||0), 0);
+    // Jangan timpa angka server dengan 0 kalau tabel belum terisi (Tabulator build async).
+    if (!rows.length) return;
+    const grand = rows.reduce((s, r) => s + (parseInt(r.annual_budget)||0), 0);
     const qKey = 'q' + CURRENT_QUARTER;
     const grandQ = rows.reduce((s, r) => s + (parseInt(r[qKey])||0), 0);
     document.getElementById('card-total').textContent = 'Rp ' + new Intl.NumberFormat('id-ID').format(grand);
@@ -100,16 +104,19 @@ function addRow() {
         division: DIVISIONS[0],
         account_name: '',
         activity: '',
+        rab_prev: 0, annual_budget: 0,
         q1: 0, q2: 0, q3: 0, q4: 0, total: 0
     });
 }
 
 async function saveAll() {
     const rows = window.rabTable.getData().map(r => ({
-        division:     r.division,
-        account_name: (() => { const a = ACCOUNTS.find(x => x.code === r.account_code); return a ? a.name : (r.account_name || ''); })(),
-        account_code: r.account_code || null,
-        activity:     r.activity,
+        division:      r.division,
+        account_name:  (() => { const a = ACCOUNTS.find(x => x.code === r.account_code); return a ? a.name : (r.account_name || ''); })(),
+        account_code:  r.account_code || null,
+        activity:      r.activity,
+        rab_prev:      parseInt(r.rab_prev)||0,
+        annual_budget: parseInt(r.annual_budget)||0,
         q1: parseInt(r.q1)||0,
         q2: parseInt(r.q2)||0,
         q3: parseInt(r.q3)||0,
@@ -132,7 +139,7 @@ async function saveAll() {
 
 document.addEventListener('DOMContentLoaded', function () {
     window.rabTable = new Tabulator('#rab-table', {
-        data: @json($rows->values()),
+        data: @json($tableRows),
         layout: 'fitColumns',
         pagination: 'local',
         paginationSize: 30,
@@ -161,7 +168,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 cellEdited: updateCards,
             },
             {
-                title: 'Jenis / Kegiatan', field: 'activity', minWidth: 200, editor: 'input',
+                title: 'Jenis / Kegiatan', field: 'activity', minWidth: 160, editor: 'input',
+                cellEdited: updateCards,
+            },
+            {
+                title: 'RAB Lalu', field: 'rab_prev', width: 130, hozAlign: 'right', headerHozAlign: 'right',
+                editor: 'number', editorParams: { min: 0 },
+                formatter: cell => fmt(cell.getValue()),
+                cellEdited: updateCards,
+            },
+            {
+                title: 'Anggaran Tahunan', field: 'annual_budget', width: 160, hozAlign: 'right', headerHozAlign: 'right',
+                editor: 'number', editorParams: { min: 0 },
+                formatter: cell => `<strong>${fmt(cell.getValue())}</strong>`,
                 cellEdited: updateCards,
             },
             {
@@ -189,8 +208,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 cellEdited: cell => { recalcTotal(cell.getRow()); updateCards(); },
             },
             {
-                title: 'Total/Tahun', field: 'total', width: 150, hozAlign: 'right', headerHozAlign: 'right',
-                formatter: cell => `<strong>${fmt(cell.getValue())}</strong>`,
+                title: 'Σ Kuartal', field: 'total', width: 140, hozAlign: 'right', headerHozAlign: 'right',
+                tooltip: 'Jumlah Q1..Q4 (pacing). Idealnya sama dengan Anggaran Tahunan.',
+                formatter: cell => fmt(cell.getValue()),
             },
             {
                 title: '', field: 'id', width: 50, hozAlign: 'center', headerSort: false,
@@ -200,7 +220,10 @@ document.addEventListener('DOMContentLoaded', function () {
         ],
     });
 
-    updateCards();
+    // Tabulator 6 membangun tabel secara async — hitung kartu setelah tabel siap,
+    // jangan langsung (kalau tidak, getData() masih kosong dan kartu jadi Rp 0).
+    window.rabTable.on('tableBuilt', updateCards);
+    window.rabTable.on('dataChanged', updateCards);
 });
 </script>
 </x-app-layout>
