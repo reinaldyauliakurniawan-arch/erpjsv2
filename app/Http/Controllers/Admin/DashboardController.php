@@ -2,12 +2,14 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\DayOfWeek;
 use App\Http\Controllers\Controller;
 use App\Models\Student;
 use App\Models\Tutor;
 use App\Models\Enrollment;
 use App\Models\Installment;
 use App\Models\Classroom;
+use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -40,6 +42,26 @@ class DashboardController extends Controller
         $occupiedCount = array_sum(array_column($occupancyStats, 'occupied'));
         $totalSlots    = array_sum(array_column($occupancyStats, 'total'));
         $occupancyRate = $totalSlots > 0 ? round($occupiedCount / $totalSlots * 100) : 0;
+
+        // ── Sesi hari ini (semua kelas) + status skip ─────────────────────
+        // Sumber sama dengan halaman Jadwal & dashboard tutor, jadi angkanya
+        // selalu cocok lintas peran.
+        $today = now()->toDateString();
+        $todayName = DayOfWeek::fromDate($today)->value;
+        $todaySessions = Schedule::with(['classroom', 'classSession.program', 'classSession.tutors.user', 'roomBookings'])
+            ->where('day', $todayName)
+            ->whereNotNull('class_session_id')
+            ->whereHas('classSession', fn ($q) => $q->where('status', 'active'))
+            ->orderBy('time_block')
+            ->get()
+            ->map(function ($s) use ($today) {
+                $s->is_skipped_today = $s->roomBookings
+                    ->where('type', 'regular_skip')
+                    ->contains(fn ($b) => Carbon::parse($b->date)->toDateString() === $today);
+
+                return $s;
+            });
+        $todaySkippedCount = $todaySessions->where('is_skipped_today', true)->count();
 
         // ── Waiting List ──────────────────────────────────────
         $waitingReguler = Enrollment::with(['student.user', 'program', 'classSession', 'tutors'])
@@ -94,9 +116,13 @@ class DashboardController extends Controller
             ->orderByDesc('created_at')
             ->get();
 
+        // Urutan jenjang pendidikan. `FIELD()` MySQL-only -> pakai CASE yang
+        // portabel (jalan juga di SQLite untuk test).
         $educationStats = Student::selectRaw('COALESCE(education_level, "Tidak diisi") as education_level, count(*) as total')
             ->groupBy('education_level')
-            ->orderByRaw('FIELD(education_level, "SD","SMP","SMA","Kuliah","Umum") DESC')
+            ->orderByRaw("CASE education_level
+                WHEN 'Umum' THEN 1 WHEN 'Kuliah' THEN 2 WHEN 'SMA' THEN 3
+                WHEN 'SMP' THEN 4 WHEN 'SD' THEN 5 ELSE 6 END")
             ->get();
 
         return view('admin.dashboard', compact(
@@ -105,6 +131,8 @@ class DashboardController extends Controller
             'occupiedCount',
             'totalSlots',
             'occupancyRate',
+            'todaySessions',
+            'todaySkippedCount',
             'expiringEnrollments',
             'unpaidInstallments',
             'waitingReguler',

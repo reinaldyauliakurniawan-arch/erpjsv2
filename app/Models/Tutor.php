@@ -128,4 +128,17 @@ class Tutor extends Model
             ->withPivot('status')
             ->withTimestamps();
     }
+
+    /**
+     * Kelas yang benar-benar diajar tutor ini SEKARANG: class session yang ia
+     * di-assign DAN masih punya siswa aktif/waitlist. Dipakai dashboard tutor
+     * & tampilan lain supaya tidak menampilkan kelas siswa yang sudah lulus /
+     * hangus. Sumbernya `class_session_tutor` — sama dengan halaman jadwal.
+     */
+    public function activeClassSessions()
+    {
+        return $this->classSessions()
+            ->whereHas('enrollments', fn ($q) => $q->whereIn('status', ['active', 'waitlist']))
+            ->withCount(['enrollments as active_students_count' => fn ($q) => $q->whereIn('status', ['active', 'waitlist'])]);
+    }
 }

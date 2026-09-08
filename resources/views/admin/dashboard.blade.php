@@ -188,6 +188,62 @@
     </div>
 
     {{-- ═══════════════════════════════════════════
+         2b. SESI HARI INI (semua kelas)
+    ════════════════════════════════════════════ --}}
+    <div class="app-card app-card--flush">
+        <div class="px-lg py-md border-b border-surface-border flex items-center justify-between">
+            <div class="flex items-center gap-sm">
+                <span class="material-symbols-outlined text-on-surface-variant">today</span>
+                <h2 class="text-headline-md font-semibold text-on-surface">Sesi Hari Ini
+                    <span class="text-body-md font-normal text-on-surface-variant">{{ now()->translatedFormat('l, d M Y') }}</span>
+                </h2>
+                @if($todaySkippedCount > 0)
+                    <span class="badge badge-soft badge-warning">{{ $todaySkippedCount }} di-skip</span>
+                @endif
+            </div>
+            <a href="{{ route('admin.schedule.index') }}" class="btn btn-xs btn-ghost">Jadwal lengkap</a>
+        </div>
+        @if($todaySessions->isEmpty())
+            <p class="px-lg py-md text-body-sm text-on-surface-variant">Tidak ada sesi terjadwal hari ini.</p>
+        @else
+            <div class="app-table-wrapper">
+            <table class="table table-sm w-full">
+                <thead>
+                    <tr class="text-on-surface-variant text-xs border-b border-surface-border">
+                        <th class="text-left font-medium px-lg py-sm">Jam</th>
+                        <th class="text-left font-medium py-sm">Kelas</th>
+                        <th class="text-left font-medium py-sm">Tutor</th>
+                        <th class="text-left font-medium py-sm">Ruangan</th>
+                        <th class="text-left font-medium px-lg py-sm">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($todaySessions as $s)
+                    <tr class="border-b border-surface-border last:border-0 {{ $s->is_skipped_today ? 'opacity-60' : '' }}">
+                        <td class="px-lg py-sm text-body-sm font-mono text-primary-container">{{ $s->time_block }}</td>
+                        <td class="py-sm text-body-sm text-on-surface">{{ $s->classSession?->name ?? '—' }}
+                            <span class="block text-[11px] text-on-surface-variant">{{ $s->classSession?->program?->name }}</span>
+                        </td>
+                        <td class="py-sm text-body-sm text-on-surface-variant">
+                            {{ $s->classSession?->tutors->map(fn($t) => $t->user->name)->join(', ') ?: '—' }}
+                        </td>
+                        <td class="py-sm text-body-sm text-on-surface-variant">{{ $s->classroom?->name ?? '—' }}</td>
+                        <td class="px-lg py-sm">
+                            @if($s->is_skipped_today)
+                                <span class="badge badge-soft badge-warning text-xs">Di-skip</span>
+                            @else
+                                <span class="badge badge-soft badge-success text-xs">Jalan</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            </div>
+        @endif
+    </div>
+
+    {{-- ═══════════════════════════════════════════
          3. WAITING LIST TABLE
     ════════════════════════════════════════════ --}}
     <div class="app-card app-card--flush">

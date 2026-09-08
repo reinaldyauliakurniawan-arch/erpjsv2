@@ -2,9 +2,13 @@
 
 namespace App\Http\Controllers\Tutor;
 
+use App\Enums\DayOfWeek;
 use App\Http\Controllers\Controller;
 use App\Models\Attendance;
+use App\Models\Enrollment;
+use App\Models\Schedule;
 use App\Models\Tutor;
+use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -15,14 +19,39 @@ class DashboardController extends Controller
         $user = Auth::user();
         $tutor = Tutor::where('user_id', $user->id)->firstOrFail();
 
-        $classes = DB::table('enrollment_tutor')
-            ->join('enrollments', 'enrollment_tutor.enrollment_id', '=', 'enrollments.id')
-            ->join('programs', 'enrollments.program_id', '=', 'programs.id')
-            ->join('students', 'enrollments.student_id', '=', 'students.id')
-            ->join('users', 'students.user_id', '=', 'users.id')
-            ->where('enrollment_tutor.tutor_id', $tutor->id)
-            ->select('enrollments.id', 'programs.name as program_name', 'users.name as student_name', 'enrollment_tutor.status')
+        // ── Kelas yang diajar sekarang (sumber sama dgn halaman jadwal:
+        //    class_session_tutor), hanya yang masih punya siswa aktif. ──────
+        $myClasses = $tutor->activeClassSessions()
+            ->with(['program', 'schedules.classroom'])
+            ->orderBy('name')
             ->get();
+
+        // Penugasan lewat enrollment yang belum punya class session (mis.
+        // kelas privat baru, belum dijadwalkan) — supaya tetap kelihatan.
+        $unscheduledAssignments = Enrollment::with(['program', 'student.user'])
+            ->whereNull('class_session_id')
+            ->whereIn('status', ['active', 'waitlist'])
+            ->whereHas('tutors', fn ($q) => $q->where('tutor_id', $tutor->id))
+            ->get();
+
+        // ── Sesi hari ini (jadwal reguler + status skip), konsisten dgn
+        //    halaman jadwal tutor. ─────────────────────────────────────────
+        $today = now()->toDateString();
+        $todayName = DayOfWeek::fromDate($today)->value;
+        $todaySessions = Schedule::with(['classroom', 'classSession.program', 'roomBookings'])
+            ->where('day', $todayName)
+            ->whereNotNull('class_session_id')
+            ->whereHas('classSession.tutors', fn ($q) => $q->where('tutor_id', $tutor->id))
+            ->whereHas('classSession.enrollments', fn ($q) => $q->whereIn('status', ['active', 'waitlist']))
+            ->orderBy('time_block')
+            ->get()
+            ->map(function ($s) use ($today) {
+                $s->is_skipped_today = $s->roomBookings
+                    ->where('type', 'regular_skip')
+                    ->contains(fn ($b) => Carbon::parse($b->date)->toDateString() === $today);
+
+                return $s;
+            });
 
         $unpaidTotal = DB::table('attendance_tutor')
             ->where('tutor_id', $tutor->id)
@@ -88,7 +117,8 @@ class DashboardController extends Controller
         }
 
         return view('tutor.dashboard', compact(
-            'classes', 'unpaidTotal', 'paidThisMonth', 'pendingRateCount', 'recentAttendances', 'replacedHistory',
+            'myClasses', 'unscheduledAssignments', 'todaySessions',
+            'unpaidTotal', 'paidThisMonth', 'pendingRateCount', 'recentAttendances', 'replacedHistory',
             'isSalaried', 'monthlySalary'
         ));
     }

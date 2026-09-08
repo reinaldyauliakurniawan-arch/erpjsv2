@@ -58,13 +58,57 @@
 
     </div>
 
+    {{-- Sesi Hari Ini --}}
+    <div class="app-card">
+        <div class="flex items-center justify-between mb-md">
+            <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide">
+                Sesi Hari Ini <span class="text-on-surface-variant/70 font-normal normal-case">({{ now()->translatedFormat('l, d M') }})</span>
+            </h2>
+            <a href="{{ route('tutor.schedule.index') }}" class="text-xs text-primary-container hover:underline">Lihat jadwal lengkap →</a>
+        </div>
+        @if($todaySessions->isEmpty())
+            <p class="text-sm text-on-surface-variant">Tidak ada sesi terjadwal hari ini.</p>
+        @else
+            <div class="app-table-wrapper">
+            <table class="table table-sm w-full">
+                <thead>
+                    <tr class="border-b border-surface-border text-on-surface-variant text-xs">
+                        <th class="text-left font-semibold py-sm">Jam</th>
+                        <th class="text-left font-semibold py-sm">Kelas</th>
+                        <th class="text-left font-semibold py-sm">Ruangan</th>
+                        <th class="text-left font-semibold py-sm">Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach($todaySessions as $s)
+                    <tr class="border-b border-surface-border last:border-0 {{ $s->is_skipped_today ? 'opacity-60' : '' }}">
+                        <td class="py-sm text-sm font-mono text-primary-container">{{ $s->time_block }}</td>
+                        <td class="py-sm text-sm text-on-surface">{{ $s->classSession?->name ?? '—' }}
+                            <span class="block text-xs text-on-surface-variant">{{ $s->classSession?->program?->name }}</span>
+                        </td>
+                        <td class="py-sm text-sm text-on-surface-variant">{{ $s->classroom?->name ?? '—' }}</td>
+                        <td class="py-sm">
+                            @if($s->is_skipped_today)
+                                <span class="badge badge-soft badge-warning text-xs">Di-skip</span>
+                            @else
+                                <span class="badge badge-soft badge-success text-xs">Jalan</span>
+                            @endif
+                        </td>
+                    </tr>
+                    @endforeach
+                </tbody>
+            </table>
+            </div>
+        @endif
+    </div>
+
     {{-- Row 2: Kelas + Sidebar --}}
     <div style="display:grid;grid-template-columns:3fr 2fr;gap:1rem;align-items:start;">
 
         {{-- Kelas Aktif --}}
         <div class="app-card">
             <h2 class="text-sm font-semibold text-on-surface-variant uppercase tracking-wide mb-md">Kelas Aktif</h2>
-            @if($classes->isEmpty())
+            @if($myClasses->isEmpty() && $unscheduledAssignments->isEmpty())
             <div class="flex flex-col items-center justify-center py-lg text-center">
                 <span class="material-symbols-outlined text-on-surface-variant" style="font-size:2.5rem;">school</span>
                 <p class="text-sm text-on-surface-variant mt-sm">Belum ada kelas yang ditugaskan</p>
@@ -74,20 +118,42 @@
 <table class="table table-sm w-full">
                 <thead>
                     <tr class="border-b border-surface-border text-on-surface-variant text-xs">
-                        <th class="text-left font-semibold py-sm">Program</th>
+                        <th class="text-left font-semibold py-sm">Kelas</th>
+                        <th class="text-left font-semibold py-sm">Jadwal</th>
                         <th class="text-left font-semibold py-sm">Siswa</th>
                         <th class="text-left font-semibold py-sm">Status</th>
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($classes as $class)
+                    @foreach($myClasses as $cs)
                     <tr class="border-b border-surface-border last:border-0">
-                        <td class="py-sm text-sm text-on-surface">{{ $class->program_name }}</td>
-                        <td class="py-sm text-sm text-on-surface">{{ $class->student_name }}</td>
+                        <td class="py-sm text-sm text-on-surface">{{ $cs->name }}
+                            <span class="block text-xs text-on-surface-variant">{{ $cs->program?->name }}</span>
+                        </td>
+                        <td class="py-sm text-xs text-on-surface-variant">
+                            @forelse($cs->schedules as $sch)
+                                <span class="block">{{ $sch->day }} {{ $sch->time_block }} · {{ $sch->classroom?->name ?? '—' }}</span>
+                            @empty
+                                <span class="text-error">Belum dijadwalkan</span>
+                            @endforelse
+                        </td>
+                        <td class="py-sm text-sm text-on-surface">{{ $cs->active_students_count }}</td>
                         <td class="py-sm">
-                            <span class="badge badge-soft {{ $class->status ==='active' ? 'badge-success' : 'badge-ghost' }} text-xs">
-                                {{ ucfirst($class->status) }}
+                            <span class="badge badge-soft {{ $cs->pivot->status === 'confirmed' ? 'badge-success' : 'badge-warning' }} text-xs">
+                                {{ $cs->pivot->status === 'confirmed' ? 'Confirmed' : 'Menunggu konfirmasi' }}
                             </span>
+                        </td>
+                    </tr>
+                    @endforeach
+                    @foreach($unscheduledAssignments as $e)
+                    <tr class="border-b border-surface-border last:border-0">
+                        <td class="py-sm text-sm text-on-surface">{{ $e->student->user->name }}
+                            <span class="block text-xs text-on-surface-variant">{{ $e->program?->name }}</span>
+                        </td>
+                        <td class="py-sm text-xs text-error">Belum ada kelas / jadwal</td>
+                        <td class="py-sm text-sm text-on-surface">1</td>
+                        <td class="py-sm">
+                            <span class="badge badge-soft badge-ghost text-xs">Privat</span>
                         </td>
                     </tr>
                     @endforeach
