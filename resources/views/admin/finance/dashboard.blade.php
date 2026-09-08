@@ -1,7 +1,7 @@
 <x-app-layout>
     <x-slot name="title">Finance Dashboard</x-slot>
 
-    <div class="p-lg space-y-lg" style="max-width: 72rem">
+    <div class="p-lg space-y-lg" style="max-width: 72rem" x-data="financeDashboard()" x-init="init()">
 
         @if(session('success'))
             <div role="alert" class="alert alert-success alert-soft">
@@ -16,19 +16,32 @@
             </div>
         @endif
 
-        {{-- Header + Filter --}}
-        <div class="flex items-center justify-between">
-            <h3 class="text-headline-lg font-semibold text-on-surface">Finance Dashboard</h3>
-            <form method="GET" action="{{ route('finance.index') }}" class="flex items-center gap-sm">
-                <select name="month" class="select select-sm" onchange="this.form.submit()">
-                    @foreach(range(0, 23) as $i)
-                        @php $m = now()->subMonths($i)->format('Y-m'); @endphp
-                        <option value="{{ $m }}" {{ $month === $m ? 'selected' : '' }}>
-                            {{ now()->subMonths($i)->translatedFormat('F Y') }}
-                        </option>
-                    @endforeach
+        {{-- Header + Filter Periode (satu filter, mempengaruhi SEMUA angka & grafik) --}}
+        <div class="flex items-start justify-between flex-wrap gap-sm">
+            <div>
+                <h3 class="text-headline-lg font-semibold text-on-surface">Finance Dashboard</h3>
+                <p class="text-label-lg text-on-surface-variant mt-xs">
+                    Angka periode: <span class="font-medium text-on-surface" x-text="periodLabel"></span>
+                    <span x-show="loading" class="loading loading-spinner loading-xs align-middle ml-xs"></span>
+                </p>
+            </div>
+            <div class="flex items-center gap-sm flex-wrap">
+                <select class="select select-sm" x-model="period" @change="onPeriodChange()">
+                    <option value="today">Hari Ini</option>
+                    <option value="week">Minggu Ini</option>
+                    <option value="month">Bulan Ini</option>
+                    <option value="quarter">Kuartal Ini</option>
+                    <option value="year">Tahun Ini</option>
+                    <option value="custom">Custom</option>
                 </select>
-            </form>
+                <div x-show="period === 'custom'" x-cloak class="flex items-center gap-xs">
+                    <input type="date" class="input input-sm" x-model="from" />
+                    <span class="text-on-surface-variant text-xs">s/d</span>
+                    <input type="date" class="input input-sm" x-model="to" />
+                    <button type="button" class="btn btn-sm bg-primary-container text-on-primary border-none"
+                        @click="applyPeriod()" :disabled="!from || !to">Tampilkan</button>
+                </div>
+            </div>
         </div>
 
         {{-- RINGKASAN BESAR — posisi laba-rugi "per detik ini" (akumulatif, live) --}}
@@ -64,29 +77,57 @@
             </div>
         </div>
 
-        {{-- Row 1: Posisi Kas + Bulan Ini --}}
+        {{-- Row 1: Posisi Kas + Posisi Keuangan + P&L periode terpilih --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Cash Balance</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($cashBalance, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Saldo kas & bank saat ini</p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Pendapatan Bulan Ini</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($revenue, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan dari sesi yang sudah selesai</p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Beban Bulan Ini</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($expense, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Biaya yang sudah dikeluarkan bulan ini</p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Laba/Rugi Bulan Ini</p>
-                <p class="font-bold mt-xs leading-tight {{ $netProfit >= 0 ?'text-success' : 'text-error' }} text-headline-md break-all">
-                    Rp {{ number_format($netProfit, 0, ',', '.') }}
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all" x-text="'Rp ' + fmt(cashBalance)"></p>
+                <p class="text-body-sm mt-xs flex items-center gap-xs">
+                    <span class="material-symbols-outlined text-[16px]"
+                        :class="netCashFlow >= 0 ? 'text-success' : 'text-error'"
+                        x-text="netCashFlow >= 0 ? 'trending_up' : 'trending_down'"></span>
+                    <span :class="netCashFlow >= 0 ? 'text-success' : 'text-error'" class="font-medium"
+                        x-text="(netCashFlow >= 0 ? '+' : '−') + ' Rp ' + fmt(Math.abs(netCashFlow))"></span>
+                    <span class="text-on-surface-variant">arus kas bersih</span>
                 </p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Revenue dikurangi expense bulan ini</p>
+                <p class="text-label-lg text-on-surface-variant mt-xs" x-text="periodLabel"></p>
+            </div>
+
+            <div class="app-card flex flex-col justify-center min-h-[120px]">
+                <p class="text-body-sm text-on-surface-variant mb-xs">Posisi Keuangan</p>
+                <div class="space-y-xs">
+                    <div class="flex items-baseline justify-between gap-sm">
+                        <span class="text-body-sm text-on-surface-variant">Total Aset</span>
+                        <span class="font-semibold text-on-surface text-body-md break-all" x-text="'Rp ' + fmt(totalAsset)"></span>
+                    </div>
+                    <div class="flex items-baseline justify-between gap-sm">
+                        <span class="text-body-sm text-on-surface-variant">Total Kewajiban</span>
+                        <span class="font-semibold text-on-surface text-body-md break-all" x-text="'Rp ' + fmt(totalLiability)"></span>
+                    </div>
+                    <div class="flex items-baseline justify-between gap-sm">
+                        <span class="text-body-sm text-on-surface-variant">Total Ekuitas</span>
+                        <span class="font-semibold text-on-surface text-body-md break-all" x-text="'Rp ' + fmt(totalEquity)"></span>
+                    </div>
+                </div>
+                <p class="text-label-lg text-on-surface-variant mt-xs">Per akhir periode terpilih</p>
+            </div>
+
+            <div class="app-card flex flex-col justify-center min-h-[120px]">
+                <p class="text-body-sm text-on-surface-variant">Pendapatan</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all" x-text="'Rp ' + fmt(revenue)"></p>
+                <p class="text-body-sm text-on-surface-variant mt-xs" x-text="periodLabel"></p>
+            </div>
+            <div class="app-card flex flex-col justify-center min-h-[120px]">
+                <p class="text-body-sm text-on-surface-variant">Beban</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all" x-text="'Rp ' + fmt(expense)"></p>
+                <p class="text-body-sm text-on-surface-variant mt-xs" x-text="periodLabel"></p>
+            </div>
+            <div class="app-card flex flex-col justify-center min-h-[120px]">
+                <p class="text-body-sm text-on-surface-variant">Laba / Rugi</p>
+                <p class="font-bold mt-xs leading-tight text-headline-md break-all"
+                    :class="netProfit >= 0 ? 'text-success' : 'text-error'"
+                    x-text="'Rp ' + fmt(netProfit) + (netProfitMargin !== null ? ' (' + netProfitMargin.toFixed(1) + '%)' : '')"></p>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan − beban, <span x-text="periodLabel"></span></p>
             </div>
         </div>
 
@@ -109,14 +150,15 @@
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Collection Rate</p>
-                <p class="font-bold mt-xs leading-tight {{ $collectionRate >= 80 ?'text-success' : ($collectionRate >= 50 ? 'text-warning' : 'text-error') }} text-headline-md break-all">
-                    {{ $collectionRate }}%
-                </p>
+                <p class="font-bold mt-xs leading-tight text-headline-md break-all"
+                    :class="collectionRate >= 80 ? 'text-success' : (collectionRate >= 50 ? 'text-warning' : 'text-error')"
+                    x-text="collectionRate.toFixed(1) + '%'"></p>
                 <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-xs">
-                    <div class="h-full rounded-full {{ $collectionRate >= 80 ?'bg-success' : ($collectionRate >= 50 ? 'bg-warning' : 'bg-error') }}"
-                         style="width: {{ min($collectionRate, 100) }}%"></div>
+                    <div class="h-full rounded-full"
+                        :class="collectionRate >= 80 ? 'bg-success' : (collectionRate >= 50 ? 'bg-warning' : 'bg-error')"
+                        :style="'width:' + Math.min(collectionRate, 100) + '%'"></div>
                 </div>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Persentase cicilan siswa yang sudah masuk bulan ini</p>
+                <p class="text-body-sm text-on-surface-variant mt-xs">Cicilan siswa jatuh tempo di periode ini yang sudah masuk</p>
             </div>
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Burn Rate</p>
@@ -128,12 +170,22 @@
             </div>
         </div>
 
-        {{-- Charts Row 1 --}}
+        {{-- Charts Row 1: Tren keuangan (toggle) + Enrollment per Program --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))">
             <div class="app-card space-y-md">
-                <h4 class="text-headline-md font-semibold text-on-surface">Revenue vs Expense (12 Bulan)</h4>
+                <div class="flex items-center justify-between flex-wrap gap-sm">
+                    <h4 class="text-headline-md font-semibold text-on-surface">Tren Keuangan</h4>
+                    <div class="join">
+                        <button type="button" class="btn btn-sm join-item"
+                            :class="chartTab === 'trend' ? 'bg-primary-container text-on-primary border-none' : 'btn-ghost'"
+                            @click="chartTab = 'trend'; renderTrendChart()">Revenue &amp; Beban</button>
+                        <button type="button" class="btn btn-sm join-item"
+                            :class="chartTab === 'cashflow' ? 'bg-primary-container text-on-primary border-none' : 'btn-ghost'"
+                            @click="chartTab = 'cashflow'; renderTrendChart()">Arus Kas</button>
+                    </div>
+                </div>
                 <div style="position:relative;height:300px">
-                    <canvas id="revenueExpenseChart"></canvas>
+                    <canvas id="trendChart"></canvas>
                 </div>
             </div>
             <div class="app-card space-y-md">
@@ -147,31 +199,15 @@
             </div>
         </div>
 
-        {{-- Charts Row 2 --}}
+        {{-- Charts Row 2: Revenue per Program (ikut filter periode global) --}}
         <div class="app-card space-y-md">
-            <div class="flex items-center justify-between flex-wrap gap-sm">
-                <h4 class="text-headline-md font-semibold text-on-surface">Revenue per Program</h4>
-                <div class="flex gap-xs items-center flex-wrap">
-                    <select id="revenueProgramPeriod" class="select select-sm" onchange="handleRevenueProgramFilter()">
-                        <option value="year">Tahun Berjalan</option>
-                        <option value="quarter">Kuartal Ini</option>
-                        <option value="month">Bulan Ini</option>
-                        <option value="custom">Custom</option>
-                    </select>
-                    <div id="revenueProgramCustomRange" class="hidden flex gap-xs items-center">
-                        <input type="date" id="revenueProgramFrom" class="input input-sm" />
-                        <span class="text-on-surface-variant text-xs">s/d</span>
-                        <input type="date" id="revenueProgramTo" class="input input-sm" />
-                        <button type="button" onclick="loadRevenueByProgram()" class="btn btn-sm bg-primary-container text-on-primary border-none">Tampilkan</button>
-                    </div>
-                </div>
-            </div>
+            <h4 class="text-headline-md font-semibold text-on-surface">Revenue per Program</h4>
             <div style="position:relative;height:300px">
                 <canvas id="revenueProgramChart"></canvas>
             </div>
         </div>
 
-        {{-- Overdue + Pending Rates --}}
+        {{-- Overdue + Private Unpaid + Pending Rates --}}
         <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))">
 
             <div class="app-card space-y-md flex flex-col" style="max-height: 400px;">
@@ -285,8 +321,6 @@
                                     <form method="POST" action="{{ route('finance.rate.assign', $rate->id) }}"
                                         class="flex gap-sm items-end mt-xs">
                                         @csrf
-                                        {{-- Hidden field so old('rate_id') is populated on validation error,
-                                            allowing the x-init above to re-open this card after redirect. --}}
                                         <input type="hidden" name="rate_id" value="{{ $rate->id }}">
                                         <div class="fieldset flex-1">
                                             <label class="fieldset-legend text-on-surface">Payable Amount (Rp)</label>
@@ -315,7 +349,7 @@
                 </a>
             </div>
             @if($journals->isEmpty())
-                <p class="text-body-sm text-on-surface-variant">Belum ada jurnal bulan ini.</p>
+                <p class="text-body-sm text-on-surface-variant">Belum ada jurnal di periode ini.</p>
             @else
                 <div class="overflow-y-auto flex-1">
                     <div class="app-table-wrapper">
@@ -355,172 +389,201 @@
     </div>
 
     <script>
-document.addEventListener('DOMContentLoaded', function () {
-
     // ── Brand-aligned chart palette per BRAND_PERSONALITY_GUIDE.md Section 3 ──
-    // Brand rule: "Green is identity, not decoration. Never replace with blue or purple."
-    // Previously these charts used Tailwind green-500 (#22c55e), red-500 (#ef4444),
-    // indigo-500 (#6366f1), sky-500 (#0ea5e9), purple-500 (#a855f7) — all OFF-BRAND.
-    // Replaced with brand palette:
-    //   Brand green    rgb(5, 150, 105)  — secondary
-    //   Brand green dk rgb(4, 120, 87)   — success (AA-pass on white)
-    //   Brand green dk rgb(6, 95, 70)    — primary
-    //   Brand amber    rgb(180, 83, 9)   — tertiary (warmth)
-    //   Brand amber lt rgb(217, 119, 6)  — warning
-    //   Brand red      rgb(200, 30, 30)  — error (AA-pass on white)
-    //   Neutral slate  rgb(107, 114, 128) — outline
+    // "Green is identity, not decoration. Never replace with blue or purple."
     const BRAND = {
         green:        'rgba(5, 150, 105, 0.7)',
+        greenSolid:   'rgb(5, 150, 105)',
         greenDark:    'rgba(4, 120, 87, 0.75)',
         greenDarker:  'rgba(6, 95, 70, 0.7)',
+        primary:      'rgb(6, 95, 70)',
         amber:        'rgba(180, 83, 9, 0.7)',
         amberLight:   'rgba(217, 119, 6, 0.65)',
         red:          'rgba(200, 30, 30, 0.7)',
+        redSolid:     'rgb(200, 30, 30)',
         neutral:      'rgba(107, 114, 128, 0.5)',
     };
 
-    const revenueExpenseCtx = document.getElementById('revenueExpenseChart').getContext('2d');
-    new Chart(revenueExpenseCtx, {
-        type: 'bar',
-        data: {
-            labels: @json($chartMonths),
-            datasets: [
-                {
-                    label: 'Revenue',
-                    data: @json($chartRevenue),
-                    backgroundColor: BRAND.green,  // brand green for revenue (good = green)
-                    borderRadius: 12,
-                },
-                {
-                    label: 'Expense',
-                    data: @json($chartExpense),
-                    backgroundColor: BRAND.red,    // brand red for expense (danger = red)
-                    borderRadius: 12,
-                }
-            ]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { position: 'top' },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => 'Rp ' + ctx.raw.toLocaleString('id-ID')
-                    }
-                }
-            },
-            scales: {
-                y: {
-                    ticks: {
-                        callback: val => 'Rp ' + val.toLocaleString('id-ID')
-                    }
-                }
-            }
-        }
-    });
+    const rp = v => 'Rp ' + Number(v || 0).toLocaleString('id-ID');
 
-    const enrollmentCtx = document.getElementById('enrollmentChart').getContext('2d');
-    new Chart(enrollmentCtx, {
-        type: 'doughnut',
-        data: {
-            labels: @json($chartProgramLabels),
-            datasets: [{
-                data: @json($chartProgramData),
-                backgroundColor: [
-                    BRAND.green,        // program 1 — brand green
-                    BRAND.greenDark,    // program 2 — darker green
-                    BRAND.greenDarker,  // program 3 — primary dark green
-                    BRAND.amber,        // program 4 — tertiary amber
-                    BRAND.amberLight,   // program 5 — warning amber
-                    BRAND.neutral,      // program 6 (or others) — neutral
-                ],
-                borderWidth: 1,
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        label: ctx => ctx.label + ': ' + ctx.raw
-                    }
-                }
-            }
-        },
-        plugins: [{
-            id: 'customLegend',
-            afterUpdate(chart) {
-                const container = document.getElementById('enrollmentLegend');
-                if (!container) return;
-                container.innerHTML = '';
-                chart.data.labels.forEach((label, i) => {
-                    const color = chart.data.datasets[0].backgroundColor[i];
-                    const value = chart.data.datasets[0].data[i];
-                    const meta = chart.getDatasetMeta(0);
-                    const hidden = meta.data[i] && meta.data[i].hidden;
-                    const div = document.createElement('div');
-                    div.className = 'flex items-center gap-xs cursor-pointer';
-                    div.style.opacity = hidden ? '0.4' : '1';
-                    div.innerHTML = `
-                        <span style="width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0;display:inline-block;"></span>
-                        <span class="text-on-surface-variant" style="${hidden ? 'text-decoration:line-through' : ''}">${label}</span>
-                        <span class="font-medium ml-auto pl-sm">${value}</span>`;
-                    div.addEventListener('click', () => {
-                        const m = chart.getDatasetMeta(0);
-                        m.data[i].hidden = !m.data[i].hidden;
-                        chart.update();
+    function financeDashboard() {
+        return {
+            // ── state (di-seed dari server, dihitung LIVE dari journal_items) ──
+            period: @json($figures['period']),
+            from: @json($figures['from']),
+            to: @json($figures['to']),
+            periodLabel: @json($figures['period_label']),
+            revenue: @json($figures['revenue']),
+            expense: @json($figures['expense']),
+            netProfit: @json($figures['net_profit']),
+            netProfitMargin: @json($figures['net_profit_margin']),
+            netCashFlow: @json($figures['net_cash_flow']),
+            cashBalance: @json($figures['cash_balance']),
+            totalAsset: @json($figures['total_asset']),
+            totalLiability: @json($figures['total_liability']),
+            totalEquity: @json($figures['total_equity']),
+            collectionRate: @json($figures['collection_rate']),
+            trend: @json($figures['trend']),
+            cashFlowSeries: @json($figures['cash_flow_series']),
+            revenueByProgram: @json($figures['revenue_by_program']),
+
+            loading: false,
+            chartTab: 'trend',
+            _trendChart: null,
+            _revProgramChart: null,
+
+            fmt(v) { return Number(v || 0).toLocaleString('id-ID'); },
+
+            init() {
+                this.renderTrendChart();
+                this.renderRevenueProgramChart();
+                this.renderEnrollmentChart();
+            },
+
+            onPeriodChange() {
+                if (this.period !== 'custom') this.applyPeriod();
+            },
+
+            applyPeriod() {
+                this.loading = true;
+                const params = new URLSearchParams({ period: this.period });
+                if (this.period === 'custom') { params.set('from', this.from); params.set('to', this.to); }
+
+                fetch(`{{ route('finance.dashboard-data') }}?` + params.toString())
+                    .then(r => r.json())
+                    .then(d => {
+                        this.periodLabel = d.period_label;
+                        this.from = d.from; this.to = d.to;
+                        this.revenue = d.revenue;
+                        this.expense = d.expense;
+                        this.netProfit = d.net_profit;
+                        this.netProfitMargin = d.net_profit_margin;
+                        this.netCashFlow = d.net_cash_flow;
+                        this.cashBalance = d.cash_balance;
+                        this.totalAsset = d.total_asset;
+                        this.totalLiability = d.total_liability;
+                        this.totalEquity = d.total_equity;
+                        this.collectionRate = d.collection_rate;
+                        this.trend = d.trend;
+                        this.cashFlowSeries = d.cash_flow_series;
+                        this.revenueByProgram = d.revenue_by_program;
+                        this.renderTrendChart();
+                        this.renderRevenueProgramChart();
+                    })
+                    .finally(() => { this.loading = false; });
+            },
+
+            renderTrendChart() {
+                const ctx = document.getElementById('trendChart').getContext('2d');
+                if (this._trendChart) this._trendChart.destroy();
+
+                if (this.chartTab === 'trend') {
+                    this._trendChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: this.trend.labels,
+                            datasets: [
+                                { type: 'bar', label: 'Revenue', data: this.trend.revenue, backgroundColor: BRAND.green, borderRadius: 8, order: 2 },
+                                { type: 'bar', label: 'Beban', data: this.trend.expense, backgroundColor: BRAND.red, borderRadius: 8, order: 2 },
+                                { type: 'line', label: 'Laba Bersih', data: this.trend.netProfit, borderColor: BRAND.primary, backgroundColor: BRAND.primary, tension: 0.3, borderWidth: 2, pointRadius: 2, order: 1 },
+                            ],
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: {
+                                legend: { position: 'top' },
+                                tooltip: { callbacks: { label: c => c.dataset.label + ': ' + rp(c.raw) } },
+                            },
+                            scales: { y: { ticks: { callback: v => rp(v) } } },
+                        },
                     });
-                    container.appendChild(div);
-                });
-            }
-        }]
-    });
-
-    const revenueProgramCtx = document.getElementById('revenueProgramChart').getContext('2d');
-    let revenueProgramChart = new Chart(revenueProgramCtx, {
-        type: 'bar',
-        data: { labels: [], datasets: [{ label: 'Revenue', data: [], backgroundColor: BRAND.green, borderRadius: 12 }] },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { callbacks: { label: ctx => 'Rp ' + ctx.raw.toLocaleString('id-ID') } }
+                } else {
+                    const colors = this.cashFlowSeries.net.map(v => v >= 0 ? BRAND.green : BRAND.red);
+                    this._trendChart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: this.cashFlowSeries.labels,
+                            datasets: [{ label: 'Arus Kas Bersih', data: this.cashFlowSeries.net, backgroundColor: colors, borderRadius: 8 }],
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: { callbacks: { label: c => (c.raw >= 0 ? 'Masuk ' : 'Keluar ') + rp(Math.abs(c.raw)) } },
+                            },
+                            scales: { y: { ticks: { callback: v => rp(v) } } },
+                        },
+                    });
+                }
             },
-            scales: { x: { ticks: { callback: val => 'Rp ' + val.toLocaleString('id-ID') } } }
-        }
-    });
 
-    window.handleRevenueProgramFilter = function() {
-        const period = document.getElementById('revenueProgramPeriod').value;
-        document.getElementById('revenueProgramCustomRange').classList.toggle('hidden', period !== 'custom');
-        if (period !== 'custom') loadRevenueByProgram();
+            renderRevenueProgramChart() {
+                const ctx = document.getElementById('revenueProgramChart').getContext('2d');
+                if (this._revProgramChart) this._revProgramChart.destroy();
+                this._revProgramChart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: this.revenueByProgram.labels,
+                        datasets: [{ label: 'Revenue', data: this.revenueByProgram.data, backgroundColor: BRAND.green, borderRadius: 10 }],
+                    },
+                    options: {
+                        indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: { callbacks: { label: c => rp(c.raw) } },
+                        },
+                        scales: { x: { ticks: { callback: v => rp(v) } } },
+                    },
+                });
+            },
+
+            renderEnrollmentChart() {
+                const ctx = document.getElementById('enrollmentChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'doughnut',
+                    data: {
+                        labels: @json($chartProgramLabels),
+                        datasets: [{
+                            data: @json($chartProgramData),
+                            backgroundColor: [BRAND.green, BRAND.greenDark, BRAND.greenDarker, BRAND.amber, BRAND.amberLight, BRAND.neutral],
+                            borderWidth: 1,
+                        }],
+                    },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => c.label + ': ' + c.raw } } },
+                    },
+                    plugins: [{
+                        id: 'customLegend',
+                        afterUpdate(chart) {
+                            const container = document.getElementById('enrollmentLegend');
+                            if (!container) return;
+                            container.innerHTML = '';
+                            chart.data.labels.forEach((label, i) => {
+                                const color = chart.data.datasets[0].backgroundColor[i];
+                                const value = chart.data.datasets[0].data[i];
+                                const meta = chart.getDatasetMeta(0);
+                                const hidden = meta.data[i] && meta.data[i].hidden;
+                                const div = document.createElement('div');
+                                div.className = 'flex items-center gap-xs cursor-pointer';
+                                div.style.opacity = hidden ? '0.4' : '1';
+                                div.innerHTML = `
+                                    <span style="width:10px;height:10px;border-radius:2px;background:${color};flex-shrink:0;display:inline-block;"></span>
+                                    <span class="text-on-surface-variant" style="${hidden ? 'text-decoration:line-through' : ''}">${label}</span>
+                                    <span class="font-medium ml-auto pl-sm">${value}</span>`;
+                                div.addEventListener('click', () => {
+                                    const m = chart.getDatasetMeta(0);
+                                    m.data[i].hidden = !m.data[i].hidden;
+                                    chart.update();
+                                });
+                                container.appendChild(div);
+                            });
+                        },
+                    }],
+                });
+            },
+        };
     }
-
-    window.loadRevenueByProgram = function() {
-        const period = document.getElementById('revenueProgramPeriod').value;
-        const from   = document.getElementById('revenueProgramFrom')?.value;
-        const to     = document.getElementById('revenueProgramTo')?.value;
-
-        let url = `{{ route('finance.chart.revenue-by-program') }}?period=${period}`;
-        if (period === 'custom' && from && to) url += `&from=${from}&to=${to}`;
-
-        fetch(url)
-            .then(r => r.json())
-            .then(d => {
-                revenueProgramChart.data.labels = d.labels;
-                revenueProgramChart.data.datasets[0].data = d.data;
-                revenueProgramChart.update();
-            });
-    }
-
-    loadRevenueByProgram();
-
-});
-</script>
+    </script>
 
 </x-app-layout>

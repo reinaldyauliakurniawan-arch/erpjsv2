@@ -11,6 +11,7 @@ use App\Models\Enrollment;
 use App\Models\Journal;
 use App\Models\PayrollRun;
 use App\Services\AccountingService;
+use App\Services\FinancialReportService;
 use App\Services\Notifier;
 use App\Services\RevenueRecognitionService;
 use Carbon\Carbon;
@@ -19,29 +20,93 @@ use Illuminate\Support\Facades\DB;
 
 class FinanceController extends Controller
 {
-    public function __construct(protected AccountingService $accountingService) {}
+    public function __construct(
+        protected AccountingService $accountingService,
+        protected FinancialReportService $reports,
+    ) {}
+
+    /**
+     * Angka & seri grafik yang mengikuti filter periode — dipakai halaman
+     * dashboard saat pertama render DAN oleh endpoint AJAX dashboardData().
+     * Semua LIVE dari journal_items via FinancialReportService (rumus sama
+     * persis dengan halaman Laporan).
+     */
+    private function periodFigures(array $p): array
+    {
+        $from = $p['from'];
+        $to = $p['to'];
+
+        $pl = $this->reports->profitLoss($from, $to);
+        $cf = $this->reports->cashFlow($from, $to);
+        $bs = $this->reports->balanceSheet($to);
+
+        $netRevenue = (float) $pl['totalRevenue'] - (float) $pl['totalContra'];
+        $expense = (float) $pl['totalExpense'];
+        $netProfit = (float) $pl['netProfit'];
+
+        // Collection rate — cicilan yang jatuh tempo dalam periode.
+        $totalTagihan = (float) DB::table('installments')->whereBetween('due_date', [$from, $to])->sum('amount');
+        $totalTerbayar = (float) DB::table('installments')->whereBetween('due_date', [$from, $to])->whereNotNull('paid_at')->sum('amount');
+        $collectionRate = $totalTagihan > 0 ? round(($totalTerbayar / $totalTagihan) * 100, 1) : 0;
+
+        return [
+            'period_label' => $p['label'],
+            'period' => $p['period'],
+            'from' => $from,
+            'to' => $to,
+            'revenue' => $netRevenue,
+            'expense' => $expense,
+            'net_profit' => $netProfit,
+            'net_profit_margin' => $netRevenue > 0 ? round($netProfit / $netRevenue * 100, 1) : null,
+            'net_cash_flow' => (float) $cf['netChange'],
+            'cash_balance' => $this->reports->cashBalanceAsOf(),
+            'total_asset' => (float) $bs['totalAsset'],
+            'total_liability' => (float) $bs['totalLiability'],
+            'total_equity' => (float) $bs['totalEquity'],
+            'collection_rate' => $collectionRate,
+            'trend' => $this->reports->trendSeries($from, $to, $p['granularity']),
+            'cash_flow_series' => $this->reports->cashFlowSeries($from, $to, $p['granularity']),
+            'revenue_by_program' => $this->revenueByProgram($from, $to),
+        ];
+    }
+
+    private function revenueByProgram(string $from, string $to): array
+    {
+        $data = DB::table('journal_items')
+            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
+            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
+            ->join('programs', 'journal_items.program_id', '=', 'programs.id')
+            ->where('accounts.code', AccountCode::REVENUE_TUITION_FEES->value)
+            ->whereBetween('journals.date', [$from, $to])
+            ->selectRaw('programs.name, SUM(journal_items.credit) as total')
+            ->groupBy('programs.name')
+            ->orderByDesc('total')
+            ->get();
+
+        return [
+            'labels' => $data->pluck('name')->all(),
+            'data' => $data->pluck('total')->map(fn ($v) => (float) $v)->all(),
+        ];
+    }
+
+    /** Endpoint AJAX: kembalikan semua angka & seri grafik untuk periode terpilih. */
+    public function dashboardData(Request $request)
+    {
+        $p = $this->reports->resolvePeriod($request->input('period', 'month'), $request->input('from'), $request->input('to'));
+
+        return response()->json($this->periodFigures($p));
+    }
 
     public function dashboard(Request $request)
     {
-        $month = $request->input('month', now()->format('Y-m'));
-        $startDate = Carbon::parse($month)->startOfMonth()->toDateString();
-        $endDate = Carbon::parse($month)->endOfMonth()->toDateString();
+        $p = $this->reports->resolvePeriod($request->input('period', 'month'), $request->input('from'), $request->input('to'));
+        $figures = $this->periodFigures($p);
 
-        $revenue = DB::table('journal_items')
-            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
-            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-            ->where('accounts.type', 'Revenue')
-            ->whereBetween('journals.date', [$startDate, $endDate])
-            ->sum('journal_items.credit');
-
-        $expense = DB::table('journal_items')
-            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
-            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-            ->where('accounts.type', 'Expense')
-            ->whereBetween('journals.date', [$startDate, $endDate])
-            ->sum('journal_items.debit');
-
-        $netProfit = $revenue - $expense;
+        // Alias supaya blade lama tetap jalan.
+        $revenue = $figures['revenue'];
+        $expense = $figures['expense'];
+        $netProfit = $figures['net_profit'];
+        $collectionRate = $figures['collection_rate'];
 
         // ── RINGKASAN BESAR "per detik ini" — akumulatif seluruh buku besar ──
         // Pendapatan (akun tipe Revenue, saldo kredit) dan Beban (akun tipe
@@ -98,7 +163,7 @@ class FinanceController extends Controller
             ->value('balance') ?? 0;
 
         $journals = Journal::with('items.account')
-            ->whereBetween('date', [$startDate, $endDate])
+            ->whereBetween('date', [$p['from'], $p['to']])
             ->latest()
             ->take(10)
             ->get();
@@ -144,51 +209,12 @@ class FinanceController extends Controller
             ->orderBy('attendance.date')
             ->get();
 
-        // Chart 1: Revenue vs Expense 12 bulan terakhir
-        $chartMonths = [];
-        $chartRevenue = [];
-        $chartExpense = [];
+        // Cash Balance saat ini (all-time) — sub-info di card-nya = net cash
+        // flow periode terpilih (ada di $figures['net_cash_flow']).
+        $cashBalance = $figures['cash_balance'];
 
-        for ($i = 11; $i >= 0; $i--) {
-            $date = now()->subMonths($i);
-            $start = $date->copy()->startOfMonth()->toDateString();
-            $end = $date->copy()->endOfMonth()->toDateString();
-
-            $chartMonths[] = $date->translatedFormat('M Y');
-
-            $chartRevenue[] = (float) DB::table('journal_items')
-                ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
-                ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-                ->where('accounts.type', 'Revenue')
-                ->whereBetween('journals.date', [$start, $end])
-                ->sum('journal_items.credit');
-
-            $chartExpense[] = (float) DB::table('journal_items')
-                ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
-                ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-                ->where('accounts.type', 'Expense')
-                ->whereBetween('journals.date', [$start, $end])
-                ->sum('journal_items.debit');
-        }
-
-        // Cash Balance
-        $cashBalance = DB::table('journal_items')
-            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
-            ->whereIn('accounts.code', ['1001', '1002'])
-            ->selectRaw('SUM(journal_items.debit) - SUM(journal_items.credit) as balance')
-            ->value('balance') ?? 0;
-
-        // Collection Rate bulan ini
-        $totalTagihan = DB::table('installments')
-            ->whereBetween('due_date', [$startDate, $endDate])
-            ->sum('amount');
-        $totalTerbayar = DB::table('installments')
-            ->whereBetween('due_date', [$startDate, $endDate])
-            ->whereNotNull('paid_at')
-            ->sum('amount');
-        $collectionRate = $totalTagihan > 0 ? round(($totalTerbayar / $totalTagihan) * 100, 1) : 0;
-
-        // Burn Rate: rata-rata expense 3 bulan terakhir
+        // Burn Rate: rata-rata beban 6 bulan terakhir (metrik tetap, bukan
+        // periode terpilih).
         $burnRate = collect(range(1, 6))->map(fn ($i) => (float) DB::table('journal_items')
             ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
             ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
@@ -201,7 +227,7 @@ class FinanceController extends Controller
         )->average();
         $runwayMonths = $burnRate > 0 ? floor($cashBalance / $burnRate) : null;
 
-        // Chart 2: Enrollment per program
+        // Chart: Enrollment per program (all-time)
         $enrollmentByProgram = DB::table('enrollments')
             ->join('programs', 'enrollments.program_id', '=', 'programs.id')
             ->whereNotIn('enrollments.status', ['cancelled', 'refunded'])
@@ -212,21 +238,6 @@ class FinanceController extends Controller
 
         $chartProgramLabels = $enrollmentByProgram->pluck('name')->toArray();
         $chartProgramData = $enrollmentByProgram->pluck('total')->toArray();
-
-        // Chart 3: Revenue per program (bulan ini) — dari journal_items dengan program_id
-        $revenueByProgram = DB::table('journal_items')
-            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
-            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-            ->join('programs', 'journal_items.program_id', '=', 'programs.id')
-            ->where('accounts.code', AccountCode::REVENUE_TUITION_FEES->value)
-            ->whereBetween('journals.date', [$startDate, $endDate])
-            ->selectRaw('programs.name, SUM(journal_items.credit) as total')
-            ->groupBy('programs.name')
-            ->orderByDesc('total')
-            ->get();
-
-        $chartProgramRevenueLabels = $revenueByProgram->pluck('name')->toArray();
-        $chartProgramRevenueData = $revenueByProgram->pluck('total')->map(fn ($v) => (float) $v)->toArray();
 
         // GAP #14 poin 4: warning pasif untuk private class yang punya
         // Piutang outstanding (siswa belum/kurang bayar padahal sudah
@@ -276,56 +287,26 @@ class FinanceController extends Controller
             ->value('balance') ?? 0;
 
         return view('admin.finance.dashboard', compact(
+            'figures',
             'revenue', 'expense', 'netProfit',
             'revenueTotal', 'expenseTotal', 'profitTotal', 'profitMarginTotal',
             'revenueYtd', 'expenseYtd', 'profitYtd', 'profitMarginYtd',
             'cashBalance', 'collectionRate', 'burnRate', 'runwayMonths',
             'deferredRevenue', 'tutorPayable', 'accountsReceivable',
             'privateUnpaidWarnings', 'privateUnpaidWarningsTotal',
-            'journals', 'month',
+            'journals',
             'overdueInstallments', 'overdueTotalAmount',
             'pendingRates',
-            'chartMonths', 'chartRevenue', 'chartExpense',
-            'chartProgramLabels', 'chartProgramData',
-            'chartProgramRevenueLabels', 'chartProgramRevenueData'
+            'chartProgramLabels', 'chartProgramData'
         ));
     }
 
     public function chartRevenueByProgram(Request $request)
     {
-        $period = $request->input('period', 'year');
-        $from = $request->input('from');
-        $to = $request->input('to');
+        // Ikut filter periode global dashboard (preset yang sama).
+        $p = $this->reports->resolvePeriod($request->input('period', 'month'), $request->input('from'), $request->input('to'));
 
-        if ($period === 'custom' && $from && $to) {
-            $start = $from;
-            $end = $to;
-        } elseif ($period === 'month') {
-            $start = now()->startOfMonth()->toDateString();
-            $end = now()->toDateString();
-        } elseif ($period === 'quarter') {
-            $start = now()->startOfQuarter()->toDateString();
-            $end = now()->toDateString();
-        } else {
-            $start = now()->startOfYear()->toDateString();
-            $end = now()->toDateString();
-        }
-
-        $data = DB::table('journal_items')
-            ->join('accounts', 'journal_items.account_id', '=', 'accounts.id')
-            ->join('journals', 'journal_items.journal_id', '=', 'journals.id')
-            ->join('programs', 'journal_items.program_id', '=', 'programs.id')
-            ->where('accounts.code', AccountCode::REVENUE_TUITION_FEES->value)
-            ->whereBetween('journals.date', [$start, $end])
-            ->selectRaw('programs.name, SUM(journal_items.credit) as total')
-            ->groupBy('programs.name')
-            ->orderByDesc('total')
-            ->get();
-
-        return response()->json([
-            'labels' => $data->pluck('name'),
-            'data' => $data->pluck('total')->map(fn ($v) => (float) $v),
-        ]);
+        return response()->json($this->revenueByProgram($p['from'], $p['to']));
     }
 
     public function assignRate(Request $request, int $attendanceTutorId)

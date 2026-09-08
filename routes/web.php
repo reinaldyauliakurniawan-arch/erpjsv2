@@ -1,35 +1,40 @@
 <?php
 
-use App\Http\Controllers\ProfileController;
-use App\Http\Controllers\Admin\FinanceController;
-use App\Http\Controllers\Admin\StudentController;
-use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
-use App\Http\Controllers\Admin\TutorController;
-use App\Http\Controllers\Admin\ProgramController;
-use App\Http\Controllers\Admin\EnrollmentController;
-use App\Http\Controllers\Admin\ImportController;
-use App\Http\Controllers\Admin\ExportController;
-use App\Http\Controllers\Admin\PayrollController;
+use App\Http\Controllers\Admin\AccountController;
+use App\Http\Controllers\Admin\AdjustingJournalController;
+use App\Http\Controllers\Admin\AttendanceController as AdminAttendance;
 use App\Http\Controllers\Admin\ClassroomController;
 use App\Http\Controllers\Admin\ClassSessionController;
-use App\Http\Controllers\Tutor\DashboardController as TutorDashboard;
-use App\Http\Controllers\Tutor\AttendanceController as TutorAttendance;
-use App\Http\Controllers\Tutor\AvailabilityController as TutorAvailability;
-use App\Http\Controllers\Student\DashboardController as StudentDashboard;
-use App\Http\Controllers\Admin\AccountController;
-use App\Http\Controllers\Admin\JournalController;
-use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\DashboardController as AdminDashboard;
+use App\Http\Controllers\Admin\EnrollmentController;
+use App\Http\Controllers\Admin\EquityStatementController;
+use App\Http\Controllers\Admin\ExportController;
+use App\Http\Controllers\Admin\FinanceController;
 use App\Http\Controllers\Admin\FixedAssetController;
-use App\Http\Controllers\Tutor\ScheduleController as TutorSchedule;
-use App\Http\Controllers\Admin\ScheduleController as AdminSchedule;
-use App\Http\Controllers\Admin\AttendanceController as AdminAttendance;
-use App\Http\Controllers\DashboardController;
-use App\Http\Controllers\SearchController;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Admin\TrackerController;
-use App\Http\Controllers\Admin\AdjustingJournalController;
+use App\Http\Controllers\Admin\ImportController;
+use App\Http\Controllers\Admin\JournalController;
+use App\Http\Controllers\Admin\PayrollController;
+use App\Http\Controllers\Admin\ProgramController;
 use App\Http\Controllers\Admin\RabController;
 use App\Http\Controllers\Admin\RabRealisasiController;
+use App\Http\Controllers\Admin\ReportController;
+use App\Http\Controllers\Admin\RoomBookingController;
+use App\Http\Controllers\Admin\ScheduleController as AdminSchedule;
+use App\Http\Controllers\Admin\SettingsController;
+use App\Http\Controllers\Admin\StudentController;
+use App\Http\Controllers\Admin\TrackerController;
+use App\Http\Controllers\Admin\TutorController;
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\NotificationController;
+use App\Http\Controllers\ProfileController;
+use App\Http\Controllers\SearchController;
+use App\Http\Controllers\Student\DashboardController as StudentDashboard;
+use App\Http\Controllers\Tutor\AttendanceController as TutorAttendance;
+use App\Http\Controllers\Tutor\AvailabilityController as TutorAvailability;
+use App\Http\Controllers\Tutor\DashboardController as TutorDashboard;
+use App\Http\Controllers\Tutor\PracticeController;
+use App\Http\Controllers\Tutor\ScheduleController as TutorSchedule;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     return redirect()->route('login');
@@ -52,12 +57,12 @@ Route::middleware('auth')->group(function () {
     Route::delete('/profile', [ProfileController::class, 'destroy'])->name('profile.destroy');
 
     // Notifikasi in-app (semua peran) — lonceng topbar
-    Route::get('/notifications', [\App\Http\Controllers\NotificationController::class, 'index'])->name('notifications.index');
-    Route::post('/notifications/{id}/read', [\App\Http\Controllers\NotificationController::class, 'markRead'])->name('notifications.read');
-    Route::post('/notifications/read-all', [\App\Http\Controllers\NotificationController::class, 'markAllRead'])->name('notifications.read-all');
+    Route::get('/notifications', [NotificationController::class, 'index'])->name('notifications.index');
+    Route::post('/notifications/{id}/read', [NotificationController::class, 'markRead'])->name('notifications.read');
+    Route::post('/notifications/read-all', [NotificationController::class, 'markAllRead'])->name('notifications.read-all');
 
     // Admin routes — operasional
-    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function() {
+    Route::prefix('admin')->name('admin.')->middleware('role:admin')->group(function () {
         Route::get('/dashboard', [AdminDashboard::class, 'index'])->name('dashboard');
 
         Route::get('/students/data', [StudentController::class, 'data'])->name('students.data');
@@ -73,12 +78,12 @@ Route::middleware('auth')->group(function () {
         Route::resource('tutors', TutorController::class);
         Route::get('/class-sessions/enrollments/{programId}', [ClassSessionController::class, 'availableEnrollments'])->name('class-sessions.available-enrollments');
         Route::resource('class-sessions', ClassSessionController::class);
-        Route::get('/settings', [App\Http\Controllers\Admin\SettingsController::class, 'index'])->name('settings.index');
-        Route::post('/settings/users', [App\Http\Controllers\Admin\SettingsController::class, 'storeUser'])->name('settings.users.store');
-        Route::patch('/settings/users/{user}', [App\Http\Controllers\Admin\SettingsController::class, 'updateUser'])->name('settings.users.update');
-        Route::delete('/settings/users/{user}', [App\Http\Controllers\Admin\SettingsController::class, 'destroyUser'])->name('settings.users.destroy');
-        Route::get('/settings/colors', [App\Http\Controllers\Admin\SettingsController::class, 'colors'])->name('settings.colors');
-        Route::post('/settings/colors', [App\Http\Controllers\Admin\SettingsController::class, 'updateColors'])->name('settings.colors.update');
+        Route::get('/settings', [SettingsController::class, 'index'])->name('settings.index');
+        Route::post('/settings/users', [SettingsController::class, 'storeUser'])->name('settings.users.store');
+        Route::patch('/settings/users/{user}', [SettingsController::class, 'updateUser'])->name('settings.users.update');
+        Route::delete('/settings/users/{user}', [SettingsController::class, 'destroyUser'])->name('settings.users.destroy');
+        Route::get('/settings/colors', [SettingsController::class, 'colors'])->name('settings.colors');
+        Route::post('/settings/colors', [SettingsController::class, 'updateColors'])->name('settings.colors.update');
 
         Route::post('/enrollments/{id}/expire', [EnrollmentController::class, 'expire'])->name('enrollments.expire');
         Route::post('/enrollments/{id}/graduate', [EnrollmentController::class, 'graduate'])->name('enrollments.graduate');
@@ -91,8 +96,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/tutors/{id}/availability', [TutorController::class, 'storeAvailability'])->name('tutors.availability.store');
         Route::post('/tutors/{id}/availability/custom', [TutorController::class, 'storeCustomAvailability'])->name('tutors.availability.custom');
         Route::delete('/tutors/{id}/availability/{availabilityId}', [TutorController::class, 'destroyAvailability'])->name('tutors.availability.destroy');
-        Route::post('room-bookings', [App\Http\Controllers\Admin\RoomBookingController::class, 'store'])->name('room-bookings.store');
-        Route::delete('room-bookings/{id}', [App\Http\Controllers\Admin\RoomBookingController::class, 'destroy'])->name('room-bookings.destroy');
+        Route::post('room-bookings', [RoomBookingController::class, 'store'])->name('room-bookings.store');
+        Route::delete('room-bookings/{id}', [RoomBookingController::class, 'destroy'])->name('room-bookings.destroy');
 
         Route::post('/enrollments/{enrollmentId}/installments/{installmentId}/paid', [EnrollmentController::class, 'markInstallmentPaid'])->name('enrollments.installments.paid')->middleware('idempotent');
 
@@ -132,15 +137,16 @@ Route::middleware('auth')->group(function () {
         Route::get('/attendance', [AdminAttendance::class, 'index'])->name('attendance.index');
         Route::delete('/attendance/{id}', [AdminAttendance::class, 'destroy'])->name('attendance.destroy');
         Route::patch('/attendance/{id}', [AdminAttendance::class, 'update'])->name('attendance.update');
-        Route::get('/tracker', [App\Http\Controllers\Admin\TrackerController::class, 'index'])->name('tracker.index');
-        Route::post('/tracker/columns', [App\Http\Controllers\Admin\TrackerController::class, 'storeColumn'])->name('tracker.columns.store');
-        Route::delete('/tracker/columns/{column}', [App\Http\Controllers\Admin\TrackerController::class, 'destroyColumn'])->name('tracker.columns.destroy');
-        Route::post('/tracker/toggle', [App\Http\Controllers\Admin\TrackerController::class, 'toggle'])->name('tracker.toggle');
+        Route::get('/tracker', [TrackerController::class, 'index'])->name('tracker.index');
+        Route::post('/tracker/columns', [TrackerController::class, 'storeColumn'])->name('tracker.columns.store');
+        Route::delete('/tracker/columns/{column}', [TrackerController::class, 'destroyColumn'])->name('tracker.columns.destroy');
+        Route::post('/tracker/toggle', [TrackerController::class, 'toggle'])->name('tracker.toggle');
     });
 
     // CFO routes — finance
-    Route::prefix('finance')->name('finance.')->middleware('role:cfo')->group(function() {
+    Route::prefix('finance')->name('finance.')->middleware('role:cfo')->group(function () {
         Route::get('/', [FinanceController::class, 'dashboard'])->name('index');
+        Route::get('/dashboard-data', [FinanceController::class, 'dashboardData'])->name('dashboard-data');
         Route::get('/reports', [FinanceController::class, 'reports'])->name('reports');
         Route::get('/chart/revenue-by-program', [FinanceController::class, 'chartRevenueByProgram'])->name('chart.revenue-by-program');
         Route::post('/pending-rates/{id}/assign', [FinanceController::class, 'assignRate'])->name('rate.assign');
@@ -149,7 +155,6 @@ Route::middleware('auth')->group(function () {
         Route::get('/journals/data', [JournalController::class, 'data'])->name('journals.data');
         Route::resource('journals', JournalController::class)->only(['index', 'create', 'store', 'show']);
         Route::post('/journals/{journal}/reverse', [JournalController::class, 'reverse'])->name('journals.reverse')->middleware('idempotent');
-
 
         Route::get('/reports/trial-balance', [ReportController::class, 'trialBalance'])->name('reports.trial-balance');
         Route::get('/reports/adjusted-trial-balance', [ReportController::class, 'adjustedTrialBalance'])->name('reports.adjusted-trial-balance');
@@ -162,7 +167,7 @@ Route::middleware('auth')->group(function () {
         Route::delete('/assets/{fixedAsset}', [FixedAssetController::class, 'destroy'])->name('assets.destroy');
         Route::get('/reports/profit-loss', [ReportController::class, 'profitLoss'])->name('reports.profit-loss');
         Route::get('/reports/balance-sheet', [ReportController::class, 'balanceSheet'])->name('reports.balance-sheet');
-        Route::get('/reports/equity-statement', [App\Http\Controllers\Admin\EquityStatementController::class, 'index'])->name('reports.equity-statement');
+        Route::get('/reports/equity-statement', [EquityStatementController::class, 'index'])->name('reports.equity-statement');
         Route::post('/reports/opening-balance', [ReportController::class, 'storeOpeningBalance'])->name('opening-balance.store');
         Route::get('/reports/deferred-revenue', [ReportController::class, 'deferredRevenue'])->name('reports.deferred-revenue');
 
@@ -206,7 +211,7 @@ Route::middleware('auth')->group(function () {
     });
 
     // Tutor routes
-    Route::prefix('tutor')->name('tutor.')->middleware('role:tutor')->group(function() {
+    Route::prefix('tutor')->name('tutor.')->middleware('role:tutor')->group(function () {
         Route::get('/dashboard', [TutorDashboard::class, 'index'])->name('dashboard');
         Route::get('/attendance/data', [TutorAttendance::class, 'data'])->name('attendance.data');
         Route::get('/attendance', [TutorAttendance::class, 'index'])->name('attendance.index');
@@ -221,16 +226,16 @@ Route::middleware('auth')->group(function () {
         Route::patch('/availability/{id}', [TutorAvailability::class, 'update'])->name('availability.update');
         Route::post('/room-bookings', [App\Http\Controllers\Tutor\RoomBookingController::class, 'store'])->name('room-bookings.store');
         Route::delete('/room-bookings/{id}', [App\Http\Controllers\Tutor\RoomBookingController::class, 'destroy'])->name('room-bookings.destroy');
-        Route::get('practice', [App\Http\Controllers\Tutor\PracticeController::class, 'index'])->name('practice.index');
-        Route::get('practice/create', [App\Http\Controllers\Tutor\PracticeController::class, 'create'])->name('practice.create');
-        Route::post('practice', [App\Http\Controllers\Tutor\PracticeController::class, 'store'])->name('practice.store');
-        Route::get('practice/{practice}/edit', [App\Http\Controllers\Tutor\PracticeController::class, 'edit'])->name('practice.edit');
-        Route::put('practice/{practice}', [App\Http\Controllers\Tutor\PracticeController::class, 'update'])->name('practice.update');
+        Route::get('practice', [PracticeController::class, 'index'])->name('practice.index');
+        Route::get('practice/create', [PracticeController::class, 'create'])->name('practice.create');
+        Route::post('practice', [PracticeController::class, 'store'])->name('practice.store');
+        Route::get('practice/{practice}/edit', [PracticeController::class, 'edit'])->name('practice.edit');
+        Route::put('practice/{practice}', [PracticeController::class, 'update'])->name('practice.update');
         Route::get('tracker', [App\Http\Controllers\Tutor\TrackerController::class, 'index'])->name('tracker.index');
     });
 
     // Student routes
-    Route::prefix('student')->name('student.')->middleware('role:student')->group(function() {
+    Route::prefix('student')->name('student.')->middleware('role:student')->group(function () {
         Route::get('/dashboard', [StudentDashboard::class, 'index'])->name('dashboard');
         Route::get('/practice', [App\Http\Controllers\Student\PracticeController::class, 'index'])->name('practice.index');
         Route::post('/practice/{practice}/open', [App\Http\Controllers\Student\PracticeController::class, 'open'])->name('practice.open');
