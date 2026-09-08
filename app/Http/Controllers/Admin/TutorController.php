@@ -12,6 +12,7 @@ use App\Models\TutorAvailability;
 use App\Models\TutorRate;
 use App\Models\User;
 use App\Services\TutorAssignmentService;
+use App\Support\ScheduleFormat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -165,19 +166,25 @@ class TutorController extends Controller
         // Atomicity fix: previously delete-then-recreate was 2 separate
         // writes. If any create failed, the tutor's availability was wiped
         // but only partially recreated — leaving the tutor with no slots.
-        DB::transaction(function () use ($request, $tutorId) {
-            $incomingBlocks = collect($request->availability)->pluck('time_block')->unique()->values()->toArray();
+        $slots = collect($request->availability)->map(fn ($s) => [
+            'day' => ScheduleFormat::day($s['day']),
+            'time_block' => ScheduleFormat::timeBlock($s['time_block']),
+            'status' => $s['status'] ?? 'available',
+        ]);
+
+        DB::transaction(function () use ($slots, $tutorId) {
+            $incomingBlocks = $slots->pluck('time_block')->unique()->values()->toArray();
 
             TutorAvailability::where('tutor_id', $tutorId)
                 ->whereIn('time_block', $incomingBlocks)
                 ->delete();
 
-            foreach ($request->availability as $slot) {
+            foreach ($slots as $slot) {
                 TutorAvailability::create([
                     'tutor_id' => $tutorId,
                     'day' => $slot['day'],
                     'time_block' => $slot['time_block'],
-                    'status' => $slot['status'] ?? 'available',
+                    'status' => $slot['status'],
                 ]);
             }
         });
@@ -194,7 +201,11 @@ class TutorController extends Controller
         ]);
 
         TutorAvailability::updateOrCreate(
-            ['tutor_id' => $tutorId, 'day' => strtolower($request->day), 'time_block' => $request->time_block],
+            [
+                'tutor_id' => $tutorId,
+                'day' => ScheduleFormat::day($request->day),
+                'time_block' => ScheduleFormat::timeBlock($request->time_block),
+            ],
             ['status' => $request->status]
         );
 

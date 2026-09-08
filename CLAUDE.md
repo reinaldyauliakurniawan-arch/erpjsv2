@@ -58,6 +58,22 @@ redirects/aborts for web.
   There are **no Policy classes**; `$this->authorize()` calls in controllers rely on this plus
   the route-level `role` middleware. Don't add Policies expecting them to be discovered.
 
+## Scheduling: day / time_block format
+
+`schedules.day`, `schedules.time_block`, `tutor_availability.day/time_block` are free-string
+columns fed from many sources (forms, spreadsheet imports, enum dropdowns). The **canonical
+form** — enforced on every write and used for cross-table matching (tutor occupancy, the
+"available tutors" dropdown, `TutorAssignmentService::recomputeAvailability`) — is:
+
+- `day`: Indonesian, capitalised — `Senin`..`Minggu` (`App\Enums\DayOfWeek` values;
+  `DayOfWeek::fromDate($date)` for a weekday from a date, **not** `Carbon::format('l')`).
+- `time_block`: colon separator, no spaces — `09:00-10:30` (`App\Enums\TimeBlock` values).
+
+Always run inbound values through **`App\Support\ScheduleFormat`** (`day()`, `timeBlock()`,
+`slotKey()`, plus `DAYS` / `TIME_BLOCKS` constants) before writing or comparing. A tutor's
+`tutor_availability.status` of `occupied` is derived state — recomputed from actual class
+assignments, never set by hand.
+
 ## Accounting core
 
 All money movement flows through **`App\Services`**, never controllers directly. Services

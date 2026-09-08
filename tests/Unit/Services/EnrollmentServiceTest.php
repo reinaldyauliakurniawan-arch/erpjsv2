@@ -274,10 +274,10 @@ class EnrollmentServiceTest extends TestCase
         $program   = $this->makePrivateProgram();
         $classroom = $this->makeClassroom(1); // kapasitas 1
 
-        // Isi dulu ruangan
+        // Isi dulu ruangan (format baku: hari Indonesia)
         Schedule::factory()->create([
             'classroom_id' => $classroom->id,
-            'day'          => 'Monday',
+            'day'          => 'Senin',
             'time_block'   => '08:00-09:30',
         ]);
 
@@ -385,7 +385,7 @@ class EnrollmentServiceTest extends TestCase
         $classroom   = $this->makeClassroom();
         $availability = \App\Models\TutorAvailability::factory()->create([
             'tutor_id'   => $tutor->id,
-            'day'        => 'Friday',
+            'day'        => 'Jumat',
             'time_block' => '09:00-10:30',
             'status'     => 'available',
         ]);
@@ -393,6 +393,7 @@ class EnrollmentServiceTest extends TestCase
         $data = $this->baseData($program, [
             'tutor_ids' => [$tutor->id],
             'schedules' => [
+                // "Friday" akan dinormalkan jadi "Jumat" -> cocok dgn slot availability
                 ['classroom_id' => $classroom->id, 'day' => 'Friday', 'time_block' => '09:00-10:30'],
             ],
         ]);

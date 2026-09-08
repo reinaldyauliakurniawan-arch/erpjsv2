@@ -329,8 +329,8 @@ class EnrollmentController extends Controller
         ]);
 
         $programId = $request->program_id;
-        $day = $request->day;
-        $timeBlock = $request->time_block;
+        $day = \App\Support\ScheduleFormat::day($request->day);
+        $timeBlock = \App\Support\ScheduleFormat::timeBlock($request->time_block);
         $search = $request->q;
         $program = Program::find($programId);
         $isPrivate = $program && $program->type === ClassType::PRIVATE->value;
@@ -402,8 +402,8 @@ class EnrollmentController extends Controller
     {
         $this->authorize('viewAny', Enrollment::class);
 
-        $day = $request->input('day');
-        $timeBlock = $request->input('time_block');
+        $day = \App\Support\ScheduleFormat::day($request->input('day'));
+        $timeBlock = \App\Support\ScheduleFormat::timeBlock($request->input('time_block'));
 
         $tutors = Tutor::with('user')
             ->when($day && $timeBlock, function ($q) use ($day, $timeBlock) {

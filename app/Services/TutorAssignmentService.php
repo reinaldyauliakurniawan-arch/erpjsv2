@@ -7,6 +7,7 @@ use App\Models\Enrollment;
 use App\Models\Schedule;
 use App\Models\Tutor;
 use App\Models\TutorAvailability;
+use App\Support\ScheduleFormat;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -185,11 +186,11 @@ class TutorAssignmentService
             ->whereHas('classSession.tutors', fn ($q) => $q->where('tutor_id', $tutorId))
             ->whereHas('classSession.enrollments', fn ($q) => $q->whereIn('status', ['active', 'waitlist']))
             ->get(['day', 'time_block'])
-            ->map(fn ($s) => $s->day.'|'.$s->time_block)
+            ->map(fn ($s) => ScheduleFormat::slotKey($s->day, $s->time_block))
             ->unique();
 
         foreach (TutorAvailability::where('tutor_id', $tutorId)->get() as $slot) {
-            $key = $slot->day.'|'.$slot->time_block;
+            $key = ScheduleFormat::slotKey($slot->day, $slot->time_block);
             if ($shouldBeOccupied->contains($key)) {
                 if ($slot->status !== 'occupied') {
                     $slot->update(['status' => 'occupied']);

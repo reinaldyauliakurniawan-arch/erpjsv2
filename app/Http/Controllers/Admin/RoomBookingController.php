@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Enums\DayOfWeek;
 use App\Http\Controllers\Controller;
 use App\Models\RoomBooking;
 use App\Models\Schedule;
+use App\Support\ScheduleFormat;
 use Illuminate\Http\Request;
 
 class RoomBookingController extends Controller
@@ -21,6 +23,9 @@ class RoomBookingController extends Controller
             'notes'        => 'nullable|string|max:255',
             'schedule_id'   => 'nullable|exists:schedules,id',
         ]);
+
+        $request->merge(['time_block' => ScheduleFormat::timeBlock($request->time_block)]);
+
         // Cegah booking masa lampau (per time block)
         $endTime = explode('-', $request->time_block)[1] ?? '23:59';
         $slotEnd = \Carbon\Carbon::parse($request->date . ' ' . trim($endTime));
@@ -49,7 +54,7 @@ class RoomBookingController extends Controller
 
         // Kalau mau booking temporary, pastikan tidak bentrok dengan kelas reguler aktif yang belum di-skip
         if ($request->type === 'temporary') {
-            $dayName = \Carbon\Carbon::parse($request->date)->format('l'); // 'Monday', dst
+            $dayName = DayOfWeek::fromDate($request->date)->value; // "Senin", dst
             $hasActiveRegularSchedule = Schedule::where('classroom_id', $request->classroom_id)
                 ->where('day', $dayName)
                 ->where('time_block', $request->time_block)

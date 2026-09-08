@@ -2,9 +2,11 @@
 
 namespace App\Http\Controllers\Tutor;
 
+use App\Enums\DayOfWeek;
 use App\Http\Controllers\Controller;
 use App\Models\RoomBooking;
 use App\Models\Tutor;
+use App\Support\ScheduleFormat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -17,6 +19,8 @@ class RoomBookingController extends Controller
             'date'         => 'required|date',
             'time_block'   => 'required|string',
         ]);
+
+        $request->merge(['time_block' => ScheduleFormat::timeBlock($request->time_block)]);
 
         $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
 
@@ -39,7 +43,7 @@ class RoomBookingController extends Controller
         }
 
         // Cek apakah ada jadwal kelas reguler aktif di slot ini tanpa regular_skip
-        $dayName = \Carbon\Carbon::parse($request->date)->format('l'); // 'Monday', 'Tuesday', dst — sesuai App\Enums\DayOfWeek
+        $dayName = DayOfWeek::fromDate($request->date)->value; // "Senin", "Selasa", dst
         $hasActiveRegularSchedule = \App\Models\Schedule::where('classroom_id', $request->classroom_id)
             ->where('day', $dayName)
             ->where('time_block', $request->time_block)

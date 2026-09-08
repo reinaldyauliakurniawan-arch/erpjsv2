@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Support\ScheduleFormat;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 class TutorAvailabilityFactory extends Factory
@@ -10,8 +11,9 @@ class TutorAvailabilityFactory extends Factory
     {
         return [
             'tutor_id'   => \App\Models\Tutor::factory(),
-            'day'        => fake()->randomElement(['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday']),
-            'time_block' => fake()->randomElement(['08:00-09:30', '09:30-11:00', '13:00-14:30', '15:00-16:30']),
+            // Format baku: hari Bahasa Indonesia, jam pakai titik dua.
+            'day'        => fake()->randomElement(ScheduleFormat::DAYS),
+            'time_block' => fake()->randomElement(ScheduleFormat::TIME_BLOCKS),
             // Bug fix: enum values must match the migration.
             // Migration allows: available, not_available, occupied.
             // Previously used 'unavailable' which would fail enum constraint.

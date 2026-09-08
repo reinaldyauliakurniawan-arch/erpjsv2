@@ -14,6 +14,7 @@ use App\Enums\DayOfWeek;
 use App\Enums\ClassType;
 use App\Services\AttendanceService;
 use App\Services\TutorAssignmentService;
+use App\Support\ScheduleFormat;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -437,7 +438,8 @@ class ClassSessionController extends Controller
             'custom_time'  => 'nullable|required_if:time_block,Custom|string',
         ]);
 
-        $timeBlock = $request->time_block === 'Custom' ? $request->custom_time : $request->time_block;
+        $timeBlock = ScheduleFormat::timeBlock($request->time_block === 'Custom' ? $request->custom_time : $request->time_block);
+        $request->merge(['day' => ScheduleFormat::day($request->day)]);
 
         // Race-condition fix: ALL lockForUpdate() + check + create must be
         // INSIDE a single DB transaction. Previously the locks released
@@ -657,6 +659,9 @@ class ClassSessionController extends Controller
             if (empty($schedule['day']) || empty($schedule['time_block']) || empty($schedule['classroom_id'])) {
                 continue;
             }
+
+            $schedule['day'] = ScheduleFormat::day($schedule['day']);
+            $schedule['time_block'] = ScheduleFormat::timeBlock($schedule['time_block']);
 
             // Lock the classroom and class session to prevent race conditions
             $classroom = Classroom::where('id', $schedule['classroom_id'])->lockForUpdate()->first();

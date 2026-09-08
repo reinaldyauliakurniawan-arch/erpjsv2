@@ -73,6 +73,8 @@ class ScheduleController extends Controller
         'notes'        => 'nullable|string|max:255',
     ]);
 
+    $request->merge(['time_block' => \App\Support\ScheduleFormat::timeBlock($request->time_block)]);
+
     $tutor = Tutor::where('user_id', Auth::id())->firstOrFail();
     $type  = $request->type ?? 'temporary';
 
@@ -95,7 +97,7 @@ class ScheduleController extends Controller
 
     // Kalau mau booking temporary, pastikan tidak bentrok dengan kelas reguler aktif yang belum di-skip
     if ($type === 'temporary') {
-        $dayName = \Carbon\Carbon::parse($request->date)->format('l'); // 'Monday', dst
+        $dayName = \App\Enums\DayOfWeek::fromDate($request->date)->value; // "Senin", dst
         $hasActiveRegularSchedule = Schedule::where('classroom_id', $request->classroom_id)
             ->where('day', $dayName)
             ->where('time_block', $request->time_block)

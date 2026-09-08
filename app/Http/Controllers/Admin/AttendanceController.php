@@ -95,7 +95,7 @@ class AttendanceController extends Controller
                 'id' => $att->id,
                 'date' => $att->date,
                 'date_label' => Carbon::parse($att->date)->format('d M Y'),
-                'day_label' => Carbon::parse($att->date)->format('l'),
+                'day_label' => \App\Enums\DayOfWeek::fromDate($att->date)->value,
                 'time_block' => $att->time_block,
                 'class_name' => $att->classSession?->name ?? '—',
                 'program_name' => $att->classSession?->program?->name ?? '—',

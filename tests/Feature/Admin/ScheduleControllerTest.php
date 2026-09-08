@@ -76,16 +76,17 @@ class ScheduleControllerTest extends TestCase
             ->post(route('admin.schedule.store'), [
                 'class_session_id' => $session->id,
                 'classroom_id'     => $classroom->id,
-                'day'              => 'Monday',
-                'time_block'       => '09:00-10:30',
+                'day'              => 'Monday',       // input campur — harus dinormalkan
+                'time_block'       => '09.00 - 10.30', // titik + spasi — harus dinormalkan
             ])
             ->assertRedirect()
             ->assertSessionHas('success');
 
+        // Disimpan dalam format baku: hari Indonesia, jam pakai titik dua.
         $this->assertDatabaseHas('schedules', [
             'class_session_id' => $session->id,
             'classroom_id'     => $classroom->id,
-            'day'              => 'Monday',
+            'day'              => 'Senin',
             'time_block'       => '09:00-10:30',
         ]);
     }
@@ -99,7 +100,7 @@ class ScheduleControllerTest extends TestCase
         // Pre-existing schedule that occupies the slot
         Schedule::factory()->create([
             'classroom_id' => $classroom->id,
-            'day'          => 'Tuesday',
+            'day'          => 'Selasa',
             'time_block'   => '10:30-12:00',
         ]);
 
@@ -107,7 +108,7 @@ class ScheduleControllerTest extends TestCase
             ->post(route('admin.schedule.store'), [
                 'class_session_id' => $session->id,
                 'classroom_id'     => $classroom->id,
-                'day'              => 'Tuesday',
+                'day'              => 'Tuesday', // dinormalkan jadi "Selasa" -> bentrok
                 'time_block'       => '10:30-12:00',
             ])
             ->assertSessionHasErrors(['error']);
@@ -123,7 +124,7 @@ class ScheduleControllerTest extends TestCase
         Schedule::factory()->create([
             'class_session_id' => $session->id,
             'classroom_id'     => $classroom->id,
-            'day'              => 'Wednesday',
+            'day'              => 'Rabu',
             'time_block'       => '13:00-14:30',
         ]);
 
@@ -133,7 +134,7 @@ class ScheduleControllerTest extends TestCase
             ->post(route('admin.schedule.store'), [
                 'class_session_id' => $session->id,
                 'classroom_id'     => $otherClassroom->id,
-                'day'              => 'Wednesday',
+                'day'              => 'Wednesday', // dinormalkan jadi "Rabu" -> bentrok
                 'time_block'       => '13:00-14:30',
             ])
             ->assertSessionHasErrors(['error']);
@@ -160,22 +161,22 @@ class ScheduleControllerTest extends TestCase
         $schedule     = Schedule::factory()->create([
             'class_session_id' => $session->id,
             'classroom_id'     => $classroom->id,
-            'day'              => 'Monday',
+            'day'              => 'Senin',
             'time_block'       => '09:00-10:30',
         ]);
 
         $this->actingAs($this->admin)
             ->patch(route('admin.schedule.update', $schedule->id), [
                 'classroom_id' => $newClassroom->id,
-                'day'          => 'Thursday',
-                'time_block'   => '15:00-16:30',
+                'day'          => 'Thursday',        // dinormalkan jadi "Kamis"
+                'time_block'   => '15.00 - 16.30',   // dinormalkan jadi "15:00-16:30"
             ])
             ->assertRedirect()
             ->assertSessionHas('success');
 
         $schedule->refresh();
         $this->assertEquals($newClassroom->id, $schedule->classroom_id);
-        $this->assertEquals('Thursday', $schedule->day);
+        $this->assertEquals('Kamis', $schedule->day);
         $this->assertEquals('15:00-16:30', $schedule->time_block);
     }
 

@@ -24,6 +24,7 @@ use App\Models\TutorAvailability;
 use App\Models\TutorRate;
 use App\Models\User;
 use App\Services\AccountingService;
+use App\Support\ScheduleFormat;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -631,7 +632,11 @@ class ImportController extends Controller
                     $classSession = $classSessionName ? ClassSession::where('name', trim($classSessionName))->first() : null;
 
                     Schedule::updateOrCreate(
-                        ['enrollment_id' => $enrollment->id, 'day' => trim($day), 'time_block' => trim($timeBlock)],
+                        [
+                            'enrollment_id' => $enrollment->id,
+                            'day' => ScheduleFormat::day($day),
+                            'time_block' => ScheduleFormat::timeBlock($timeBlock),
+                        ],
                         [
                             'classroom_id' => $classroom->id,
                             'class_session_id' => $classSession?->id,
@@ -679,7 +684,11 @@ class ImportController extends Controller
                     }
 
                     TutorAvailability::updateOrCreate(
-                        ['tutor_id' => $tutor->id, 'day' => trim($day), 'time_block' => trim($timeBlock)],
+                        [
+                            'tutor_id' => $tutor->id,
+                            'day' => ScheduleFormat::day($day),
+                            'time_block' => ScheduleFormat::timeBlock($timeBlock),
+                        ],
                         ['status' => trim($status) ?: 'available']
                     );
                     $imported++;

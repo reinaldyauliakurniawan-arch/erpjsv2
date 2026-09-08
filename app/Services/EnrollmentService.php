@@ -17,6 +17,7 @@ use App\Models\Student;
 use App\Models\Tutor;
 use App\Models\TutorAvailability;
 use App\Models\User;
+use App\Support\ScheduleFormat;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
@@ -32,6 +33,16 @@ class EnrollmentService
     {
         $program = Program::findOrFail($data['program_id']);
         $classType = ClassType::from($program->type);
+
+        // Seragamkan format hari & jam sebelum apa pun ditulis / dicocokkan.
+        foreach ($data['schedules'] ?? [] as $i => $schedule) {
+            if (isset($schedule['day'])) {
+                $data['schedules'][$i]['day'] = ScheduleFormat::day($schedule['day']);
+            }
+            if (isset($schedule['time_block'])) {
+                $data['schedules'][$i]['time_block'] = ScheduleFormat::timeBlock($schedule['time_block']);
+            }
+        }
 
         $roomNotes = [];
         foreach ($data['schedules'] ?? [] as $schedule) {

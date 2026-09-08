@@ -8,6 +8,7 @@ use App\Models\RoomBooking;
 use App\Models\Schedule;
 use App\Models\Classroom;
 use App\Models\Tutor;
+use App\Support\ScheduleFormat;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -139,6 +140,11 @@ class ScheduleController extends Controller
             'time_block'       => 'required|string',
         ]);
 
+        $request->merge([
+            'day'        => ScheduleFormat::day($request->day),
+            'time_block' => ScheduleFormat::timeBlock($request->time_block),
+        ]);
+
         $exists = Schedule::where('classroom_id', $request->classroom_id)
             ->where('day', $request->day)
             ->where('time_block', $request->time_block)
@@ -174,6 +180,11 @@ class ScheduleController extends Controller
         'classroom_id' => 'required|exists:classrooms,id',
         'day'          => 'required|string',
         'time_block'   => 'required|string',
+    ]);
+
+    $request->merge([
+        'day'        => ScheduleFormat::day($request->day),
+        'time_block' => ScheduleFormat::timeBlock($request->time_block),
     ]);
 
     // Atomicity fix: previously 4+ separate writes (delete room bookings,
