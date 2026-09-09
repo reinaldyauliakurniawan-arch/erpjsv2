@@ -80,20 +80,20 @@
             </div>
         </div>
 
-        {{-- Row 1: Posisi Kas + Posisi Keuangan + P&L periode terpilih --}}
-        <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
+        {{-- Baris 2: Posisi Kas + Posisi Keuangan (2 kolom — lebih menonjol dari
+             "Detail lainnya" di bawah, tapi di bawah kartu besar Laba–Rugi). --}}
+        <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))">
             <div class="app-card flex flex-col justify-center min-h-[120px]">
                 <p class="text-body-sm text-on-surface-variant">Cash Balance</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all" x-text="'Rp ' + fmt(cashBalance)"></p>
-                <p class="text-body-sm mt-xs flex items-center gap-xs">
+                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md whitespace-nowrap" x-text="'Rp ' + fmt(cashBalance)"></p>
+                <p class="text-body-sm mt-xs flex items-center gap-xs flex-wrap">
                     <span class="material-symbols-outlined text-[16px]"
                         :class="netCashFlow >= 0 ? 'text-success' : 'text-error'"
                         x-text="netCashFlow >= 0 ? 'trending_up' : 'trending_down'"></span>
-                    <span :class="netCashFlow >= 0 ? 'text-success' : 'text-error'" class="font-medium"
+                    <span :class="netCashFlow >= 0 ? 'text-success' : 'text-error'" class="font-medium whitespace-nowrap"
                         x-text="(netCashFlow >= 0 ? '+' : '−') + ' Rp ' + fmt(Math.abs(netCashFlow))"></span>
-                    <span class="text-on-surface-variant">arus kas bersih</span>
+                    <span class="text-on-surface-variant">arus kas bersih <span x-text="periodLabel"></span></span>
                 </p>
-                <p class="text-label-lg text-on-surface-variant mt-xs" x-text="periodLabel"></p>
             </div>
 
             <div class="app-card flex flex-col justify-center min-h-[120px]">
@@ -101,75 +101,62 @@
                 <div class="space-y-xs">
                     <div class="flex items-baseline justify-between gap-sm">
                         <span class="text-body-sm text-on-surface-variant">Total Aset</span>
-                        <span class="font-semibold text-on-surface text-body-md break-all" x-text="'Rp ' + fmt(totalAsset)"></span>
+                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(totalAsset)"></span>
                     </div>
                     <div class="flex items-baseline justify-between gap-sm">
                         <span class="text-body-sm text-on-surface-variant">Total Kewajiban</span>
-                        <span class="font-semibold text-on-surface text-body-md break-all" x-text="'Rp ' + fmt(totalLiability)"></span>
+                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(totalLiability)"></span>
                     </div>
                     <div class="flex items-baseline justify-between gap-sm">
                         <span class="text-body-sm text-on-surface-variant">Total Ekuitas</span>
-                        <span class="font-semibold text-on-surface text-body-md break-all" x-text="'Rp ' + fmt(totalEquity)"></span>
+                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(totalEquity)"></span>
                     </div>
                 </div>
                 <p class="text-label-lg text-on-surface-variant mt-xs">Per akhir periode terpilih</p>
             </div>
-
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Pendapatan</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all" x-text="'Rp ' + fmt(revenue)"></p>
-                <p class="text-body-sm text-on-surface-variant mt-xs" x-text="periodLabel"></p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Beban</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all" x-text="'Rp ' + fmt(expense)"></p>
-                <p class="text-body-sm text-on-surface-variant mt-xs" x-text="periodLabel"></p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Laba / Rugi</p>
-                <p class="font-bold mt-xs leading-tight text-headline-md break-all"
-                    :class="netProfit >= 0 ? 'text-success' : 'text-error'"
-                    x-text="'Rp ' + fmt(netProfit) + (netProfitMargin !== null ? ' (' + netProfitMargin.toFixed(1) + '%)' : '')"></p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan − beban, <span x-text="periodLabel"></span></p>
-            </div>
         </div>
 
-        {{-- Row 2: Kewajiban & Risiko --}}
-        <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Piutang Customer</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($accountsReceivable, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Revenue diakui, belum dibayar</p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Deferred Revenue</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Pendapatan diterima di muka</p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Tutor Payable</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($tutorPayable, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Belum dibayar ke tutor</p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Collection Rate</p>
-                <p class="font-bold mt-xs leading-tight text-headline-md break-all"
-                    :class="collectionRate >= 80 ? 'text-success' : (collectionRate >= 50 ? 'text-warning' : 'text-error')"
-                    x-text="collectionRate.toFixed(1) + '%'"></p>
-                <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-xs">
-                    <div class="h-full rounded-full"
-                        :class="collectionRate >= 80 ? 'bg-success' : (collectionRate >= 50 ? 'bg-warning' : 'bg-error')"
-                        :style="'width:' + Math.min(collectionRate, 100) + '%'"></div>
+        {{-- Detail lainnya — kartu kecil (angka pendukung / risiko). Sengaja
+             lebih kecil dari 2 kartu di atas supaya hierarki visual jelas:
+             grid 3 kolom, tipografi & tinggi minimum lebih ringkas. --}}
+        <div class="space-y-sm">
+            <p class="text-body-md font-semibold text-on-surface">Detail lainnya</p>
+            <div class="grid gap-md" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">
+                <div class="app-card flex flex-col min-h-[92px]">
+                    <p class="text-body-sm text-on-surface-variant">Piutang Customer</p>
+                    <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($accountsReceivable, 0, ',', '.') }}</p>
+                    <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Revenue diakui, belum dibayar</p>
                 </div>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Cicilan siswa jatuh tempo di periode ini yang sudah masuk</p>
-            </div>
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Burn Rate</p>
-                <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md break-all">Rp {{ number_format($burnRate, 0, ',', '.') }}</p>
-                <p class="text-body-sm text-on-surface-variant mt-xs">Rata-rata pengeluaran per bulan (6 bulan terakhir)</p>
-                @if($runwayMonths !== null)
-                    <p class="text-body-sm mt-xs">Tanpa pemasukan baru, bertahan: <span class="{{ $runwayMonths <= 3 ?'text-error' : ($runwayMonths <= 6 ? 'text-warning' : 'text-success') }} font-medium">{{ $runwayMonths }} bulan lagi</span></p>
-                @endif
+                <div class="app-card flex flex-col min-h-[92px]">
+                    <p class="text-body-sm text-on-surface-variant">Deferred Revenue</p>
+                    <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
+                    <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Pendapatan diterima di muka</p>
+                </div>
+                <div class="app-card flex flex-col min-h-[92px]">
+                    <p class="text-body-sm text-on-surface-variant">Tutor Payable</p>
+                    <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($tutorPayable, 0, ',', '.') }}</p>
+                    <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Belum dibayar ke tutor</p>
+                </div>
+                <div class="app-card flex flex-col min-h-[92px]">
+                    <p class="text-body-sm text-on-surface-variant">Collection Rate</p>
+                    <p class="font-bold mt-xs leading-tight text-title-lg"
+                        :class="collectionRate >= 80 ? 'text-success' : (collectionRate >= 50 ? 'text-warning' : 'text-error')"
+                        x-text="collectionRate.toFixed(1) + '%'"></p>
+                    <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-xs">
+                        <div class="h-full rounded-full"
+                            :class="collectionRate >= 80 ? 'bg-success' : (collectionRate >= 50 ? 'bg-warning' : 'bg-error')"
+                            :style="'width:' + Math.min(collectionRate, 100) + '%'"></div>
+                    </div>
+                    <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Cicilan siswa jatuh tempo di periode ini yang sudah masuk</p>
+                </div>
+                <div class="app-card flex flex-col min-h-[92px]">
+                    <p class="text-body-sm text-on-surface-variant">Burn Rate</p>
+                    <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($burnRate, 0, ',', '.') }}</p>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">Rata-rata pengeluaran per bulan (6 bulan terakhir)</p>
+                    @if($runwayMonths !== null)
+                        <p class="text-label-lg mt-auto pt-xs">Tanpa pemasukan baru, bertahan: <span class="{{ $runwayMonths <= 3 ?'text-error' : ($runwayMonths <= 6 ? 'text-warning' : 'text-success') }} font-medium">{{ $runwayMonths }} bulan lagi</span></p>
+                    @endif
+                </div>
             </div>
         </div>
 
