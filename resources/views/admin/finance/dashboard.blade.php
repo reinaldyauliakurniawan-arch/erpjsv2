@@ -1,7 +1,10 @@
 <x-app-layout>
     <x-slot name="title">Finance Dashboard</x-slot>
 
-    <div class="p-lg space-y-lg" style="max-width: 72rem" x-data="financeDashboard()" x-init="init()">
+    {{-- Alpine memanggil method init() otomatis saat komponen dibuat — JANGAN
+         tambah x-init="init()" lagi, itu bikin semua chart di-render 2x
+         ("Canvas is already in use"). --}}
+    <div class="p-lg space-y-lg" style="max-width: 72rem" x-data="financeDashboard()">
 
         @if(session('success'))
             <div role="alert" class="alert alert-success alert-soft">
@@ -431,8 +434,20 @@
             chartTab: 'trend',
             _trendChart: null,
             _revProgramChart: null,
+            _enrollmentChart: null,
 
             fmt(v) { return Number(v || 0).toLocaleString('id-ID'); },
+
+            // Buang chart lama yang menempel di sebuah canvas SEBELUM bikin baru.
+            // Pakai Chart.getChart() supaya juga aman kalau komponen Alpine
+            // di-recreate (mis. navigasi bfcache) — bukan cuma double-call biasa.
+            _freshCanvas(id) {
+                const el = document.getElementById(id);
+                if (!el) return null;
+                const existing = (window.Chart && Chart.getChart) ? Chart.getChart(el) : null;
+                if (existing) existing.destroy();
+                return el.getContext('2d');
+            },
 
             init() {
                 this.renderTrendChart();
@@ -474,8 +489,9 @@
             },
 
             renderTrendChart() {
-                const ctx = document.getElementById('trendChart').getContext('2d');
-                if (this._trendChart) this._trendChart.destroy();
+                if (this._trendChart) { this._trendChart.destroy(); this._trendChart = null; }
+                const ctx = this._freshCanvas('trendChart');
+                if (!ctx) return;
 
                 if (this.chartTab === 'trend') {
                     this._trendChart = new Chart(ctx, {
@@ -518,8 +534,9 @@
             },
 
             renderRevenueProgramChart() {
-                const ctx = document.getElementById('revenueProgramChart').getContext('2d');
-                if (this._revProgramChart) this._revProgramChart.destroy();
+                if (this._revProgramChart) { this._revProgramChart.destroy(); this._revProgramChart = null; }
+                const ctx = this._freshCanvas('revenueProgramChart');
+                if (!ctx) return;
                 this._revProgramChart = new Chart(ctx, {
                     type: 'bar',
                     data: {
@@ -538,8 +555,10 @@
             },
 
             renderEnrollmentChart() {
-                const ctx = document.getElementById('enrollmentChart').getContext('2d');
-                new Chart(ctx, {
+                if (this._enrollmentChart) { this._enrollmentChart.destroy(); this._enrollmentChart = null; }
+                const ctx = this._freshCanvas('enrollmentChart');
+                if (!ctx) return;
+                this._enrollmentChart = new Chart(ctx, {
                     type: 'doughnut',
                     data: {
                         labels: @json($chartProgramLabels),
