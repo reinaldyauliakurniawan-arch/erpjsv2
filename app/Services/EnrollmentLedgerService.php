@@ -160,7 +160,11 @@ class EnrollmentLedgerService
             ->count();
 
         $perMeeting = $totalMeetings > 0 ? bcdiv($totalAmount, (string) $totalMeetings, 2) : '0';
-        $revenue = bcmul((string) $meetings, $perMeeting, 2);
+        // Kalau semua pertemuan sudah jalan, revenue = TEPAT total_amount (sisa
+        // pembulatan perMeeting diserap) — konsisten dg RevenueRecognitionService.
+        $revenue = ($totalMeetings > 0 && $meetings >= $totalMeetings)
+            ? bcadd($totalAmount, '0', 2)
+            : bcmul((string) $meetings, $perMeeting, 2);
 
         $cash = $enrollment->payment_method === 'installment'
             ? (string) $enrollment->installments()->whereNotNull('paid_at')->sum('amount')

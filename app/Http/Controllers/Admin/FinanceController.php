@@ -40,7 +40,7 @@ class FinanceController extends Controller
         $cf = $this->reports->cashFlow($from, $to);
         $bs = $this->reports->balanceSheet($to);
 
-        $netRevenue = (float) $pl['totalRevenue'] - (float) $pl['totalContra'];
+        $netRevenue = (float) $pl['netRevenue'];   // bruto − contra-revenue (4111)
         $expense = (float) $pl['totalExpense'];
         $netProfit = (float) $pl['netProfit'];
 

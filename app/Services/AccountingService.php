@@ -23,9 +23,10 @@ class AccountingService
      */
     public function createJournal(string $date, string $description, string $reference, array $items, string $type = 'general', ?int $programId = null, ?int $enrollmentId = null): Journal
     {
-        // 1. Validate balance
-        $totalDebit = collect($items)->sum('debit');
-        $totalCredit = collect($items)->sum('credit');
+        // 1. Validate balance. Nilai debit/kredit bisa datang sebagai string
+        // bcmath ('333333.33') atau float — normalisasi ke 2 desimal dulu.
+        $totalDebit = round((float) collect($items)->sum(fn ($i) => (float) $i['debit']), 2);
+        $totalCredit = round((float) collect($items)->sum(fn ($i) => (float) $i['credit']), 2);
 
         if (abs($totalDebit - $totalCredit) > 0.001) {
             throw new BalanceMismatchException("Total debit ({$totalDebit}) does not equal total credit ({$totalCredit}).");

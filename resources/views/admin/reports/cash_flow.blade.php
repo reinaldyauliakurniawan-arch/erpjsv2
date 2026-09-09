@@ -70,7 +70,7 @@
     <div class="app-card app-card--flush">
 
         <div class="px-lg py-md bg-surface-container border-b border-surface-border">
-            <p class="font-semibold text-on-surface">Laporan Arus Kas (Metode Langsung)</p>
+            <p class="font-semibold text-on-surface">Laporan Arus Kas (Metode Tidak Langsung)</p>
             <p class="text-xs text-on-surface-variant mt-xs">Just Speak · {{ \Carbon\Carbon::parse($from)->translatedFormat('d M Y') }} – {{ \Carbon\Carbon::parse($to)->translatedFormat('d M Y') }}</p>
         </div>
 

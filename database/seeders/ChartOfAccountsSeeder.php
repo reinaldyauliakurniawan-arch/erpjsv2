@@ -54,6 +54,14 @@ class ChartOfAccountsSeeder extends Seeder
                 'cash_flow_category' => 'operating',
             ],
             [
+                // Contra-revenue: type Revenue tapi bersaldo DEBIT (potongan /
+                // retur penjualan). SELALU dikurangkan dari pendapatan & laba.
+                'code' => '4111',
+                'name' => 'Potongan Pendapatan (Contra)',
+                'type' => 'Revenue',
+                'cash_flow_category' => 'operating',
+            ],
+            [
                 'code' => AccountCode::EXPENSE_TUTOR_FEE->value,
                 'name' => 'Expense - Tutor Fee',
                 'type' => 'Expense',
@@ -78,10 +86,34 @@ class ChartOfAccountsSeeder extends Seeder
                 'cash_flow_category' => 'operating',
             ],
             [
+                'code' => '1005',
+                'name' => 'Aset Tetap - Peralatan',
+                'type' => 'Asset',
+                'cash_flow_category' => 'investing',
+            ],
+            [
                 'code' => '1006',
                 'name' => 'Akumulasi Penyusutan Aset Tetap',
                 'type' => 'Asset',
                 'cash_flow_category' => 'investing',
+            ],
+            [
+                'code' => '3001',
+                'name' => 'Modal Disetor',
+                'type' => 'Equity',
+                'cash_flow_category' => 'financing',
+            ],
+            [
+                'code' => '3002',
+                'name' => 'Prive / Drawing',
+                'type' => 'Equity',
+                'cash_flow_category' => 'financing',
+            ],
+            [
+                'code' => '5105',
+                'name' => 'Beban Sewa',
+                'type' => 'Expense',
+                'cash_flow_category' => 'operating',
             ],
             [
                 'code' => '5108',

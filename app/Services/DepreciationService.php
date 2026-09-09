@@ -109,7 +109,11 @@ class DepreciationService
             return null;
         }
 
-        $amount = $asset->monthly_depreciation;
+        // Bulan ke-berapa sejak perolehan (0 = bulan perolehan).
+        $monthIndex = (int) $asset->acquired_at->copy()->startOfMonth()
+            ->diffInMonths($period->copy()->startOfMonth());
+
+        $amount = $this->depreciationForMonth($asset, $monthIndex);
         if ($amount <= 0) {
             return null;
         }
@@ -170,5 +174,27 @@ class DepreciationService
         }
 
         return "Penyusutan {$asset->name} ({$period->format('M Y')}): Rp ".number_format($amount, 0, ',', '.');
+    }
+
+    /**
+     * Beban penyusutan garis-lurus untuk satu bulan (index 0..useful_life-1).
+     * Dibulatkan ke 2 desimal; BULAN TERAKHIR menyerap sisa pembulatan supaya
+     * total akumulasi penyusutan == (cost − salvage) PERSIS (book value akhir
+     * tepat di salvage value, tidak lebih/kurang sepersekian sen).
+     */
+    public function depreciationForMonth(FixedAsset $asset, int $monthIndex): float
+    {
+        $life = (int) $asset->useful_life;
+        $base = round((float) $asset->cost - (float) $asset->salvage_value, 2);
+
+        if ($life <= 0 || $base <= 0 || $monthIndex < 0 || $monthIndex >= $life) {
+            return 0.0;
+        }
+
+        $perMonth = round($base / $life, 2);
+
+        return $monthIndex === $life - 1
+            ? round($base - $perMonth * ($life - 1), 2)
+            : $perMonth;
     }
 }

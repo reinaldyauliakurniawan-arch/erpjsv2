@@ -87,15 +87,24 @@ class RevenueRecognitionService
      * Total revenue yang WAJIB sudah diakui sejauh ini (berdasarkan jumlah
      * meeting yang sudah diproses attendance, dikali revenue per meeting).
      *
-     * @param int|null $meetingsOverride Kalau diisi, dipakai alih-alih query
-     *   ulang ke attendance_student. Wajib dipakai oleh caller yang sudah
-     *   attach() baris attendance_student untuk meeting yang SEDANG diproses
-     *   SEBELUM memanggil method ini — supaya tidak off-by-one (ikut
-     *   menghitung meeting yang sedang diproses).
+     * @param  int|null  $meetingsOverride  Kalau diisi, dipakai alih-alih query
+     *                                      ulang ke attendance_student. Wajib dipakai oleh caller yang sudah
+     *                                      attach() baris attendance_student untuk meeting yang SEDANG diproses
+     *                                      SEBELUM memanggil method ini — supaya tidak off-by-one (ikut
+     *                                      menghitung meeting yang sedang diproses).
      */
     public function totalRevenueRecognizedSoFar(Enrollment $enrollment, ?int $meetingsOverride = null): string
     {
         $meetings = $meetingsOverride ?? $this->meetingsRecognizedSoFar($enrollment);
+        $totalMeetings = (int) $enrollment->program->total_meetings;
+
+        // Kalau SEMUA pertemuan sudah diproses, revenue yang diakui = TEPAT
+        // total_amount kontrak — bukan `meetings × revenuePerMeeting` yang bisa
+        // meleset ±sepersekian sen karena pembulatan bcdiv(…, 2). Sisa
+        // pembulatan diserap di pertemuan terakhir (lihat splitForNextMeeting).
+        if ($totalMeetings > 0 && $meetings >= $totalMeetings) {
+            return bcadd((string) $enrollment->total_amount, '0', 2);
+        }
 
         return bcmul((string) $meetings, $this->revenuePerMeeting($enrollment), 2);
     }
@@ -129,15 +138,30 @@ class RevenueRecognitionService
      * (jadi meetingsRecognizedSoFar() masih menghitung N-1 meeting
      * sebelumnya, belum termasuk meeting yang sedang diproses).
      *
-     * @param int|null $meetingsOverride Lihat totalRevenueRecognizedSoFar().
-     *   Isi dengan jumlah meeting SEBELUM meeting yang sedang diproses ini,
-     *   kalau caller sudah attach() baris attendance_student-nya duluan.
+     * @param  int|null  $meetingsOverride  Lihat totalRevenueRecognizedSoFar().
+     *                                      Isi dengan jumlah meeting SEBELUM meeting yang sedang diproses ini,
+     *                                      kalau caller sudah attach() baris attendance_student-nya duluan.
      * @return array{fromDeferredRevenue: string, fromReceivable: string, revenueThisMeeting: string}
      */
     public function splitForNextMeeting(Enrollment $enrollment, ?int $meetingsOverride = null): array
     {
-        $revenueThisMeeting = $this->revenuePerMeeting($enrollment);
-        $availableDR        = $this->availableDeferredRevenue($enrollment, $meetingsOverride);
+        $recognizedBefore = $meetingsOverride ?? $this->meetingsRecognizedSoFar($enrollment);
+        $totalMeetings = (int) $enrollment->program->total_meetings;
+
+        // Pertemuan TERAKHIR menyerap sisa pembulatan: revenue = total_amount −
+        // (yang sudah diakui sejauh ini). Pertemuan lain = revenuePerMeeting.
+        // Hasil: Σ revenue seluruh pertemuan == total_amount PERSIS.
+        if ($totalMeetings > 0 && ($recognizedBefore + 1) >= $totalMeetings) {
+            $alreadyRecognized = bcmul((string) $recognizedBefore, $this->revenuePerMeeting($enrollment), 2);
+            $revenueThisMeeting = bcsub((string) $enrollment->total_amount, $alreadyRecognized, 2);
+            if (bccomp($revenueThisMeeting, '0', 2) < 0) {
+                $revenueThisMeeting = $this->revenuePerMeeting($enrollment);
+            }
+        } else {
+            $revenueThisMeeting = $this->revenuePerMeeting($enrollment);
+        }
+
+        $availableDR = $this->availableDeferredRevenue($enrollment, $meetingsOverride);
 
         $fromDR = bccomp($availableDR, $revenueThisMeeting, 2) >= 0
             ? $revenueThisMeeting
@@ -147,8 +171,8 @@ class RevenueRecognitionService
 
         return [
             'fromDeferredRevenue' => $fromDR,
-            'fromReceivable'      => $fromReceivable,
-            'revenueThisMeeting'  => $revenueThisMeeting,
+            'fromReceivable' => $fromReceivable,
+            'revenueThisMeeting' => $revenueThisMeeting,
         ];
     }
 
@@ -172,7 +196,7 @@ class RevenueRecognitionService
         $toDeferredRevenue = bcsub($paymentAmount, $toReceivable, 2);
 
         return [
-            'toReceivable'      => $toReceivable,
+            'toReceivable' => $toReceivable,
             'toDeferredRevenue' => $toDeferredRevenue,
         ];
     }

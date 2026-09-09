@@ -314,7 +314,9 @@ class ReportController extends Controller
         $totalAsset = $bs['totalAsset'];
         $totalLiability = $bs['totalLiability'];
         $totalEquity = $bs['totalEquity'];
-        $netProfitCurrent = $bs['netProfitCurrent'];
+        $netProfitCurrent = $bs['netProfitCurrentYear'];
+        $retainedAndCurrent = $bs['retainedAndCurrent'];
+        $isBalanced = $bs['isBalanced'];
 
         $accounts = Account::orderBy('code')->get();
 
@@ -328,7 +330,7 @@ class ReportController extends Controller
                 ->keyBy('account_id');
         }
 
-        return view('admin.reports.balance_sheet', compact('rows', 'totalAsset', 'totalLiability', 'totalEquity', 'netProfitCurrent', 'asOf', 'accounts', 'obBalances'));
+        return view('admin.reports.balance_sheet', compact('rows', 'totalAsset', 'totalLiability', 'totalEquity', 'netProfitCurrent', 'retainedAndCurrent', 'isBalanced', 'asOf', 'accounts', 'obBalances'));
     }
 
     public function deferredRevenue(Request $request)

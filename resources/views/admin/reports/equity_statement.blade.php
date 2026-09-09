@@ -64,6 +64,14 @@
                     <td class="py-sm text-on-surface">Modal Awal (Per 31 Des {{ $year - 1 }})</td>
                     <td class="py-sm text-right font-mono text-on-surface">Rp {{ number_format($modalAwal, 0, ',', '.') }}</td>
                 </tr>
+                @if(($setoran ?? 0) != 0)
+                <tr class="border-b border-surface-border">
+                    <td class="py-sm text-on-surface pl-md">+ Setoran Modal Tahun {{ $year }}</td>
+                    <td class="py-sm text-right font-mono text-success">
+                        + Rp {{ number_format($setoran, 0, ',', '.') }}
+                    </td>
+                </tr>
+                @endif
                 <tr class="border-b border-surface-border">
                     <td class="py-sm text-on-surface pl-md">+ Laba Bersih Tahun {{ $year }}</td>
                     <td class="py-sm text-right font-mono {{ $labaBersih >= 0 ?'text-success' : 'text-error' }}">
