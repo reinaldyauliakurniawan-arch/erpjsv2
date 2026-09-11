@@ -269,15 +269,36 @@ Tampilan mengikuti filter periode dashboard yang sudah ada (endpoint
 `GET /finance/dashboard-data`), memakai kartu `app-card` yang sama gayanya
 dengan kartu lain di halaman. Indikator warna: DLER ≥ 2 hijau ("Sehat"),
 1,5–2 kuning ("Perlu Perhatian"), < 1,5 merah ("Bahaya"). `dler` bernilai
-`null` (ditampilkan "—") kalau belum ada biaya tutor tercatat di periode
+`null` (ditampilkan "N/A") kalau belum ada biaya tutor tercatat di periode
 terpilih — supaya tidak menampilkan "efisiensi tak hingga" yang salah.
 
+Copy panel ditulis untuk CFO, BUKAN developer: tidak ada rujukan ke nama
+file/kode akun di UI. Panel berjudul "Efisiensi Tenaga Kerja (LER)" dengan
+DLER ditandai eksplisit sebagai satu komponen ("Tenaga pengajar (DLER)"),
+supaya CFO tidak salah paham DLER itu satu-satunya angka — ada ikon info
+dengan tooltip singkat DLER vs MLER untuk orang awam.
+
+**Total LER = DLER + MLER.** Ditambahkan `combineLaborEfficiency(?dler,
+?mler)` di `FinancialReportService` sebagai satu tempat untuk logic
+null-propagation: hasilnya `null` kalau SALAH SATU komponen belum ada —
+supaya panel TIDAK diam-diam menampilkan DLER-saja sebagai "Total LER" yang
+menyesatkan. `managementLaborEfficiency()` SENGAJA selalu mengembalikan
+`null` untuk saat ini (lihat bagian MLER di bawah), jadi `laborEfficiency()`
+— method gabungan yang dipakai `FinanceController` — saat ini selalu
+menghasilkan `total_ler = null`. Begitu MLER bisa dihitung, `total_ler`
+otomatis terisi tanpa perlu ubah view. Baris "Total LER" di UI menampilkan
+pesan eksplisit "Belum bisa ditampilkan — menunggu data MLER di atas." kalau
+`null`, bukan disembunyikan diam-diam.
+
 **File yang diubah:** `app/Services/FinancialReportService.php` (method
-baru `directLaborEfficiency()` + konstanta `DIRECT_LABOR_CODES`),
-`app/Http/Controllers/Admin/FinanceController.php` (tambah key `ler` di
-`periodFigures()`, otomatis ikut ke `dashboard()` dan endpoint AJAX
-`dashboardData()`), `resources/views/admin/finance/dashboard.blade.php`
-(kartu baru + state Alpine `dler`/`grossMargin`/`directLaborCost`).
+`directLaborEfficiency()` + `managementLaborEfficiency()` (selalu `null`
+untuk saat ini) + `combineLaborEfficiency()` + `laborEfficiency()` yang
+menggabungkan ketiganya, konstanta `DIRECT_LABOR_CODES`),
+`app/Http/Controllers/Admin/FinanceController.php` (tambah key `ler` —
+sekarang dari `laborEfficiency()` — di `periodFigures()`, otomatis ikut ke
+`dashboard()` dan endpoint AJAX `dashboardData()`),
+`resources/views/admin/finance/dashboard.blade.php` (kartu baru + state
+Alpine `dler`/`grossMargin`/`directLaborCost`/`mler`/`totalLer`).
 
 **Test:** `tests/Feature/LaborEfficiencyRatioTest.php` — skenario konkret
 (2 jurnal pengakuan pendapatan 6.000.000 + 4.000.000, jurnal honor tutor
@@ -286,7 +307,11 @@ sengaja dicampur untuk memastikan TIDAK ikut terhitung sebagai Direct Labor)
 → assert Margin Kotor = 6.500.000, DLER = 6.500.000 ÷ 3.500.000 = 1,86x, dan
 ambang warna "Perlu Perhatian". Test kedua mengunci kasus pembagi nol (`dler`
 = `null`, bukan 0). Test ketiga mengunci panel tampil di halaman dashboard
-untuk role `cfo`.
+untuk role `cfo`, termasuk `mler`/`total_ler` yang tetap `null` meski `dler`
+sudah ada. Test tambahan mengunci `combineLaborEfficiency()` secara terpisah
+(null kalau salah satu komponen null; menjumlahkan kalau keduanya ada) dan
+`laborEfficiency()` end-to-end (Total LER tetap `null` selama MLER masih
+`null`, walau DLER-nya sendiri sudah punya nilai nyata).
 
 ### MLER (Management Labor Efficiency Ratio) — BELUM diimplementasikan, perlu keputusan CFO
 

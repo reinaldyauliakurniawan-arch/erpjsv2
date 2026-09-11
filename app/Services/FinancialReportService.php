@@ -164,6 +164,54 @@ class FinancialReportService
         ];
     }
 
+    /**
+     * MLER (Management Labor Efficiency Ratio) = Contribution Margin ÷ Biaya
+     * Tenaga Kerja Manajemen/Admin, untuk periode `$from`–`$to`.
+     *
+     * SENGAJA SELALU mengembalikan `null` untuk saat ini: akun gaji
+     * admin/manajemen di chart of accounts (`5002 Beban Gaji Karyawan`)
+     * belum pernah dipakai mencatat transaksi sama sekali di buku besar
+     * (dicek langsung ke `journal_items` — 0 baris). Menghitung MLER
+     * sekarang akan selalu membagi dengan nol dan MENYESATKAN (bukan berarti
+     * manajemen "sangat efisien"). Lihat AUDIT_REPORT.md untuk detail temuan
+     * & rekomendasi ke CFO. Begitu gaji staff admin mulai dicatat sebagai
+     * jurnal bulanan ke akun yang jelas, isi method ini dengan rumus
+     * sesungguhnya: Contribution Margin ÷ Biaya Tenaga Kerja Manajemen.
+     */
+    public function managementLaborEfficiency(string $from, string $to): ?float
+    {
+        return null;
+    }
+
+    /**
+     * Gabungkan DLER + MLER jadi Total LER (Labor Efficiency Ratio) — konsep
+     * Greg Crabtree: kesimpulan akhir efisiensi tenaga kerja bisnis secara
+     * keseluruhan. `null` kalau SALAH SATU komponen belum bisa dihitung —
+     * supaya tidak diam-diam menampilkan DLER-saja sebagai Total LER yang
+     * menyesatkan (harus terlihat jelas belum lengkap, bukan disembunyikan).
+     * Logic null-propagation ini terpusat di sini, bukan diduplikasi di view.
+     */
+    public function combineLaborEfficiency(?float $dler, ?float $mler): ?float
+    {
+        return ($dler !== null && $mler !== null) ? round($dler + $mler, 2) : null;
+    }
+
+    /**
+     * Ringkasan Labor Efficiency Ratio lengkap untuk Dashboard Finance:
+     * rincian DLER (dari `directLaborEfficiency()`) + `mler` + `total_ler`
+     * (DLER + MLER, lewat `combineLaborEfficiency()`).
+     *
+     * @return array{net_revenue:float, direct_labor_cost:float, gross_margin:float, dler:?float, mler:?float, total_ler:?float}
+     */
+    public function laborEfficiency(string $from, string $to): array
+    {
+        $dlerResult = $this->directLaborEfficiency($from, $to);
+        $mler = $this->managementLaborEfficiency($from, $to);
+        $totalLer = $this->combineLaborEfficiency($dlerResult['dler'], $mler);
+
+        return $dlerResult + ['mler' => $mler, 'total_ler' => $totalLer];
+    }
+
     // ── NERACA ─────────────────────────────────────────────────────────────
 
     /**

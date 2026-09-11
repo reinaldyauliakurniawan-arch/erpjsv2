@@ -119,10 +119,64 @@ class LaborEfficiencyRatioTest extends TestCase
         $response->assertOk();
         $response->assertSee('Efisiensi Tenaga Kerja (LER)');
         $response->assertSee('Tenaga pengajar (DLER)');
+        $response->assertSee('Total LER (efisiensi tenaga kerja keseluruhan)');
         $response->assertViewHas('figures', function ($figures) {
             return $figures['ler']['dler'] === 3.0
                 && $figures['ler']['direct_labor_cost'] === 1_000_000.0
-                && $figures['ler']['gross_margin'] === 3_000_000.0;
+                && $figures['ler']['gross_margin'] === 3_000_000.0
+                // MLER belum bisa dihitung → Total LER juga harus null, MESKI
+                // DLER-nya sudah ada — tidak boleh diam-diam pakai DLER saja.
+                && $figures['ler']['mler'] === null
+                && $figures['ler']['total_ler'] === null;
         });
+    }
+
+    // ═══ Total LER = DLER + MLER (null-propagation terpusat di service) ═══
+
+    #[Test]
+    public function management_labor_efficiency_always_returns_null_for_now(): void
+    {
+        // Akun gaji admin/manajemen belum pernah dipakai mencatat transaksi
+        // di buku besar sama sekali → MLER SENGAJA selalu null, apa pun
+        // periodenya, sampai data itu tersedia (lihat AUDIT_REPORT.md).
+        $this->assertNull($this->reports->managementLaborEfficiency('2026-01-01', '2026-12-31'));
+    }
+
+    #[Test]
+    public function combine_labor_efficiency_returns_null_when_either_component_is_null(): void
+    {
+        $this->assertNull($this->reports->combineLaborEfficiency(2.5, null));
+        $this->assertNull($this->reports->combineLaborEfficiency(null, 1.2));
+        $this->assertNull($this->reports->combineLaborEfficiency(null, null));
+    }
+
+    #[Test]
+    public function combine_labor_efficiency_sums_both_components_when_both_available(): void
+    {
+        $this->assertEqualsWithDelta(3.0, $this->reports->combineLaborEfficiency(1.86, 1.14), 0.01);
+        $this->assertEqualsWithDelta(4.36, $this->reports->combineLaborEfficiency(2.5, 1.86), 0.01);
+    }
+
+    #[Test]
+    public function total_ler_stays_null_while_dler_alone_is_available(): void
+    {
+        // Skenario dengan DLER nyata (bukan null) — memastikan laborEfficiency()
+        // TIDAK diam-diam menjadikan DLER sebagai Total LER selama MLER masih
+        // null. Ini mengunci perilaku end-to-end lewat method gabungan yang
+        // dipakai FinanceController, bukan cuma unit combineLaborEfficiency().
+        $this->j('2026-07-05', 'REV-1', [
+            ['account_code' => '2002', 'debit' => 5_000_000, 'credit' => 0],
+            ['account_code' => '4101', 'debit' => 0, 'credit' => 5_000_000],
+        ]);
+        $this->j('2026-07-06', 'FEE-1', [
+            ['account_code' => '5001', 'debit' => 2_000_000, 'credit' => 0],
+            ['account_code' => '2003', 'debit' => 0, 'credit' => 2_000_000],
+        ]);
+
+        $result = $this->reports->laborEfficiency('2026-07-01', '2026-07-31');
+
+        $this->assertNotNull($result['dler']);
+        $this->assertNull($result['mler']);
+        $this->assertNull($result['total_ler']);
     }
 }

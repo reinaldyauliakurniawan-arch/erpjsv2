@@ -180,6 +180,19 @@
                     staff admin sebagai jurnal bulanan untuk mengaktifkan metrik ini.
                 </p>
             </div>
+
+            {{-- Kesimpulan: Total LER = DLER + MLER. Ikut hilang kalau salah
+                 satu komponen belum ada — TIDAK diam-diam menampilkan
+                 DLER-saja sebagai kesimpulan akhir yang menyesatkan. --}}
+            <div class="mt-md pt-md border-t border-surface-border flex items-center justify-between flex-wrap gap-sm">
+                <p class="text-body-sm font-semibold text-on-surface">Total LER (efisiensi tenaga kerja keseluruhan)</p>
+                <p class="font-bold text-body-md" x-show="totalLer !== null"
+                    :class="totalLer >= 2 ? 'text-success' : (totalLer >= 1.5 ? 'text-warning' : 'text-error')"
+                    x-text="totalLer !== null ? totalLer.toFixed(1) + 'x' : ''"></p>
+                <p class="text-label-lg text-on-surface-variant" x-show="totalLer === null" x-cloak>
+                    Belum bisa ditampilkan — menunggu data MLER di atas.
+                </p>
+            </div>
         </div>
 
         {{-- Detail lainnya — kartu kecil (angka pendukung / risiko). Sengaja
@@ -485,6 +498,8 @@
             dler: @json($figures['ler']['dler']),
             grossMargin: @json($figures['ler']['gross_margin']),
             directLaborCost: @json($figures['ler']['direct_labor_cost']),
+            mler: @json($figures['ler']['mler']),
+            totalLer: @json($figures['ler']['total_ler']),
 
             loading: false,
             chartTab: 'trend',
@@ -541,6 +556,8 @@
                         this.dler = d.ler.dler;
                         this.grossMargin = d.ler.gross_margin;
                         this.directLaborCost = d.ler.direct_labor_cost;
+                        this.mler = d.ler.mler;
+                        this.totalLer = d.ler.total_ler;
                         this.renderTrendChart();
                         this.renderRevenueProgramChart();
                     })
