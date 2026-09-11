@@ -192,6 +192,243 @@ TERAKHIR menyerap sisa: `base − perMonth × (life − 1)`. Total akumulasi ==
 
 ---
 
+# RONDE 2 — Audit menyeluruh setelah redesain Dashboard Finance
+
+Diminta CFO: "cek setiap page setiap angka setiap logika harusnya impeccable
+karena ini masalah keuangan". Menyisir seluruh `app/Services` +
+`app/Http/Controllers/Admin` yang menyentuh uang (bukan cuma yang sudah
+diaudit Ronde 1 di atas), termasuk RAB, Adjusting Journal, General
+Ledger/Adjusted Trial Balance, dan validasi form enrollment. Test pengunci:
+ditambahkan ke `AccountingFormulaAuditTest.php` (BUG 6–7),
+`RabRealisasiControllerTest.php`, `EnrollmentControllerTest.php`,
+`RoleDominoAuditTest.php`, dan `AdjustingJournalControllerTest.php` (baru).
+
+---
+
+## BUG 6 — Rentang tanggal lebar ("Semua Waktu") menghilangkan transaksi dari grafik
+
+**Lokasi:** `FinancialReportService::bucketLabels()` / `resolvePeriod()`
+(dipicu oleh penambahan filter periode "Semua Waktu" di Dashboard Finance).
+
+**Masalah:** `bucketLabels()` untuk granularitas bulanan di-cap 60 bucket (5
+tahun) dan mulai menghitung dari `$from` apa adanya. Filter "Semua Waktu"
+memakai `$from = LEDGER_INCEPTION` yang jauh di masa lalu — begitu rentang
+sebenarnya (`$from` s.d. `$to`) melebihi 5 tahun, bucket ke-61 dst (termasuk
+SEMUA transaksi nyata, yang baru terjadi belakangan) tidak pernah dibuatkan
+key, dan baris `if (! array_key_exists($key, ...)) continue;` di
+`trendSeries()`/`cashFlowSeries()` diam-diam membuang transaksi itu — chart
+Tren Keuangan & Arus Kas tampil kosong padahal datanya ada.
+
+**Bukti:** Ledger produksi mulai 2026-07; `LEDGER_INCEPTION` lama = 2000-01-01.
+Bucket 1..60 = Jan 2000–Des 2004 (semua kosong), transaksi asli di 2026 tidak
+pernah kebagian key sama sekali → `array_sum(trend.revenue) = 0` walau
+`revenue` periode aslinya jutaan rupiah.
+
+**Fix:** `resolvePeriod()` pindah ke granularitas **tahunan** untuk rentang
+> ~5 tahun (`bucketLabels()` dapat cabang baru `'year'`, cap 200 tahun — jauh
+lebih dari cukup, dan tetap menjamin *setiap* tanggal di `[$from,$to]`
+kebagian bucket, tidak peduli seberapa lebar). `bucketKey()` ikut menambah
+cabang `'year'`.
+
+**Test:** `wide_date_range_does_not_drop_transactions_from_trend_or_cash_flow_series`
+— rentang 7 tahun, transaksi di ujung awal & akhir, assert jumlah seri =
+total periode sesungguhnya.
+
+---
+
+## BUG 7 — `LEDGER_INCEPTION` bisa lebih baru dari jurnal tertua
+
+**Lokasi:** `FinancialReportService::LEDGER_INCEPTION` (dipakai
+`netProfitToDate()`, jadi dasar laba ditahan di `balanceSheet()` — BUG 3
+Ronde 1 — dan `$from` untuk periode "Semua Waktu").
+
+**Masalah:** `balanceSheet()` menjumlah saldo mentah Asset/Liability/Equity
+**tanpa batas bawah tanggal** (`whereDate('journals.date', '<=', $asOf)` saja),
+tapi melipat laba/rugi ke ekuitas hanya dari `LEDGER_INCEPTION` dan seterusnya.
+Kalau ADA jurnal (migrasi data lama, salah input tanggal — ditemukan langsung
+1 baris di database produksi bertanggal 1999, sebelum `LEDGER_INCEPTION` lama
+2000-01-01) yang menyentuh akun Revenue/Expense, dampaknya masuk ke
+Aset/Liabilitas tapi TIDAK ke Ekuitas → Neraca selisih.
+
+**Fix:** `LEDGER_INCEPTION` dimundurkan ke `1900-01-01` — margin aman jauh di
+luar rentang tanggal bisnis yang masuk akal, supaya kontrak "harus ≤ jurnal
+tertua" ini tahan terhadap data migrasi/anomali apa pun.
+
+**Test:** `ledger_inception_precedes_the_oldest_journal_so_retained_earnings_stays_balanced`.
+
+---
+
+## BUG 8 — Attendance ekstra di luar kontrak menambah revenue hantu
+
+**Lokasi:** `RevenueRecognitionService::splitForNextMeeting()`.
+
+**Masalah:** Cabang "pertemuan terakhir menyerap sisa pembulatan"
+(`($recognizedBefore + 1) >= $totalMeetings`) tetap TRUE untuk setiap
+pertemuan setelah pertemuan valid terakhir (data anomali: baris
+`attendance_student` lebih banyak dari `program.total_meetings` — bisa
+terjadi lewat migrasi/import yang bypass guard `remaining_meetings` di
+`AttendanceService::markAttendance`, atau `total_meetings` program diubah
+setelah siswa jalan). Setiap pertemuan ekstra menghitung ulang
+`alreadyRecognized = recognizedBefore × revenuePerMeeting` (BUKAN revenue
+yang sungguh-sungguh sudah diakui) — pertemuan ekstra pertama mengakui sisa
+pembulatan lagi (recehan), pertemuan ekstra berikutnya jatuh ke selisih
+negatif → fallback ke `revenuePerMeeting` PENUH. Total revenue enrollment bisa
+melebihi `total_amount` kontraknya.
+
+**Bukti (test):** Kontrak 3 pertemuan @ 1.000.000, 3 pertemuan normal + 2
+pertemuan ekstra disuntik langsung ke DB → revenue enrollment jadi
+**1.333.333,34** (seharusnya persis 1.000.000,00).
+
+**Fix:** Guard baru — begitu `recognizedBefore >= totalMeetings`, pertemuan
+itu (dan seterusnya) mengakui **Rp 0**, bukan menghitung ulang basis lama.
+
+**Test:** `extra_attendance_beyond_contracted_meetings_does_not_inflate_recognized_revenue`
+(dikonfirmasi gagal tanpa fix, dengan hasil di atas persis).
+
+---
+
+## BUG 9 — RAB tanpa rencana kuartal membuat anggaran bulanan jadi Rp 0
+
+**Lokasi:** `RabRealisasiController::index()`.
+
+**Masalah:** `$qSum = array_sum($qRaw) ?: $annual` — kalau `q1..q4` semua
+kosong (baris RAB baru, CFO baru isi angka tahunan) tapi `annual_budget` > 0,
+fallback `?: $annual` membuat `$qSum = $annual`, lalu
+`$qRaw[$q-1] / $qSum = 0 / $annual = 0` untuk SETIAP kuartal — anggaran
+bulanan & kuartalan baris itu diam-diam jadi Rp 0 di semua bulan (bukan
+tersebar rata seperti niatnya cabang `else $annual/12`, yang jadi dead code
+untuk skenario ini). CFO kehilangan visibilitas anggaran baris itu sepenuhnya
+di halaman Realisasi RAB.
+
+**Fix:** `$qSum = array_sum($qRaw)` (tanpa fallback). Kalau `$qSum == 0`,
+sebar rata eksplisit: `$annual / 12` per bulan, `$annual / 4` per kuartal.
+
+**Test:** `annual_budget_without_quarterly_phasing_splits_evenly_instead_of_vanishing`
+(dikonfirmasi gagal tanpa fix — `budget_q1` = 0, seharusnya 30jt untuk
+anggaran 120jt/tahun).
+
+---
+
+## BUG 10 — Akun contra-revenue tampil terbalik di General Ledger & Adjusted Trial Balance
+
+**Lokasi:** `ReportController::generalLedger()` dan `adjustedTrialBalance()`.
+
+**Masalah:** Kedua laporan mengklasifikasi debit/credit-normal HANYA dari
+`accounts.type` (`in_array($type, ['Asset','Expense'])`), tanpa pengecualian
+untuk akun contra-revenue (4111 — type Revenue tapi bersaldo DEBIT, lihat BUG
+2 Ronde 1). Diskon/potongan jadi tampil sebagai saldo NEGATIF di kolom
+credit-normal, alih-alih saldo positif di sisi debit — total keseluruhan
+laporan tetap benar (identitas akuntansi tidak rusak), tapi baris akun 4111
+individual membingungkan CFO ("kenapa Diskon Penjualan minus?").
+
+**Fix:** Kedua method sekarang juga memperlakukan akun di
+`FinancialReportService::CONTRA_REVENUE_CODES` sebagai debit-normal, persis
+seperti `profitLoss()`.
+
+**Test:** ditambahkan ke `contra_revenue_reduces_net_profit_and_net_revenue_everywhere`
+— assert baris 4111 di General Ledger (`normal_debet` true, saldo
++1.500.000) dan Adjusted Trial Balance (`pre_saldo` +1.500.000).
+
+---
+
+## BUG 11 — Jurnal Penyesuaian manual punya jalur posting duplikat & lebih lemah
+
+**Lokasi:** `AdjustingJournalController::store()`.
+
+**Masalah:** Method ini menulis `Journal`/`JournalItem` SENDIRI (bukan lewat
+`AccountingService::createJournal`, satu-satunya sumber kebenaran untuk
+validasi balance & idempotency) — dengan DUA kelemahan konkret:
+1. Cek balance pakai `round($totalDebit, 2) !== round($totalCredit, 2)` —
+   perbandingan `!==` di float bisa gagal untuk nilai yang sebenarnya sama
+   (representasi biner), beda dengan toleransi `abs(...) > 0.01` yang dipakai
+   `AccountingService`.
+2. Cek idempotency (`Journal::where('reference', ...)->exists()`) TANPA
+   `lockForUpdate()` — race condition antara dua submit bersamaan bisa lolos
+   kedua-duanya, tidak seperti `AccountingService::createJournal` yang
+   mengunci baris di dalam transaction.
+
+Ini juga berarti kalau rumus/validasi di `AccountingService` berubah di masa
+depan, jalur ini tidak ikut ter-update — dua implementasi independen dari
+invarian yang sama (`Σdebit = Σkredit`, idempotent per reference).
+
+**Fix:** `store()` di-refactor: `AdjustingJournal`/`AdjustingJournalItem`
+(bookkeeping form ini sendiri) tetap dibuat di sini, tapi posting
+sesungguhnya ke `journals`/`journal_items` SELALU lewat
+`AccountingService::createJournal` di dalam transaction yang sama —
+`BalanceMismatchException`/`IdempotencyException`/`AccountNotFoundException`
+ditangkap dan ditampilkan sebagai error form.
+
+**Test:** File baru `AdjustingJournalControllerTest.php` (sebelumnya method
+ini tidak punya test PHPUnit sama sekali) — posting balanced, unbalanced
+ditolak tanpa menyisakan draft yatim, dan referensi berurutan tidak
+menyisakan `AdjustingJournal` tanpa `posted_journal_id`.
+
+---
+
+## BUG 12 — Validasi cicilan vs total harga terlewat kalau harga dikosongkan
+
+**Lokasi:** `StoreEnrollmentRequest::withValidator()` (form Tambah Enrollment
+admin).
+
+**Masalah:** Field "Biaya Aktual" di form adalah override OPSIONAL — kalau
+dikosongkan (jalur PALING UMUM; placeholder-nya sendiri bilang "Default: harga
+program"), `EnrollmentService::enroll()` jatuh ke `program->price` sebagai
+`total_amount` (basis revenue recognition). Tapi cek silang "total cicilan
+harus sama dengan total harga" HANYA jalan kalau
+`!empty($this->input('total_amount'))` — begitu field itu dikosongkan
+(kasus paling sering), cek ini TIDAK PERNAH jalan sama sekali, untuk
+payment_method apa pun. Cicilan yang totalnya tidak nyambung dengan harga
+program bisa tersimpan tanpa peringatan, dan revenue recognition per
+pertemuan akan memakai `program->price` yang tidak sesuai dengan yang
+sungguh-sungguh ditagihkan ke siswa.
+
+**Fix:** Cek silang sekarang selalu menghitung `$effectiveTotal` (pakai
+`total_amount` kalau diisi, kalau tidak fallback ke `program->price` — SAMA
+PERSIS dengan fallback di `EnrollmentService::enroll()`) dan selalu
+memvalidasi terhadapnya.
+
+**Test:** `store_rejects_mismatched_installments_even_when_total_amount_is_left_blank`
+(dikonfirmasi lolos tanpa error sebelum fix).
+
+---
+
+## Catatan tambahan (bukan bug — validasi diperketat untuk pencegahan)
+
+- **`FixedAssetController::store()`/`update()`** — `salvage_value > cost`
+  menghasilkan basis penyusutan negatif. `DepreciationService` sudah aman
+  (menganggapnya 0, tidak crash), tapi sekarang ditolak eksplisit di validasi
+  form (`lte:cost`) supaya admin dapat pesan jelas, bukan aset yang diam-diam
+  tidak pernah tersusut. Test: `fixed_asset_salvage_value_greater_than_cost_is_rejected`.
+- **`resources/views/admin/reports/deferred_revenue.blade.php` (laporan
+  analitik, bukan buku besar)** — `ratePerMeeting` dihitung float biasa
+  (bukan `bcdiv` truncated 2 desimal seperti `RevenueRecognitionService`),
+  jadi bisa berbeda dari angka Deferred Revenue riil di buku besar sampai
+  ±beberapa sen untuk enrollment dengan banyak pertemuan. Tidak diubah —
+  besarannya tidak material (< Rp 1) dan halaman ini murni breakdown
+  per-siswa, bukan sumber angka yang diposting.
+
+---
+
+## Yang dicek & BENAR di Ronde 2 (tidak ada bug)
+
+- **`PayrollService`** (dibaca ulang penuh) — `approvePayrollRun`/
+  `reversePayrollRun` simetris, idempoten per referensi, `proratedSalaryForMonth`
+  pakai bcmath (kali dulu baru bagi, tidak kehilangan presisi).
+- **`EnrollmentLedgerService::rebuild`/`targetPosition`** (dibaca ulang penuh,
+  termasuk jalur direct-rewrite 2026-09-07) — konsisten dengan
+  `RevenueRecognitionService`, forfeiture enrollment expired/graduate
+  tercermin sama di kedua method.
+- **`DepreciationService`** — pro-rata & pembulatan bulan terakhir (BUG 6
+  Ronde 1) tetap benar untuk `rebuildAsset()` maupun `generateForPeriod()`.
+- **`JournalController::reverse`** — setiap jenis jurnal (revenue recognition,
+  tutor fee, rate assignment, cicilan, payroll) di-reverse lewat operasi
+  domain asalnya (bukan cuma balik debit/kredit), supaya sisa pertemuan/status
+  cicilan/jam tutor ikut kembali konsisten.
+- **`EquityStatementController`** — fix Ronde 1 (BUG 4) masih utuh; `modalAwal`
+  = ekuitas disetor + laba akumulatif s.d. akhir tahun lalu.
+
+---
+
 ## Yang dicek & BENAR (tidak ada bug)
 
 - **`AccountingService::createJournal`** — validasi `Σdebit = Σkredit` sudah

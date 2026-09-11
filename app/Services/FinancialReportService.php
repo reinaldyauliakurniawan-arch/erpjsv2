@@ -35,8 +35,19 @@ class FinancialReportService
     /** Akun kas & bank (Asset, saldo debit). */
     public const CASH_CODES = ['1001', '1002'];
 
-    /** Tanggal jauh sebelum transaksi pertama — dipakai untuk akumulasi "sejak awal". */
-    private const LEDGER_INCEPTION = '2000-01-01';
+    /**
+     * Tanggal jauh sebelum transaksi pertama — dipakai untuk akumulasi "sejak
+     * awal" (netProfitToDate, laba ditahan di balanceSheet(), periode "Semua
+     * Waktu"). HARUS selalu <= tanggal jurnal paling lama di database, atau
+     * Neraca bisa tidak balance: balanceSheet() menjumlah saldo Asset/
+     * Liability/Equity TANPA batas bawah tanggal, tapi melipat laba/rugi ke
+     * ekuitas hanya dari LEDGER_INCEPTION dan seterusnya — kalau ada jurnal
+     * (migrasi data lama, salah input tanggal, dsb) yang lebih tua dari
+     * konstanta ini DAN menyentuh akun Revenue/Expense, dampaknya masuk ke
+     * Aset/Liabilitas tapi tidak ke Ekuitas → Neraca selisih. 1900-01-01 dipilih
+     * sebagai margin aman jauh di luar rentang tanggal bisnis yang masuk akal.
+     */
+    private const LEDGER_INCEPTION = '1900-01-01';
 
     /**
      * Terjemahkan preset periode + custom range menjadi [from, to] + label +
@@ -67,7 +78,12 @@ class FinancialReportService
         }
 
         $days = Carbon::parse($f)->diffInDays(Carbon::parse($t)) + 1;
-        $granularity = $days <= 62 ? 'day' : 'month';
+        // Bucket bulanan di-cap 60 (5 tahun) di bucketLabels() — rentang lebih
+        // lebar dari itu (mis. periode "Semua Waktu" yang start-nya jauh di
+        // masa lalu) HARUS pindah ke granularitas tahunan, supaya setiap
+        // transaksi tetap kebagian bucket (tidak diam-diam hilang dari
+        // trendSeries/cashFlowSeries — lihat bucketLabels()).
+        $granularity = $days <= 62 ? 'day' : ($days <= 60 * 31 ? 'month' : 'year');
 
         return ['from' => $f, 'to' => $t, 'label' => $label, 'granularity' => $granularity, 'period' => $period];
     }
@@ -523,6 +539,15 @@ class FinancialReportService
                 $out[$cursor->toDateString()] = $cursor->translatedFormat('d M');
                 $cursor->addDay();
             }
+        } elseif ($granularity === 'year') {
+            // Rentang sangat lebar (mis. "Semua Waktu") — satu bucket per
+            // tahun kalender supaya SETIAP transaksi di [$from,$to] pasti
+            // kebagian bucket, berapa pun panjang rentangnya.
+            $cursor = $start->copy()->startOfYear();
+            while ($cursor->lte($end) && count($out) < 200) {
+                $out[$cursor->format('Y')] = $cursor->format('Y');
+                $cursor->addYear();
+            }
         } else {
             $cursor = $start->copy()->startOfMonth();
             while ($cursor->lte($end) && count($out) < 60) {
@@ -536,6 +561,10 @@ class FinancialReportService
 
     private function bucketKey(string $date, string $granularity): string
     {
-        return $granularity === 'day' ? substr($date, 0, 10) : substr($date, 0, 7);
+        return match ($granularity) {
+            'day' => substr($date, 0, 10),
+            'year' => substr($date, 0, 4),
+            default => substr($date, 0, 7),
+        };
     }
 }

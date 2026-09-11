@@ -148,10 +148,21 @@ class RevenueRecognitionService
         $recognizedBefore = $meetingsOverride ?? $this->meetingsRecognizedSoFar($enrollment);
         $totalMeetings = (int) $enrollment->program->total_meetings;
 
-        // Pertemuan TERAKHIR menyerap sisa pembulatan: revenue = total_amount −
-        // (yang sudah diakui sejauh ini). Pertemuan lain = revenuePerMeeting.
-        // Hasil: Σ revenue seluruh pertemuan == total_amount PERSIS.
-        if ($totalMeetings > 0 && ($recognizedBefore + 1) >= $totalMeetings) {
+        // Pertemuan di LUAR kontrak (data anomali: attendance_student lebih
+        // banyak dari total_meetings — migrasi lama, total_meetings program
+        // diubah setelah siswa jalan, dll) TIDAK BOLEH menambah revenue lagi —
+        // kontrak sudah lunas diakui penuh di pertemuan valid terakhir. Tanpa
+        // guard ini, cabang "pertemuan terakhir menyerap sisa" di bawah akan
+        // terus terpicu untuk tiap pertemuan ekstra dan mengakui revenue
+        // hantu (dan begitu selisihnya negatif, malah jatuh ke fallback
+        // revenuePerMeeting penuh) — total revenue enrollment bisa melebihi
+        // total_amount kontraknya.
+        if ($totalMeetings > 0 && $recognizedBefore >= $totalMeetings) {
+            $revenueThisMeeting = '0';
+        } elseif ($totalMeetings > 0 && ($recognizedBefore + 1) >= $totalMeetings) {
+            // Pertemuan TERAKHIR menyerap sisa pembulatan: revenue = total_amount
+            // − (yang sudah diakui sejauh ini). Pertemuan lain = revenuePerMeeting.
+            // Hasil: Σ revenue seluruh pertemuan == total_amount PERSIS.
             $alreadyRecognized = bcmul((string) $recognizedBefore, $this->revenuePerMeeting($enrollment), 2);
             $revenueThisMeeting = bcsub((string) $enrollment->total_amount, $alreadyRecognized, 2);
             if (bccomp($revenueThisMeeting, '0', 2) < 0) {

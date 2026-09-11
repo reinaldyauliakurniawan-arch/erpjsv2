@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Account;
+use App\Models\Attendance;
 use App\Models\Classroom;
 use App\Models\ClassSession;
 use App\Models\Enrollment;
@@ -200,6 +201,21 @@ class AccountingFormulaAuditTest extends TestCase
         $trend = $this->reports->trendSeries('2026-04-01', '2026-04-30', 'month');
         $this->assertEqualsWithDelta(8_500_000, array_sum($trend['revenue']), 0.5);
         $this->assertEqualsWithDelta(8_500_000, array_sum($trend['netProfit']), 0.5);
+
+        // General Ledger & Adjusted Trial Balance juga harus memperlakukan
+        // 4111 sebagai debit-normal (saldo +1.500.000), bukan credit-normal
+        // (yang akan tampil sebagai -1.500.000 — terbalik/membingungkan CFO).
+        $cfo = User::factory()->create(['role' => 'cfo']);
+        $glRes = $this->actingAs($cfo)->get(route('finance.reports.general-ledger', ['from' => '2026-04-01', 'to' => '2026-04-30']));
+        $glRow = collect($glRes->viewData('ledger'))->firstWhere('code', '4111');
+        $this->assertNotNull($glRow);
+        $this->assertTrue($glRow['normal_debet'], 'akun 4111 harus diperlakukan debit-normal di General Ledger');
+        $this->assertEqualsWithDelta(1_500_000, $glRow['final_balance'], 0.01);
+
+        $atbRes = $this->actingAs($cfo)->get(route('finance.reports.adjusted-trial-balance', ['from' => '2026-04-01', 'to' => '2026-04-30']));
+        $atbRow = collect($atbRes->viewData('rows'))->firstWhere('code', '4111');
+        $this->assertNotNull($atbRow);
+        $this->assertEqualsWithDelta(1_500_000, $atbRow->pre_saldo, 0.01, 'saldo 4111 di Adjusted Trial Balance harus positif (debit-normal)');
     }
 
     // ═══ BUG 3 — Neraca selalu balance untuk sembarang tanggal ════════════
@@ -376,6 +392,109 @@ class AccountingFormulaAuditTest extends TestCase
         $this->assertEqualsWithDelta(1_000_000, $pl['netProfit'], 0.01);
 
         $this->assertTrue($bs['isBalanced']);
+    }
+
+    // ═══ BUG 6 — Rentang tanggal lebar menghilangkan data dari seri chart ═══
+
+    #[Test]
+    public function wide_date_range_does_not_drop_transactions_from_trend_or_cash_flow_series(): void
+    {
+        // Rentang 7 tahun (mis. filter "Semua Waktu" yang start-nya jauh di
+        // masa lalu) HARUS pakai granularitas tahunan (lihat resolvePeriod()),
+        // supaya bucket bulanan (di-cap 60 = 5 tahun, dihitung dari $from)
+        // tidak diam-diam melewatkan transaksi di luar 5 tahun pertama.
+        $this->j('2020-03-01', 'WIDE-REV-1', [
+            ['account_code' => '1001', 'debit' => 1_000_000, 'credit' => 0],
+            ['account_code' => '4101', 'debit' => 0, 'credit' => 1_000_000],
+        ]);
+        $this->j('2026-06-15', 'WIDE-REV-2', [
+            ['account_code' => '1001', 'debit' => 2_000_000, 'credit' => 0],
+            ['account_code' => '4101', 'debit' => 0, 'credit' => 2_000_000],
+        ]);
+        $this->j('2026-06-16', 'WIDE-EXP-1', [
+            ['account_code' => '5001', 'debit' => 300_000, 'credit' => 0],
+            ['account_code' => '1001', 'debit' => 0, 'credit' => 300_000],
+        ]);
+
+        $from = '2020-01-01';
+        $to = '2026-12-31';
+        $p = $this->reports->resolvePeriod('custom', $from, $to);
+        $this->assertSame('year', $p['granularity'], 'rentang 7 tahun harus pakai granularitas tahunan');
+
+        $pl = $this->reports->profitLoss($from, $to);
+        $trend = $this->reports->trendSeries($from, $to, $p['granularity']);
+        $cf = $this->reports->cashFlow($from, $to);
+        $cfSeries = $this->reports->cashFlowSeries($from, $to, $p['granularity']);
+
+        $this->assertContains('2020', array_map(fn ($l) => (string) $l, $trend['labels']));
+        $this->assertContains('2026', array_map(fn ($l) => (string) $l, $trend['labels']));
+        $this->assertEqualsWithDelta($pl['netRevenue'], array_sum($trend['revenue']), 0.01, 'seri tren tidak boleh kehilangan transaksi lama');
+        $this->assertEqualsWithDelta($pl['totalExpense'], array_sum($trend['expense']), 0.01);
+        $this->assertEqualsWithDelta($cf['netChange'], array_sum($cfSeries['net']), 0.01, 'seri arus kas tidak boleh kehilangan transaksi lama');
+        $this->assertEqualsWithDelta(3_000_000, array_sum($trend['revenue']), 0.01);
+    }
+
+    #[Test]
+    public function ledger_inception_precedes_the_oldest_journal_so_retained_earnings_stays_balanced(): void
+    {
+        // Jurnal jauh sebelum "awal pembukuan" yang wajar (mis. data migrasi
+        // lama yang salah tanggal) TETAP harus ikut terlipat ke laba ditahan,
+        // supaya Neraca tidak selisih (lihat komentar LEDGER_INCEPTION).
+        $this->j('1950-01-01', 'ANCIENT-1', [
+            ['account_code' => '1001', 'debit' => 400_000, 'credit' => 0],
+            ['account_code' => '4101', 'debit' => 0, 'credit' => 400_000],
+        ]);
+
+        $bs = $this->reports->balanceSheet(now()->toDateString());
+        $this->assertTrue($bs['isBalanced'], 'transaksi lebih tua dari LEDGER_INCEPTION harus tetap membuat Neraca balance');
+        $this->assertEqualsWithDelta(400_000, $bs['retainedAndCurrent'], 0.01);
+    }
+
+    // ═══ BUG 7 — Attendance ekstra di luar kontrak menambah revenue hantu ═══
+
+    #[Test]
+    public function extra_attendance_beyond_contracted_meetings_does_not_inflate_recognized_revenue(): void
+    {
+        [$enrollment, $tutorUser] = $this->activeEnrollment(3, 1_000_000);
+
+        // 3 pertemuan normal, sesuai kontrak.
+        $this->mark($enrollment, $tutorUser, '2026-01-06');
+        $this->mark($enrollment, $tutorUser, '2026-01-07');
+        $this->mark($enrollment, $tutorUser, '2026-01-08');
+
+        // Anomali data (migrasi lama / total_meetings program diubah setelah
+        // siswa jalan): 2 baris attendance_student EKSTRA di luar kontrak,
+        // dimasukkan langsung ke DB — mensimulasikan data yang bypass guard
+        // remaining_meetings di AttendanceService (mis. hasil import).
+        for ($k = 0; $k < 2; $k++) {
+            $attendance = Attendance::create([
+                'class_session_id' => $enrollment->class_session_id,
+                'date' => now()->addDays($k + 1)->toDateString(),
+                'time_block' => '08:00-09:30',
+                'classroom_id' => Classroom::factory()->create()->id,
+                'marked_by' => $tutorUser->id,
+            ]);
+            DB::table('attendance_student')->insert([
+                'attendance_id' => $attendance->id,
+                'enrollment_id' => $enrollment->id,
+                'is_present' => true,
+                'created_at' => now(), 'updated_at' => now(),
+            ]);
+        }
+
+        app(EnrollmentLedgerService::class)->rebuild($enrollment->fresh());
+
+        $journalIds = DB::table('journals')->where('enrollment_id', $enrollment->id)->pluck('id');
+        $totalRevenue = (float) DB::table('journal_items as ji')
+            ->join('accounts as a', 'a.id', '=', 'ji.account_id')
+            ->where('a.code', '4101')
+            ->whereIn('ji.journal_id', $journalIds)
+            ->selectRaw('SUM(ji.credit) - SUM(ji.debit) v')->value('v');
+
+        $this->assertEqualsWithDelta(1_000_000, $totalRevenue, 0.01, 'revenue enrollment tidak boleh melebihi total_amount kontrak walau ada attendance ekstra');
+
+        $tb = (float) DB::table('journal_items')->selectRaw('SUM(debit) - SUM(credit) v')->value('v');
+        $this->assertEqualsWithDelta(0, $tb, 0.01, 'trial balance tetap 0');
     }
 
     // ── helper ───────────────────────────────────────────────────────────

@@ -81,9 +81,12 @@ class RabRealisasiController extends Controller
             $annual = $rab->annualBudget();
 
             // Pembagian anggaran bulanan: bentuknya mengikuti rencana kuartal,
-            // tapi jumlah 12 bulan dibuat sama dengan anggaran tahunan.
+            // tapi jumlah 12 bulan dibuat sama dengan anggaran tahunan. Kalau
+            // rencana per-kuartal belum diisi ($qRaw semua 0 — baris RAB baru
+            // yang baru diisi angka tahunannya saja), sebar rata 12 bulan
+            // alih-alih diam-diam jadi Rp 0 di semua bulan.
             $qRaw = [(int) $rab->q1, (int) $rab->q2, (int) $rab->q3, (int) $rab->q4];
-            $qSum = array_sum($qRaw) ?: $annual;
+            $qSum = array_sum($qRaw);
             $monthlyBudget = [];
             foreach ($months as $mm) {
                 $q = (int) ceil($mm / 3);
@@ -100,7 +103,7 @@ class RabRealisasiController extends Controller
             $budgetQ = [];
             $realQ = [];
             foreach ([1, 2, 3, 4] as $q) {
-                $budgetQ["q$q"] = (int) round($annual * ($qRaw[$q - 1] / $qSum));
+                $budgetQ["q$q"] = $qSum > 0 ? (int) round($annual * ($qRaw[$q - 1] / $qSum)) : (int) round($annual / 4);
                 $realQ["q$q"] = $m[$q * 3 - 2] + $m[$q * 3 - 1] + $m[$q * 3];
             }
 

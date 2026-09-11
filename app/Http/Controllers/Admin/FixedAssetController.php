@@ -62,7 +62,11 @@ class FixedAssetController extends Controller
             'category' => 'required|string|max:100',
             'acquired_at' => 'required|date',
             'cost' => 'required|numeric|min:0',
-            'salvage_value' => 'required|numeric|min:0',
+            // salvage_value > cost akan membuat basis penyusutan negatif —
+            // DepreciationService diam-diam menganggapnya 0 (aman, tidak crash),
+            // tapi lebih baik ditolak eksplisit di sini daripada admin bingung
+            // kenapa aset yang baru dibuat tidak pernah tersusut.
+            'salvage_value' => 'required|numeric|min:0|lte:cost',
             'useful_life' => 'required|integer|min:1',
             'depreciation_method' => 'required|in:straight_line',
             'expense_account_id' => 'nullable|exists:accounts,id',
@@ -89,7 +93,11 @@ class FixedAssetController extends Controller
             'category' => 'required|string|max:100',
             'acquired_at' => 'required|date',
             'cost' => 'required|numeric|min:0',
-            'salvage_value' => 'required|numeric|min:0',
+            // salvage_value > cost akan membuat basis penyusutan negatif —
+            // DepreciationService diam-diam menganggapnya 0 (aman, tidak crash),
+            // tapi lebih baik ditolak eksplisit di sini daripada admin bingung
+            // kenapa aset yang baru dibuat tidak pernah tersusut.
+            'salvage_value' => 'required|numeric|min:0|lte:cost',
             'useful_life' => 'required|integer|min:1',
             'depreciation_method' => 'required|in:straight_line',
             'expense_account_id' => 'nullable|exists:accounts,id',

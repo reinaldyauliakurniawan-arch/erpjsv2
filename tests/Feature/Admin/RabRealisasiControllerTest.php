@@ -76,6 +76,32 @@ class RabRealisasiControllerTest extends TestCase
     }
 
     #[Test]
+    public function annual_budget_without_quarterly_phasing_splits_evenly_instead_of_vanishing(): void
+    {
+        // Baris RAB baru: CFO baru mengisi angka tahunan, belum sempat
+        // membagi rencana per kuartal (q1..q4 masih 0/kosong). Anggaran
+        // bulanan/kuartalan HARUS tetap tersebar rata (annual/12, annual/4),
+        // bukan diam-diam jadi Rp 0 di semua bulan.
+        Rab::create([
+            'year' => 2026, 'division' => 'OPERATION', 'account_name' => 'Beban Baru', 'account_code' => '5001',
+            'rab_prev' => 0, 'annual_budget' => 120_000_000,
+            'q1' => 0, 'q2' => 0, 'q3' => 0, 'q4' => 0,
+        ]);
+
+        $res = $this->actingAs($this->cfo)
+            ->get(route('finance.rab-realisasi.index', ['year' => 2026]))
+            ->assertOk();
+
+        $row = collect($res->viewData('rows'))->firstWhere('account_code', '5001');
+        $this->assertSame(120_000_000, $row['budget_total']);
+        $this->assertSame(30_000_000, $row['budget_q1'], 'kuartal harus tersebar rata (120jt / 4), bukan 0');
+        $this->assertSame(30_000_000, $row['budget_q2']);
+        $this->assertSame(30_000_000, $row['budget_q3']);
+        $this->assertSame(30_000_000, $row['budget_q4']);
+        $this->assertGreaterThan(0, $row['budget_to_date'], 'anggaran sampai bulan berjalan tidak boleh Rp 0');
+    }
+
+    #[Test]
     public function cfo_can_save_actuals_revenue_and_target(): void
     {
         $this->seedRab();

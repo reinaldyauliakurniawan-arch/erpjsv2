@@ -92,7 +92,12 @@ class ReportController extends Controller
 
         // Untuk setiap akun, ambil semua transaksinya + hitung saldo berjalan
         $ledger = $accounts->map(function ($account) use ($openingBalances, $allItems) {
-            $normalDebet = in_array($account->type, ['Asset', 'Expense']);
+            // Akun contra-revenue (4111) tetap type Revenue tapi bersaldo
+            // DEBIT (potongan/diskon) — sama seperti FinancialReportService::
+            // profitLoss(), harus diperlakukan debit-normal di sini juga,
+            // supaya saldo berjalannya tidak tampil negatif/terbalik.
+            $normalDebet = in_array($account->type, ['Asset', 'Expense'])
+                || in_array($account->code, FinancialReportService::CONTRA_REVENUE_CODES, true);
 
             $opening = $openingBalances->get($account->id);
 
@@ -213,9 +218,9 @@ class ReportController extends Controller
         // Merge semua account_id
         $allIds = $preRows->keys()->merge($adjRows->keys())->unique();
 
-        $normalDebet = ['Asset', 'Expense'];
+        $normalDebetTypes = ['Asset', 'Expense'];
 
-        $rows = $allIds->map(function ($id) use ($preRows, $adjRows, $normalDebet) {
+        $rows = $allIds->map(function ($id) use ($preRows, $adjRows, $normalDebetTypes) {
             $pre = $preRows->get($id);
             $adj = $adjRows->get($id);
             $ref = $pre ?? $adj;
@@ -225,7 +230,10 @@ class ReportController extends Controller
             $adjDebit = (float) ($adj->debit ?? 0);
             $adjCredit = (float) ($adj->credit ?? 0);
 
-            $isNormal = in_array($ref->type, $normalDebet);
+            // Akun contra-revenue (4111) bersaldo DEBIT walau type-nya Revenue
+            // — perlakukan debit-normal juga di sini (lihat FinancialReportService).
+            $isNormal = in_array($ref->type, $normalDebetTypes)
+                || in_array($ref->code, FinancialReportService::CONTRA_REVENUE_CODES, true);
 
             // Saldo pre-adjustment
             $preSaldo = $isNormal

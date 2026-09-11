@@ -328,6 +328,27 @@ class RoleDominoAuditTest extends TestCase
         $this->assertBalanced();
     }
 
+    #[Test]
+    public function fixed_asset_salvage_value_greater_than_cost_is_rejected(): void
+    {
+        // salvage_value > cost -> basis penyusutan negatif. DepreciationService
+        // sendiri aman (menganggapnya 0, tidak crash), tapi validasi form harus
+        // menolak eksplisit — bukan diam-diam menyimpan aset yang tidak akan
+        // pernah tersusut tanpa pesan apa pun ke admin.
+        $exp = Account::factory()->create(['code' => '5198', 'type' => 'Expense'])->id;
+        $acc = Account::factory()->create(['code' => '1598', 'type' => 'Asset'])->id;
+
+        $this->actingAs(User::factory()->create(['role' => 'cfo']))
+            ->post(route('finance.assets.store'), [
+                'name' => 'Aset Aneh', 'category' => 'Elektronik', 'acquired_at' => now()->toDateString(),
+                'cost' => 1_000_000, 'salvage_value' => 2_000_000, 'useful_life' => 12,
+                'depreciation_method' => 'straight_line',
+                'expense_account_id' => $exp, 'accumulated_account_id' => $acc,
+            ])->assertSessionHasErrors('salvage_value');
+
+        $this->assertDatabaseMissing('fixed_assets', ['name' => 'Aset Aneh']);
+    }
+
     // ── D2: kuota program diturunkan -> waitlist aktif ─────────────────────
 
     #[Test]

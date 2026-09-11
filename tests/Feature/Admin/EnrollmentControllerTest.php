@@ -113,6 +113,43 @@ class EnrollmentControllerTest extends TestCase
             ->assertSessionHasErrors();
     }
 
+    #[Test]
+    public function store_rejects_mismatched_installments_even_when_total_amount_is_left_blank(): void
+    {
+        // "Biaya Aktual" di form create adalah override OPSIONAL — kalau
+        // dikosongkan (paling umum), total efektifnya adalah harga program.
+        // Cicilan yang tidak nyambung dengan harga program HARUS tetap
+        // ditolak, bukan lolos diam-diam karena total_amount tidak diisi.
+        $program = Program::factory()->create(['type' => 'private', 'price' => 1_000_000, 'total_meetings' => 8, 'min_quota' => 1]);
+        $classroom = Classroom::factory()->create(['capacity' => 5]);
+
+        $this->actingAs($this->admin)
+            ->post(route('admin.enrollments.store'), [
+                'program_id' => $program->id,
+                'enrollment_date' => '2025-01-10',
+                'expiry_date' => '2025-06-10',
+                'payment_method' => 'installment',
+                'payment_channel' => 'bank',
+                // total_amount sengaja TIDAK dikirim (dikosongkan di form).
+                'new_student' => [
+                    'name' => 'Budi Santoso',
+                    'email' => 'budi.santoso@example.com',
+                ],
+                'schedules' => [
+                    ['classroom_id' => $classroom->id, 'day' => 'Monday', 'time_block' => '08:00-09:30'],
+                ],
+                'installments' => [
+                    ['amount' => 300_000, 'due_date' => '2025-01-10'],
+                    ['amount' => 300_000, 'due_date' => '2025-02-10'],
+                    // Jumlah cicilan 600rb, padahal harga program 1jt.
+                ],
+            ])
+            ->assertSessionHasErrors('installments');
+
+        $this->assertDatabaseMissing('users', ['email' => 'budi.santoso@example.com']);
+        $this->assertSame(0, Enrollment::count(), 'tidak ada enrollment yang tersimpan kalau cicilan tidak cocok');
+    }
+
     // =========================================================
     //  SHOW
     // =========================================================
