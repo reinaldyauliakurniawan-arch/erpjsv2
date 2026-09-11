@@ -119,6 +119,29 @@ class FinanceDashboardPeriodTest extends TestCase
     }
 
     #[Test]
+    public function last_month_preset_resolves_to_the_previous_calendar_month(): void
+    {
+        $d = $this->dashboardData(['period' => 'last_month']);
+
+        $this->assertSame('last_month', $d['period']);
+        $this->assertSame('Bulan Lalu', $d['period_label']);
+        $this->assertSame(now()->subMonthNoOverflow()->startOfMonth()->toDateString(), $d['from']);
+        $this->assertSame(now()->subMonthNoOverflow()->endOfMonth()->toDateString(), $d['to']);
+    }
+
+    #[Test]
+    public function all_time_preset_includes_every_journal_ever_posted(): void
+    {
+        $d = $this->dashboardData(['period' => 'all']);
+
+        $this->assertSame('all', $d['period']);
+        $this->assertSame('Semua Waktu', $d['period_label']);
+        // Seluruh transaksi seedLedger(): Jan (1.2jt) + Feb (900rb) revenue, 400rb beban.
+        $this->assertEqualsWithDelta(2_100_000, $d['revenue'], 0.01);
+        $this->assertEqualsWithDelta(400_000, $d['expense'], 0.01);
+    }
+
+    #[Test]
     public function dashboard_net_cash_flow_equals_the_cash_flow_report_net_change(): void
     {
         $params = ['period' => 'custom', 'from' => '2026-01-01', 'to' => '2026-03-31'];

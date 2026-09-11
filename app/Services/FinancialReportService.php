@@ -57,11 +57,13 @@ class FinancialReportService
             [$f, $t, $label] = match ($period) {
                 'today' => [$now->copy()->startOfDay()->toDateString(), $now->copy()->endOfDay()->toDateString(), 'Hari Ini'],
                 'week' => [$now->copy()->startOfWeek()->toDateString(), $now->copy()->endOfWeek()->toDateString(), 'Minggu Ini'],
+                'last_month' => [$now->copy()->subMonthNoOverflow()->startOfMonth()->toDateString(), $now->copy()->subMonthNoOverflow()->endOfMonth()->toDateString(), 'Bulan Lalu'],
                 'quarter' => [$now->copy()->startOfQuarter()->toDateString(), $now->copy()->endOfQuarter()->toDateString(), 'Kuartal Ini'],
                 'year' => [$now->copy()->startOfYear()->toDateString(), $now->copy()->endOfYear()->toDateString(), 'Tahun Ini'],
+                'all' => [self::LEDGER_INCEPTION, $now->copy()->endOfDay()->toDateString(), 'Semua Waktu'],
                 default => [$now->copy()->startOfMonth()->toDateString(), $now->copy()->endOfMonth()->toDateString(), 'Bulan Ini'],
             };
-            $period = in_array($period, ['today', 'week', 'month', 'quarter', 'year']) ? $period : 'month';
+            $period = in_array($period, ['today', 'week', 'month', 'last_month', 'quarter', 'year', 'all']) ? $period : 'month';
         }
 
         $days = Carbon::parse($f)->diffInDays(Carbon::parse($t)) + 1;

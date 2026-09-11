@@ -20,29 +20,36 @@
         @endif
 
         {{-- Header + Filter Periode (satu filter, mempengaruhi SEMUA angka & grafik) --}}
-        <div class="flex items-start justify-between flex-wrap gap-sm">
-            <div>
-                <h3 class="text-headline-lg font-semibold text-on-surface">Finance Dashboard</h3>
-                <p class="text-label-lg text-on-surface-variant mt-xs">
-                    Angka periode: <span class="font-medium text-on-surface" x-text="periodLabel"></span>
-                    <span x-show="loading" class="loading loading-spinner loading-xs align-middle ml-xs"></span>
-                </p>
+        <div class="space-y-xs">
+            <div class="flex items-center gap-xs text-label-lg text-on-surface-variant">
+                <span>Finance</span>
+                <span class="material-symbols-outlined text-[14px]">chevron_right</span>
+                <span class="text-on-surface font-medium">Dashboard</span>
             </div>
-            <div class="flex items-center gap-sm flex-wrap">
-                <select class="select select-sm" x-model="period" @change="onPeriodChange()">
-                    <option value="today">Hari Ini</option>
-                    <option value="week">Minggu Ini</option>
-                    <option value="month">Bulan Ini</option>
-                    <option value="quarter">Kuartal Ini</option>
-                    <option value="year">Tahun Ini</option>
-                    <option value="custom">Custom</option>
-                </select>
-                <div x-show="period === 'custom'" x-cloak class="flex items-center gap-xs">
-                    <input type="date" class="input input-sm" x-model="from" />
-                    <span class="text-on-surface-variant text-xs">s/d</span>
-                    <input type="date" class="input input-sm" x-model="to" />
-                    <button type="button" class="btn btn-sm bg-primary-container text-on-primary border-none"
-                        @click="applyPeriod()" :disabled="!from || !to">Tampilkan</button>
+            <div class="flex items-start justify-between flex-wrap gap-sm">
+                <div>
+                    <h3 class="text-headline-lg font-semibold text-on-surface">Finance Dashboard</h3>
+                    <p class="text-label-lg text-on-surface-variant mt-xs">
+                        Angka periode: <span class="font-medium text-on-surface" x-text="periodLabel"></span>
+                        <span x-show="loading" class="loading loading-spinner loading-xs align-middle ml-xs"></span>
+                    </p>
+                </div>
+                <div class="flex items-center gap-sm flex-wrap">
+                    <select class="select select-sm" x-model="period" @change="onPeriodChange()">
+                        <option value="month">Bulan Ini</option>
+                        <option value="last_month">Bulan Lalu</option>
+                        <option value="quarter">Kuartal Ini</option>
+                        <option value="year">Tahun Ini</option>
+                        <option value="all">Semua Waktu</option>
+                        <option value="custom">Custom Range</option>
+                    </select>
+                    <div x-show="period === 'custom'" x-cloak class="flex items-center gap-xs">
+                        <input type="date" class="input input-sm" x-model="from" />
+                        <span class="text-on-surface-variant text-xs">s/d</span>
+                        <input type="date" class="input input-sm" x-model="to" />
+                        <button type="button" class="btn btn-sm bg-primary-container text-on-primary border-none"
+                            @click="applyPeriod()" :disabled="!from || !to">Tampilkan</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -55,21 +62,21 @@
             </div>
             <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
                 <div>
-                    <p class="text-body-sm text-on-surface-variant">Pendapatan</p>
+                    <p class="text-body-sm text-on-surface-variant">Pendapatan Total</p>
                     <p class="font-bold text-on-surface leading-tight text-headline-lg break-all">Rp {{ number_format($revenueTotal, 0, ',', '.') }}</p>
                     @if(abs($revenueTotal - $revenueYtd) >= 0.5)
                         <p class="text-label-lg text-on-surface-variant mt-xs">Tahun ini: Rp {{ number_format($revenueYtd, 0, ',', '.') }}</p>
                     @endif
                 </div>
                 <div>
-                    <p class="text-body-sm text-on-surface-variant">Beban</p>
+                    <p class="text-body-sm text-on-surface-variant">Beban Operasional</p>
                     <p class="font-bold text-on-surface leading-tight text-headline-lg break-all">Rp {{ number_format($expenseTotal, 0, ',', '.') }}</p>
                     @if(abs($expenseTotal - $expenseYtd) >= 0.5)
                         <p class="text-label-lg text-on-surface-variant mt-xs">Tahun ini: Rp {{ number_format($expenseYtd, 0, ',', '.') }}</p>
                     @endif
                 </div>
                 <div>
-                    <p class="text-body-sm text-on-surface-variant">{{ $profitTotal >= 0 ? 'Laba' : 'Rugi' }}</p>
+                    <p class="text-body-sm text-on-surface-variant">Laba/Rugi Bersih</p>
                     {{-- Nominal & badge margin dipisah ke <span> sendiri: break-all
                          hanya membungkus nominal rupiah, badge "(78.8%)" dapat
                          whitespace-nowrap supaya tidak pernah kepotong di tengah. --}}
@@ -91,9 +98,9 @@
 
         {{-- Baris 2: Posisi Kas + Posisi Keuangan (2 kolom — lebih menonjol dari
              "Detail lainnya" di bawah, tapi di bawah kartu besar Laba–Rugi). --}}
-        <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(280px, 1fr))">
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant">Cash Balance</p>
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+            <div class="lg:col-span-5 app-card flex flex-col justify-center min-h-[120px]">
+                <p class="text-body-sm text-on-surface-variant">Kas &amp; Setara Kas</p>
                 <p class="font-bold text-on-surface mt-xs leading-tight text-headline-md whitespace-nowrap" x-text="'Rp ' + fmt(cashBalance)"></p>
                 <p class="text-body-sm mt-xs flex items-center gap-xs flex-wrap">
                     <span class="material-symbols-outlined text-[16px]"
@@ -105,23 +112,23 @@
                 </p>
             </div>
 
-            <div class="app-card flex flex-col justify-center min-h-[120px]">
-                <p class="text-body-sm text-on-surface-variant mb-xs">Posisi Keuangan</p>
-                <div class="space-y-xs">
-                    <div class="flex items-baseline justify-between gap-sm">
-                        <span class="text-body-sm text-on-surface-variant">Total Aset</span>
-                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(totalAsset)"></span>
+            <div class="lg:col-span-7 app-card flex flex-col justify-center min-h-[120px]">
+                <p class="text-body-sm text-on-surface-variant mb-sm">Posisi Keuangan (Neraca)</p>
+                <div class="grid gap-md" style="grid-template-columns: repeat(auto-fit, minmax(140px, 1fr))">
+                    <div>
+                        <p class="text-body-sm text-on-surface-variant">Total Aset</p>
+                        <p class="font-semibold text-on-surface text-title-lg whitespace-nowrap" x-text="'Rp ' + fmt(totalAsset)"></p>
                     </div>
-                    <div class="flex items-baseline justify-between gap-sm">
-                        <span class="text-body-sm text-on-surface-variant">Total Kewajiban</span>
-                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(totalLiability)"></span>
+                    <div>
+                        <p class="text-body-sm text-on-surface-variant">Total Kewajiban</p>
+                        <p class="font-semibold text-on-surface text-title-lg whitespace-nowrap" x-text="'Rp ' + fmt(totalLiability)"></p>
                     </div>
-                    <div class="flex items-baseline justify-between gap-sm">
-                        <span class="text-body-sm text-on-surface-variant">Total Ekuitas</span>
-                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(totalEquity)"></span>
+                    <div>
+                        <p class="text-body-sm text-on-surface-variant">Total Ekuitas</p>
+                        <p class="font-semibold text-on-surface text-title-lg whitespace-nowrap" x-text="'Rp ' + fmt(totalEquity)"></p>
                     </div>
                 </div>
-                <p class="text-label-lg text-on-surface-variant mt-xs">Per akhir periode terpilih</p>
+                <p class="text-label-lg text-on-surface-variant mt-sm">Per akhir periode terpilih</p>
             </div>
         </div>
 
@@ -129,8 +136,8 @@
              dikeluarkan untuk gaji/honor menghasilkan margin kotor berapa
              kali lipat. Terdiri dari 2 komponen: tenaga pengajar (DLER, sudah
              bisa dihitung) dan tim admin/manajemen (MLER, belum tersedia). --}}
-        <div class="app-card">
-            <div class="flex items-center justify-between mb-md flex-wrap gap-xs">
+        <div class="space-y-md">
+            <div class="flex items-center justify-between flex-wrap gap-xs">
                 <div class="flex items-center gap-xs">
                     <p class="text-body-md font-semibold text-on-surface">Efisiensi Tenaga Kerja (LER)</p>
                     <div class="tooltip tooltip-right" data-tip="DLER = efisiensi tenaga pengajar langsung (tutor). MLER = efisiensi tim pendukung/manajemen (admin, dsb). Keduanya digabung jadi angka efisiensi tenaga kerja secara keseluruhan.">
@@ -140,51 +147,55 @@
                 <span class="text-label-lg text-on-surface-variant">Periode: <span x-text="periodLabel"></span></span>
             </div>
 
-            {{-- Komponen 1: tenaga pengajar (DLER) — sudah bisa dihitung. --}}
-            <p class="text-body-sm font-medium text-on-surface-variant mb-sm">Tenaga pengajar (DLER)</p>
-            <div class="flex flex-wrap items-end gap-lg">
-                <div>
-                    <p class="font-bold leading-tight text-headline-lg"
-                        :class="dler === null ? 'text-on-surface-variant' : (dler >= 2 ? 'text-success' : (dler >= 1.5 ? 'text-warning' : 'text-error'))"
-                        x-text="dler === null ? 'N/A' : dler.toFixed(1) + 'x'"></p>
-                    <p class="text-label-lg mt-xs font-medium"
-                        :class="dler === null ? 'text-on-surface-variant' : (dler >= 2 ? 'text-success' : (dler >= 1.5 ? 'text-warning' : 'text-error'))"
-                        x-text="dler === null ? 'Belum ada honor tutor tercatat di periode ini' : (dler >= 2 ? 'Sehat' : (dler >= 1.5 ? 'Perlu Perhatian' : 'Bahaya'))"></p>
-                </div>
-                <div class="flex-1 min-w-[220px] space-y-xs">
-                    <div class="flex items-baseline justify-between gap-sm">
-                        <span class="text-body-sm text-on-surface-variant">Margin Kotor (Pendapatan − Honor Tutor)</span>
-                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(grossMargin)"></span>
+            <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(320px, 1fr))">
+                {{-- Komponen 1: tenaga pengajar (DLER) — sudah bisa dihitung. --}}
+                <div class="app-card">
+                    <p class="text-body-sm font-medium text-on-surface-variant mb-sm">Tenaga pengajar (DLER)</p>
+                    <div class="flex flex-wrap items-end gap-lg">
+                        <div>
+                            <p class="font-bold leading-tight text-headline-lg"
+                                :class="dler === null ? 'text-on-surface-variant' : (dler >= 2 ? 'text-success' : (dler >= 1.5 ? 'text-warning' : 'text-error'))"
+                                x-text="dler === null ? 'N/A' : dler.toFixed(1) + 'x'"></p>
+                            <p class="text-label-lg mt-xs font-medium"
+                                :class="dler === null ? 'text-on-surface-variant' : (dler >= 2 ? 'text-success' : (dler >= 1.5 ? 'text-warning' : 'text-error'))"
+                                x-text="dler === null ? 'Belum ada honor tutor tercatat di periode ini' : (dler >= 2 ? 'Sehat' : (dler >= 1.5 ? 'Perlu Perhatian' : 'Bahaya'))"></p>
+                        </div>
+                        <div class="flex-1 min-w-[220px] space-y-xs">
+                            <div class="flex items-baseline justify-between gap-sm">
+                                <span class="text-body-sm text-on-surface-variant">Margin Kotor (Pendapatan − Honor Tutor)</span>
+                                <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(grossMargin)"></span>
+                            </div>
+                            <div class="flex items-baseline justify-between gap-sm">
+                                <span class="text-body-sm text-on-surface-variant">Biaya Tutor (honor + gaji tutor tetap)</span>
+                                <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(directLaborCost)"></span>
+                            </div>
+                        </div>
                     </div>
-                    <div class="flex items-baseline justify-between gap-sm">
-                        <span class="text-body-sm text-on-surface-variant">Biaya Tutor (honor + gaji tutor tetap)</span>
-                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(directLaborCost)"></span>
-                    </div>
+                    <p class="text-label-lg text-on-surface-variant mt-md">
+                        Artinya: setiap Rp 1 yang dikeluarkan untuk honor/gaji tutor, menghasilkan
+                        <span class="font-medium" x-text="dler === null ? '(belum ada data)' : ('Rp ' + dler.toFixed(1))"></span> margin kotor.
+                        Target sehat: 2x ke atas. Di bawah 1,5x berarti biaya tutor membakar kas lebih cepat daripada yang dihasilkan.
+                    </p>
                 </div>
-            </div>
-            <p class="text-label-lg text-on-surface-variant mt-md">
-                Artinya: setiap Rp 1 yang dikeluarkan untuk honor/gaji tutor, menghasilkan
-                <span class="font-medium" x-text="dler === null ? '(belum ada data)' : ('Rp ' + dler.toFixed(1))"></span> margin kotor.
-                Target sehat: 2x ke atas. Di bawah 1,5x berarti biaya tutor membakar kas lebih cepat daripada yang dihasilkan.
-            </p>
 
-            {{-- Komponen 2: tim admin/manajemen (MLER) — belum tersedia. --}}
-            <div class="mt-md pt-md border-t border-surface-border">
-                <div class="flex items-center gap-xs mb-xs">
-                    <p class="text-body-sm font-medium text-on-surface-variant">Tim admin/manajemen (MLER)</p>
-                    <span class="badge badge-ghost text-label-lg">Belum tersedia</span>
+                {{-- Komponen 2: tim admin/manajemen (MLER) — belum tersedia. --}}
+                <div class="app-card">
+                    <div class="flex items-center gap-xs mb-xs">
+                        <p class="text-body-sm font-medium text-on-surface-variant">Tim admin/manajemen (MLER)</p>
+                        <span class="badge badge-ghost text-label-lg">Belum tersedia</span>
+                    </div>
+                    <p class="text-label-lg text-on-surface-variant">
+                        Efisiensi tim admin/manajemen (MLER) belum bisa dihitung karena gaji staff admin
+                        belum pernah dicatat sebagai jurnal terpisah dari honor tutor. Mulai catat gaji
+                        staff admin sebagai jurnal bulanan untuk mengaktifkan metrik ini.
+                    </p>
                 </div>
-                <p class="text-label-lg text-on-surface-variant">
-                    Efisiensi tim admin/manajemen (MLER) belum bisa dihitung karena gaji staff admin
-                    belum pernah dicatat sebagai jurnal terpisah dari honor tutor. Mulai catat gaji
-                    staff admin sebagai jurnal bulanan untuk mengaktifkan metrik ini.
-                </p>
             </div>
 
             {{-- Kesimpulan: Total LER = DLER + MLER. Ikut hilang kalau salah
                  satu komponen belum ada — TIDAK diam-diam menampilkan
                  DLER-saja sebagai kesimpulan akhir yang menyesatkan. --}}
-            <div class="mt-md pt-md border-t border-surface-border flex items-center justify-between flex-wrap gap-sm">
+            <div class="app-card flex items-center justify-between flex-wrap gap-sm">
                 <p class="text-body-sm font-semibold text-on-surface">Total LER (efisiensi tenaga kerja keseluruhan)</p>
                 <p class="font-bold text-body-md" x-show="totalLer !== null"
                     :class="totalLer >= 2 ? 'text-success' : (totalLer >= 1.5 ? 'text-warning' : 'text-error')"
@@ -195,59 +206,55 @@
             </div>
         </div>
 
-        {{-- Detail lainnya — kartu kecil (angka pendukung / risiko). Sengaja
-             lebih kecil dari 2 kartu di atas supaya hierarki visual jelas:
-             grid 3 kolom, tipografi & tinggi minimum lebih ringkas. --}}
-        <div class="space-y-sm">
-            <p class="text-body-md font-semibold text-on-surface">Detail lainnya</p>
-            <div class="grid gap-md" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr))">
-                <div class="app-card flex flex-col min-h-[92px]">
-                    <p class="text-body-sm text-on-surface-variant">Piutang Customer</p>
-                    <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($accountsReceivable, 0, ',', '.') }}</p>
-                    <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Revenue diakui, belum dibayar</p>
+        {{-- Metrik pendukung / risiko — kartu kecil, grid 5 kolom (collapse ke
+             2 kolom di tablet, 1 di mobile). --}}
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-md">
+            <div class="app-card flex flex-col min-h-[92px]">
+                <p class="text-body-sm text-on-surface-variant">Piutang Siswa</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($accountsReceivable, 0, ',', '.') }}</p>
+                <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Revenue diakui, belum dibayar</p>
+            </div>
+            <div class="app-card flex flex-col min-h-[92px]">
+                <p class="text-body-sm text-on-surface-variant">Pendapatan Tangguhan</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
+                <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Pendapatan diterima di muka</p>
+            </div>
+            <div class="app-card flex flex-col min-h-[92px]">
+                <p class="text-body-sm text-on-surface-variant">Utang Tutor</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($tutorPayable, 0, ',', '.') }}</p>
+                <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Belum dibayar ke tutor</p>
+            </div>
+            <div class="app-card flex flex-col min-h-[92px]">
+                <p class="text-body-sm text-on-surface-variant">Collection Rate</p>
+                <p class="font-bold mt-xs leading-tight text-title-lg"
+                    :class="collectionRate >= 80 ? 'text-success' : (collectionRate >= 50 ? 'text-warning' : 'text-error')"
+                    x-text="collectionRate.toFixed(1) + '%'"></p>
+                <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-xs">
+                    <div class="h-full rounded-full"
+                        :class="collectionRate >= 80 ? 'bg-success' : (collectionRate >= 50 ? 'bg-warning' : 'bg-error')"
+                        :style="'width:' + Math.min(collectionRate, 100) + '%'"></div>
                 </div>
-                <div class="app-card flex flex-col min-h-[92px]">
-                    <p class="text-body-sm text-on-surface-variant">Deferred Revenue</p>
-                    <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($deferredRevenue, 0, ',', '.') }}</p>
-                    <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Pendapatan diterima di muka</p>
-                </div>
-                <div class="app-card flex flex-col min-h-[92px]">
-                    <p class="text-body-sm text-on-surface-variant">Tutor Payable</p>
-                    <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($tutorPayable, 0, ',', '.') }}</p>
-                    <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Belum dibayar ke tutor</p>
-                </div>
-                <div class="app-card flex flex-col min-h-[92px]">
-                    <p class="text-body-sm text-on-surface-variant">Collection Rate</p>
-                    <p class="font-bold mt-xs leading-tight text-title-lg"
-                        :class="collectionRate >= 80 ? 'text-success' : (collectionRate >= 50 ? 'text-warning' : 'text-error')"
-                        x-text="collectionRate.toFixed(1) + '%'"></p>
-                    <div class="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mt-xs">
-                        <div class="h-full rounded-full"
-                            :class="collectionRate >= 80 ? 'bg-success' : (collectionRate >= 50 ? 'bg-warning' : 'bg-error')"
-                            :style="'width:' + Math.min(collectionRate, 100) + '%'"></div>
-                    </div>
-                    <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Cicilan siswa jatuh tempo di periode ini yang sudah masuk</p>
-                </div>
-                <div class="app-card flex flex-col min-h-[92px]">
-                    <p class="text-body-sm text-on-surface-variant">Burn Rate</p>
-                    <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($burnRate, 0, ',', '.') }}</p>
-                    <p class="text-label-lg text-on-surface-variant mt-xs">Rata-rata pengeluaran per bulan (6 bulan terakhir)</p>
-                    @if($runwayMonths !== null)
-                        <p class="text-label-lg mt-auto pt-xs">Tanpa pemasukan baru, bertahan: <span class="{{ $runwayMonths <= 3 ?'text-error' : ($runwayMonths <= 6 ? 'text-warning' : 'text-success') }} font-medium">{{ $runwayMonths }} bulan lagi</span></p>
-                    @endif
-                </div>
+                <p class="text-label-lg text-on-surface-variant mt-auto pt-xs">Cicilan siswa jatuh tempo di periode ini yang sudah masuk</p>
+            </div>
+            <div class="app-card flex flex-col min-h-[92px]">
+                <p class="text-body-sm text-on-surface-variant">Burn Rate Bulanan</p>
+                <p class="font-bold text-on-surface mt-xs leading-tight text-title-lg whitespace-nowrap">Rp {{ number_format($burnRate, 0, ',', '.') }}</p>
+                <p class="text-label-lg text-on-surface-variant mt-xs">Rata-rata pengeluaran per bulan (6 bulan terakhir)</p>
+                @if($runwayMonths !== null)
+                    <p class="text-label-lg mt-auto pt-xs">Tanpa pemasukan baru, bertahan: <span class="{{ $runwayMonths <= 3 ?'text-error' : ($runwayMonths <= 6 ? 'text-warning' : 'text-success') }} font-medium">{{ $runwayMonths }} bulan lagi</span></p>
+                @endif
             </div>
         </div>
 
         {{-- Charts Row 1: Tren keuangan (toggle) + Enrollment per Program --}}
-        <div class="grid gap-lg" style="grid-template-columns: repeat(auto-fit, minmax(300px, 1fr))">
-            <div class="app-card space-y-md">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-lg">
+            <div class="lg:col-span-7 app-card space-y-md">
                 <div class="flex items-center justify-between flex-wrap gap-sm">
                     <h4 class="text-headline-md font-semibold text-on-surface">Tren Keuangan</h4>
                     <div class="join">
                         <button type="button" class="btn btn-sm join-item"
                             :class="chartTab === 'trend' ? 'bg-primary-container text-on-primary border-none' : 'btn-ghost'"
-                            @click="chartTab = 'trend'; renderTrendChart()">Revenue &amp; Beban</button>
+                            @click="chartTab = 'trend'; renderTrendChart()">Pendapatan &amp; Beban</button>
                         <button type="button" class="btn btn-sm join-item"
                             :class="chartTab === 'cashflow' ? 'bg-primary-container text-on-primary border-none' : 'btn-ghost'"
                             @click="chartTab = 'cashflow'; renderTrendChart()">Arus Kas</button>
@@ -257,7 +264,7 @@
                     <canvas id="trendChart"></canvas>
                 </div>
             </div>
-            <div class="app-card space-y-md">
+            <div class="lg:col-span-5 app-card space-y-md">
                 <h4 class="text-headline-md font-semibold text-on-surface">Enrollment per Program</h4>
                 <div class="flex items-center gap-md">
                     <div style="position: relative; height: 260px; width: 260px; flex-shrink: 0;">
@@ -281,7 +288,7 @@
 
             <div class="app-card space-y-md flex flex-col" style="max-height: 400px;">
                 <div class="flex items-center justify-between flex-shrink-0">
-                    <h4 class="text-headline-md font-semibold text-on-surface">Overdue Installments</h4>
+                    <h4 class="text-headline-md font-semibold text-on-surface">Cicilan Jatuh Tempo</h4>
                     @if($overdueInstallments->count())
                         <span class="badge badge-soft badge-error whitespace-nowrap">Rp {{ number_format($overdueTotalAmount, 0, ',', '.') }}</span>
                     @endif
@@ -294,10 +301,10 @@
 <table class="table table-sm">
                             <thead>
                                 <tr class="border-b border-surface-border text-on-surface-variant">
-                                    <th>Student</th>
+                                    <th>Siswa</th>
                                     <th>Program</th>
-                                    <th class="w-28">Due</th>
-                                    <th class="text-right">Amount</th>
+                                    <th class="w-28">Jatuh Tempo</th>
+                                    <th class="text-right">Nominal</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -322,7 +329,7 @@
 
             <div class="app-card space-y-md flex flex-col" style="max-height: 400px;">
                 <div class="flex items-center justify-between flex-shrink-0">
-                    <h4 class="text-headline-md font-semibold text-on-surface">Private Class - Belum Bayar</h4>
+                    <h4 class="text-headline-md font-semibold text-on-surface">Privat Belum Bayar</h4>
                     @if($privateUnpaidWarnings->count())
                         <span class="badge badge-soft badge-error whitespace-nowrap">Rp {{ number_format($privateUnpaidWarningsTotal, 0, ',', '.') }}</span>
                     @endif
@@ -336,7 +343,7 @@
                             <table class="table table-sm">
                                 <thead>
                                     <tr class="border-b border-surface-border text-on-surface-variant">
-                                        <th>Student</th>
+                                        <th>Siswa</th>
                                         <th>Program</th>
                                         <th class="text-right">Piutang</th>
                                     </tr>
@@ -411,7 +418,7 @@
         {{-- Recent Journals --}}
         <div class="app-card space-y-md flex flex-col" style="max-height: 400px;">
             <div class="flex items-center justify-between flex-shrink-0">
-                <h4 class="text-headline-md font-semibold text-on-surface">Recent Journals</h4>
+                <h4 class="text-headline-md font-semibold text-on-surface">Jurnal Transaksi Terkini</h4>
                 <a href="{{ route('finance.journals.index') }}" class="btn btn-ghost btn-sm gap-xs">
                     <span class="material-symbols-outlined text-[16px]">open_in_new</span>
                     Lihat semua
@@ -425,11 +432,11 @@
 <table class="table table-sm">
                         <thead>
                             <tr class="border-b border-surface-border text-on-surface-variant">
-                                <th>Date</th>
-                                <th>Type</th>
-                                <th class="w-40">Reference</th>
-                                <th>Description</th>
-                                <th class="text-right">Amount</th>
+                                <th>Tanggal</th>
+                                <th>Tipe</th>
+                                <th class="w-40">No. Referensi</th>
+                                <th>Deskripsi</th>
+                                <th class="text-right">Nominal</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -575,7 +582,7 @@
                         data: {
                             labels: this.trend.labels,
                             datasets: [
-                                { type: 'bar', label: 'Revenue', data: this.trend.revenue, backgroundColor: BRAND.green, borderRadius: 8, order: 2 },
+                                { type: 'bar', label: 'Pendapatan', data: this.trend.revenue, backgroundColor: BRAND.green, borderRadius: 8, order: 2 },
                                 { type: 'bar', label: 'Beban', data: this.trend.expense, backgroundColor: BRAND.red, borderRadius: 8, order: 2 },
                                 { type: 'line', label: 'Laba Bersih', data: this.trend.netProfit, borderColor: BRAND.primary, backgroundColor: BRAND.primary, tension: 0.3, borderWidth: 2, pointRadius: 2, order: 1 },
                             ],
