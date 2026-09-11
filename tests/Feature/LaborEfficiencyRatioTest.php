@@ -117,7 +117,8 @@ class LaborEfficiencyRatioTest extends TestCase
         $response = $this->actingAs($cfo)->get(route('finance.index', ['period' => 'custom', 'from' => '2026-06-01', 'to' => '2026-06-30']));
 
         $response->assertOk();
-        $response->assertSee('Efisiensi Tenaga Kerja Tutor (DLER)');
+        $response->assertSee('Efisiensi Tenaga Kerja (LER)');
+        $response->assertSee('Tenaga pengajar (DLER)');
         $response->assertViewHas('figures', function ($figures) {
             return $figures['ler']['dler'] === 3.0
                 && $figures['ler']['direct_labor_cost'] === 1_000_000.0

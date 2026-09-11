@@ -125,15 +125,23 @@
             </div>
         </div>
 
-        {{-- Baris 3: Labor Efficiency Ratio (DLER) — konsep Greg Crabtree: satu
-             rupiah honor/gaji tutor menghasilkan margin kotor berapa kali
-             lipat. MLER (gaji admin/manajemen) belum bisa dihitung — akun
-             terkait belum pernah dipakai di buku besar, lihat AUDIT_REPORT.md. --}}
+        {{-- Baris 3: Efisiensi Tenaga Kerja (LER) — mengukur setiap Rp yang
+             dikeluarkan untuk gaji/honor menghasilkan margin kotor berapa
+             kali lipat. Terdiri dari 2 komponen: tenaga pengajar (DLER, sudah
+             bisa dihitung) dan tim admin/manajemen (MLER, belum tersedia). --}}
         <div class="app-card">
-            <div class="flex items-center justify-between mb-sm flex-wrap gap-xs">
-                <p class="text-body-md font-semibold text-on-surface">Efisiensi Tenaga Kerja Tutor (DLER)</p>
+            <div class="flex items-center justify-between mb-md flex-wrap gap-xs">
+                <div class="flex items-center gap-xs">
+                    <p class="text-body-md font-semibold text-on-surface">Efisiensi Tenaga Kerja (LER)</p>
+                    <div class="tooltip tooltip-right" data-tip="DLER = efisiensi tenaga pengajar langsung (tutor). MLER = efisiensi tim pendukung/manajemen (admin, dsb). Keduanya digabung jadi angka efisiensi tenaga kerja secara keseluruhan.">
+                        <span class="material-symbols-outlined text-on-surface-variant cursor-help" style="font-size: 18px">info</span>
+                    </div>
+                </div>
                 <span class="text-label-lg text-on-surface-variant">Periode: <span x-text="periodLabel"></span></span>
             </div>
+
+            {{-- Komponen 1: tenaga pengajar (DLER) — sudah bisa dihitung. --}}
+            <p class="text-body-sm font-medium text-on-surface-variant mb-sm">Tenaga pengajar (DLER)</p>
             <div class="flex flex-wrap items-end gap-lg">
                 <div>
                     <p class="font-bold leading-tight text-headline-lg"
@@ -159,9 +167,19 @@
                 <span class="font-medium" x-text="dler === null ? '(belum ada data)' : ('Rp ' + dler.toFixed(1))"></span> margin kotor.
                 Target sehat: 2x ke atas. Di bawah 1,5x berarti biaya tutor membakar kas lebih cepat daripada yang dihasilkan.
             </p>
-            <p class="text-label-lg text-on-surface-variant mt-xs">
-                Rasio untuk gaji staff admin/manajemen (MLER) belum bisa ditampilkan — akun untuk itu belum pernah dipakai mencatat transaksi. Lihat catatan di AUDIT_REPORT.md.
-            </p>
+
+            {{-- Komponen 2: tim admin/manajemen (MLER) — belum tersedia. --}}
+            <div class="mt-md pt-md border-t border-surface-border">
+                <div class="flex items-center gap-xs mb-xs">
+                    <p class="text-body-sm font-medium text-on-surface-variant">Tim admin/manajemen (MLER)</p>
+                    <span class="badge badge-ghost text-label-lg">Belum tersedia</span>
+                </div>
+                <p class="text-label-lg text-on-surface-variant">
+                    Efisiensi tim admin/manajemen (MLER) belum bisa dihitung karena gaji staff admin
+                    belum pernah dicatat sebagai jurnal terpisah dari honor tutor. Mulai catat gaji
+                    staff admin sebagai jurnal bulanan untuk mengaktifkan metrik ini.
+                </p>
+            </div>
         </div>
 
         {{-- Detail lainnya — kartu kecil (angka pendukung / risiko). Sengaja
