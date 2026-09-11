@@ -138,7 +138,7 @@
                 <div>
                     <p class="font-bold leading-tight text-headline-lg"
                         :class="dler === null ? 'text-on-surface-variant' : (dler >= 2 ? 'text-success' : (dler >= 1.5 ? 'text-warning' : 'text-error'))"
-                        x-text="dler === null ? '—' : dler.toFixed(1) + 'x'"></p>
+                        x-text="dler === null ? 'N/A' : dler.toFixed(1) + 'x'"></p>
                     <p class="text-label-lg mt-xs font-medium"
                         :class="dler === null ? 'text-on-surface-variant' : (dler >= 2 ? 'text-success' : (dler >= 1.5 ? 'text-warning' : 'text-error'))"
                         x-text="dler === null ? 'Belum ada honor tutor tercatat di periode ini' : (dler >= 2 ? 'Sehat' : (dler >= 1.5 ? 'Perlu Perhatian' : 'Bahaya'))"></p>
