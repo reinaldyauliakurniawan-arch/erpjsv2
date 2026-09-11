@@ -116,6 +116,54 @@ class FinancialReportService
         return (float) $this->profitLoss(self::LEDGER_INCEPTION, $asOf)['netProfit'];
     }
 
+    // ── LABOR EFFICIENCY RATIO (konsep Greg Crabtree, "Simple Numbers") ─────
+
+    /** Akun biaya tutor (Direct Labor): honor tutor lepas (5001) + gaji tutor tetap (5006). */
+    public const DIRECT_LABOR_CODES = ['5001', '5006'];
+
+    /**
+     * DLER (Direct Labor Efficiency Ratio) = Margin Kotor ÷ Biaya Tenaga Kerja
+     * Langsung (tutor), untuk periode `$from`–`$to`.
+     *
+     * Just Speak adalah bisnis jasa (mengajar) — tidak ada Cost of Goods Sold
+     * di luar biaya tutor (dicek: tidak ada akun HPP non-tutor yang pernah
+     * dipakai di buku besar). Maka, persis seperti model Crabtree untuk bisnis
+     * jasa (biaya tenaga kerja langsung ADALAH "cost of sales"-nya):
+     *
+     *     Margin Kotor = Pendapatan Bersih − Biaya Tutor
+     *     DLER         = Margin Kotor ÷ Biaya Tutor
+     *
+     * DLER adalah RASIO ("2.3x"), bukan persentase — istilah asli Crabtree
+     * "power rating". `dler` bernilai `null` kalau belum ada biaya tutor
+     * tercatat di periode ini (pembagi nol, bukan "efisiensi sempurna").
+     *
+     * MLER (Management Labor Efficiency Ratio) SENGAJA tidak dihitung di sini
+     * — akun gaji admin/manajemen di chart of accounts belum pernah dipakai
+     * di buku besar sama sekali (lihat AUDIT_REPORT.md untuk detail temuan).
+     *
+     * @return array{net_revenue:float, direct_labor_cost:float, gross_margin:float, dler:?float}
+     */
+    public function directLaborEfficiency(string $from, string $to): array
+    {
+        $pl = $this->profitLoss($from, $to);
+        $netRevenue = (float) $pl['netRevenue'];
+
+        $directLaborCost = (float) $pl['rows']
+            ->where('type', 'Expense')
+            ->whereIn('code', self::DIRECT_LABOR_CODES)
+            ->sum('amount');
+
+        $grossMargin = $netRevenue - $directLaborCost;
+        $dler = $directLaborCost > 0.0 ? round($grossMargin / $directLaborCost, 2) : null;
+
+        return [
+            'net_revenue' => $netRevenue,
+            'direct_labor_cost' => $directLaborCost,
+            'gross_margin' => $grossMargin,
+            'dler' => $dler,
+        ];
+    }
+
     // ── NERACA ─────────────────────────────────────────────────────────────
 
     /**

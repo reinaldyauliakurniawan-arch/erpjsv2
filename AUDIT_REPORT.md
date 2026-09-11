@@ -232,3 +232,100 @@ TERAKHIR menyerap sisa: `base − perMonth × (life − 1)`. Total akumulasi ==
 | `resources/views/admin/reports/cash_flow.blade.php` | Label "Metode Tidak Langsung" |
 | `resources/views/admin/reports/equity_statement.blade.php` | Baris "Setoran Modal" |
 | `tests/Feature/AccountingFormulaAuditTest.php` | Test pengunci semua fix di atas |
+
+---
+
+## FITUR — Labor Efficiency Ratio (LER) di Dashboard Finance
+
+Ditambahkan konsep **Labor Efficiency Ratio** dari Greg Crabtree (*Simple
+Numbers, Straight Talk, Big Profits*) ke Dashboard Finance: rasio yang
+mengukur "setiap Rp 1 yang dikeluarkan untuk tenaga kerja, menghasilkan
+berapa Rp margin kotor". Rasio (mis. "1.9x"), BUKAN persentase — istilah asli
+Crabtree "power rating".
+
+### DLER (Direct Labor Efficiency Ratio) — SUDAH diimplementasikan
+
+`FinancialReportService::directLaborEfficiency($from, $to)`:
+
+```
+Biaya Tutor (Direct Labor) = akun 5001 (Beban Gaji Tutor / honor lepas)
+                            + akun 5006 (Beban Gaji Tutor Tetap)
+Margin Kotor                = Pendapatan Bersih (netRevenue dari profitLoss())
+                             − Biaya Tutor
+DLER                        = Margin Kotor ÷ Biaya Tutor
+```
+
+**Keputusan desain — COGS = Biaya Tutor.** Just Speak adalah bisnis jasa
+(mengajar); dicek di database aktual (`accounts` + `journal_items`) — TIDAK
+ADA akun Cost of Goods Sold non-tutor yang pernah dipakai mencatat transaksi
+(akun `5402 HPP Produk` ada di chart of accounts tapi 0 baris jurnal). Maka
+mengikuti model Crabtree sendiri untuk bisnis jasa — biaya tenaga kerja
+langsung (yang mengajar) ADALAH "cost of sales"-nya — Margin Kotor dihitung
+sebagai Pendapatan Bersih dikurangi Biaya Tutor saja. Status tutor lepas vs.
+tetap SAMA-SAMA masuk Direct Labor (keduanya >50% waktunya langsung mengajar,
+cuma beda cara hitung honor), sesuai instruksi.
+
+Tampilan mengikuti filter periode dashboard yang sudah ada (endpoint
+`GET /finance/dashboard-data`), memakai kartu `app-card` yang sama gayanya
+dengan kartu lain di halaman. Indikator warna: DLER ≥ 2 hijau ("Sehat"),
+1,5–2 kuning ("Perlu Perhatian"), < 1,5 merah ("Bahaya"). `dler` bernilai
+`null` (ditampilkan "—") kalau belum ada biaya tutor tercatat di periode
+terpilih — supaya tidak menampilkan "efisiensi tak hingga" yang salah.
+
+**File yang diubah:** `app/Services/FinancialReportService.php` (method
+baru `directLaborEfficiency()` + konstanta `DIRECT_LABOR_CODES`),
+`app/Http/Controllers/Admin/FinanceController.php` (tambah key `ler` di
+`periodFigures()`, otomatis ikut ke `dashboard()` dan endpoint AJAX
+`dashboardData()`), `resources/views/admin/finance/dashboard.blade.php`
+(kartu baru + state Alpine `dler`/`grossMargin`/`directLaborCost`).
+
+**Test:** `tests/Feature/LaborEfficiencyRatioTest.php` — skenario konkret
+(2 jurnal pengakuan pendapatan 6.000.000 + 4.000.000, jurnal honor tutor
+lepas 2.000.000 + gaji tutor tetap 1.500.000, plus jurnal beban sewa yang
+sengaja dicampur untuk memastikan TIDAK ikut terhitung sebagai Direct Labor)
+→ assert Margin Kotor = 6.500.000, DLER = 6.500.000 ÷ 3.500.000 = 1,86x, dan
+ambang warna "Perlu Perhatian". Test kedua mengunci kasus pembagi nol (`dler`
+= `null`, bukan 0). Test ketiga mengunci panel tampil di halaman dashboard
+untuk role `cfo`.
+
+### MLER (Management Labor Efficiency Ratio) — BELUM diimplementasikan, perlu keputusan CFO
+
+**Temuan dari investigasi tabel `accounts` di database aktual** (bukan
+tebakan): ada akun `5002 "Beban Gaji Karyawan"`, dan di data RAB (anggaran)
+yang sudah dimigrasi dari spreadsheet CFO sendiri
+(`database/seeders/Traits/HasOperationsSeeders.php`), akun ini memang
+dianggarkan CFO untuk aktivitas **"Gaji Staff Admin"** di bawah divisi SDM.
+Jadi SECARA NAMA akun ini memang cocok untuk gaji admin/manajemen — bukan
+akun sewa/listrik yang dipaksakan jadi proxy.
+
+**Tapi:** dicek jumlah baris `journal_items` untuk akun `5002` di buku besar
+aktual = **0 (nol)**. Akun ini ada di chart of accounts dan sudah dianggarkan
+di RAB, tapi **belum pernah sekali pun dipakai mencatat transaksi gaji
+sungguhan**. Dicek juga: `PayrollService` (modul payroll di aplikasi) HANYA
+memproses honor tutor (akun 5001/5006) — tidak ada alur otomatis yang
+memposting gaji staff admin/manajemen ke akun 5002 sama sekali. Kemungkinan
+gaji staff admin selama ini dibayar/dicatat di luar ERP.
+
+Kalau MLER dipaksa dihitung sekarang: pembagi (biaya manajemen) akan selalu
+Rp 0 untuk setiap periode sampai hari ini → rasio "tak hingga" atau tidak
+terdefinisi, yang menyesatkan (bukan berarti manajemen "sangat efisien").
+Sesuai instruksi, MLER **sengaja tidak dibuat** sampai data ini jelas.
+
+**Rekomendasi ke CFO (perlu keputusan, bukan keputusan teknis sepihak):**
+1. Mulai posting gaji staff admin/manajemen ke akun `5002 Beban Gaji
+   Karyawan` secara konsisten setiap bulan (manual jurnal via halaman
+   Jurnal, atau modul payroll baru khusus staff non-tutor) — begitu ada
+   histori data beberapa bulan, MLER bisa ditambahkan dengan pola yang
+   sama persis dengan DLER.
+2. Perlu dikonfirmasi ke CFO: apakah `5002` dimaksudkan HANYA untuk staff
+   admin/manajemen (front office, HR, keuangan, dll — yang tidak langsung
+   mengajar), atau tercampur dengan staff operasional lain? Nama akun
+   "Karyawan" (generik) tidak setegas "Admin/Manajemen" — kalau perlu lebih
+   presisi, bisa ditambah akun baru khusus `Beban Gaji Admin/Manajemen`
+   dengan `cash_flow_category = operating`, mengikuti pola akun 5001/5006
+   yang sudah eksplisit.
+3. Setelah data tersedia, `Contribution Margin` (pembilang MLER, per definisi
+   instruksi) perlu didefinisikan eksplisit juga — di P&L saat ini belum ada
+   konsep itu sama sekali (hanya Pendapatan − Beban = Laba flat, tanpa
+   pemisahan COGS/Overhead). Itu keputusan desain terpisah yang juga perlu
+   dikonfirmasi CFO sebelum MLER dibangun.

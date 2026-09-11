@@ -67,6 +67,7 @@ class FinanceController extends Controller
             'trend' => $this->reports->trendSeries($from, $to, $p['granularity']),
             'cash_flow_series' => $this->reports->cashFlowSeries($from, $to, $p['granularity']),
             'revenue_by_program' => $this->revenueByProgram($from, $to),
+            'ler' => $this->reports->directLaborEfficiency($from, $to),
         ];
     }
 

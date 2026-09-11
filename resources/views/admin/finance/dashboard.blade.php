@@ -125,6 +125,45 @@
             </div>
         </div>
 
+        {{-- Baris 3: Labor Efficiency Ratio (DLER) — konsep Greg Crabtree: satu
+             rupiah honor/gaji tutor menghasilkan margin kotor berapa kali
+             lipat. MLER (gaji admin/manajemen) belum bisa dihitung — akun
+             terkait belum pernah dipakai di buku besar, lihat AUDIT_REPORT.md. --}}
+        <div class="app-card">
+            <div class="flex items-center justify-between mb-sm flex-wrap gap-xs">
+                <p class="text-body-md font-semibold text-on-surface">Efisiensi Tenaga Kerja Tutor (DLER)</p>
+                <span class="text-label-lg text-on-surface-variant">Periode: <span x-text="periodLabel"></span></span>
+            </div>
+            <div class="flex flex-wrap items-end gap-lg">
+                <div>
+                    <p class="font-bold leading-tight text-headline-lg"
+                        :class="dler === null ? 'text-on-surface-variant' : (dler >= 2 ? 'text-success' : (dler >= 1.5 ? 'text-warning' : 'text-error'))"
+                        x-text="dler === null ? '—' : dler.toFixed(1) + 'x'"></p>
+                    <p class="text-label-lg mt-xs font-medium"
+                        :class="dler === null ? 'text-on-surface-variant' : (dler >= 2 ? 'text-success' : (dler >= 1.5 ? 'text-warning' : 'text-error'))"
+                        x-text="dler === null ? 'Belum ada honor tutor tercatat di periode ini' : (dler >= 2 ? 'Sehat' : (dler >= 1.5 ? 'Perlu Perhatian' : 'Bahaya'))"></p>
+                </div>
+                <div class="flex-1 min-w-[220px] space-y-xs">
+                    <div class="flex items-baseline justify-between gap-sm">
+                        <span class="text-body-sm text-on-surface-variant">Margin Kotor (Pendapatan − Honor Tutor)</span>
+                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(grossMargin)"></span>
+                    </div>
+                    <div class="flex items-baseline justify-between gap-sm">
+                        <span class="text-body-sm text-on-surface-variant">Biaya Tutor (honor + gaji tutor tetap)</span>
+                        <span class="font-semibold text-on-surface text-body-md whitespace-nowrap" x-text="'Rp ' + fmt(directLaborCost)"></span>
+                    </div>
+                </div>
+            </div>
+            <p class="text-label-lg text-on-surface-variant mt-md">
+                Artinya: setiap Rp 1 yang dikeluarkan untuk honor/gaji tutor, menghasilkan
+                <span class="font-medium" x-text="dler === null ? '(belum ada data)' : ('Rp ' + dler.toFixed(1))"></span> margin kotor.
+                Target sehat: 2x ke atas. Di bawah 1,5x berarti biaya tutor membakar kas lebih cepat daripada yang dihasilkan.
+            </p>
+            <p class="text-label-lg text-on-surface-variant mt-xs">
+                Rasio untuk gaji staff admin/manajemen (MLER) belum bisa ditampilkan — akun untuk itu belum pernah dipakai mencatat transaksi. Lihat catatan di AUDIT_REPORT.md.
+            </p>
+        </div>
+
         {{-- Detail lainnya — kartu kecil (angka pendukung / risiko). Sengaja
              lebih kecil dari 2 kartu di atas supaya hierarki visual jelas:
              grid 3 kolom, tipografi & tinggi minimum lebih ringkas. --}}
@@ -425,6 +464,9 @@
             trend: @json($figures['trend']),
             cashFlowSeries: @json($figures['cash_flow_series']),
             revenueByProgram: @json($figures['revenue_by_program']),
+            dler: @json($figures['ler']['dler']),
+            grossMargin: @json($figures['ler']['gross_margin']),
+            directLaborCost: @json($figures['ler']['direct_labor_cost']),
 
             loading: false,
             chartTab: 'trend',
@@ -478,6 +520,9 @@
                         this.trend = d.trend;
                         this.cashFlowSeries = d.cash_flow_series;
                         this.revenueByProgram = d.revenue_by_program;
+                        this.dler = d.ler.dler;
+                        this.grossMargin = d.ler.gross_margin;
+                        this.directLaborCost = d.ler.direct_labor_cost;
                         this.renderTrendChart();
                         this.renderRevenueProgramChart();
                     })
