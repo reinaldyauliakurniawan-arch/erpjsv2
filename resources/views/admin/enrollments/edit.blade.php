@@ -120,6 +120,7 @@
                     <div class="fieldset">
                         <label class="fieldset-legend text-on-surface">Class Session</label>
                         <select name="class_session_id" class="select w-full" x-model="classSessionId"
+                            x-init="$nextTick(() => { $el.value = @js((string) ($enrollment->class_session_id ?? '')) })"
                             x-effect="if (programId !== currentProgramId) classSessionId = ''">
                             <option value="">— Tidak ada / buat nanti —</option>
                             <template x-for="sess in availableSessions" :key="sess.id">
