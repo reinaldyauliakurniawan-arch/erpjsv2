@@ -7,11 +7,13 @@ use App\Models\Account;
 use App\Models\Classroom;
 use App\Models\Enrollment;
 use App\Models\Installment;
+use App\Models\Journal;
 use App\Models\Program;
 use App\Models\Student;
 use App\Models\User;
 use App\Services\AccountingService;
 use App\Services\EnrollmentLedgerService;
+use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use PHPUnit\Framework\Attributes\Test;
@@ -464,6 +466,55 @@ class EnrollmentControllerTest extends TestCase
         $this->assertEquals('1500000.00', $keep->fresh()->amount);
         $this->assertNotNull($keep->fresh()->paid_at);
         $this->assertEquals(2, $enrollment->fresh()->installments()->count());
+    }
+
+    #[Test]
+    public function update_can_correct_a_wrongly_recorded_installment_payment_date()
+    {
+        // Admin salah tandai cicilan lunas dengan tanggal hari ini padahal
+        // uangnya sebenarnya masuk di tanggal lain sebelumnya.
+        $enrollment = Enrollment::factory()->create([
+            'payment_method' => 'installment',
+            'total_amount' => 2_000_000,
+            'enrollment_date' => '2026-08-01',
+        ]);
+        $first = Installment::factory()->create([
+            'enrollment_id' => $enrollment->id, 'amount' => 1_000_000,
+            'due_date' => '2026-08-01', 'paid_at' => '2026-08-01',
+        ]);
+        $second = Installment::factory()->create([
+            'enrollment_id' => $enrollment->id, 'amount' => 1_000_000,
+            'due_date' => '2026-09-07', 'paid_at' => '2026-09-07',
+        ]);
+
+        $this->actingAs($this->admin)
+            ->put(route('admin.enrollments.update', $enrollment), [
+                'student_id' => $enrollment->student_id,
+                'program_id' => $enrollment->program_id,
+                'enrollment_date' => '2026-08-01',
+                'expiry_date' => '2026-12-01',
+                'payment_method' => 'installment',
+                'payment_channel' => 'bank',
+                'total_amount' => 2_000_000,
+                'status' => 'active',
+                'remaining_meetings' => 10,
+                'installments' => [
+                    ['id' => $first->id, 'amount' => 1_000_000, 'due_date' => '2026-08-01', 'payment_channel' => 'bank', 'paid' => '1'],
+                    // Tanggal jatuh tempo & tanggal bayar dikoreksi ke 29 Agustus.
+                    ['id' => $second->id, 'amount' => 1_000_000, 'due_date' => '2026-08-29', 'payment_channel' => 'bank', 'paid' => '1', 'paid_at' => '2026-08-29'],
+                ],
+            ])
+            ->assertRedirect()
+            ->assertSessionHas('success');
+
+        $this->assertEquals('2026-08-29', $second->fresh()->paid_at->toDateString());
+        $this->assertEquals('2026-08-29', $second->fresh()->due_date->toDateString());
+
+        // Jurnal kas (PAYMENT-ENROLL) ikut ter-tanggal ulang ke pembayaran
+        // cicilan terakhir yang lunas — bukan lagi tanggal transaksi awal.
+        $journal = Journal::where('reference', "PAYMENT-ENROLL-{$enrollment->id}")->firstOrFail();
+        $this->assertEquals('2026-08-29', Carbon::parse($journal->date)->toDateString());
+        $this->assertEquals(2_000_000, (int) $journal->total_amount);
     }
 
     #[Test]

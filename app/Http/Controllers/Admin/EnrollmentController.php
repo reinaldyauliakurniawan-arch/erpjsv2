@@ -218,11 +218,17 @@ class EnrollmentController extends Controller
                             if (! $inst) {
                                 continue;
                             }
-                            // Pertahankan timestamp paid_at asli kalau tetap lunas.
-                            $attrs['paid_at'] = $markPaid ? ($inst->paid_at ?: $row['due_date']) : null;
+                            // Tanggal bayar bisa dikoreksi manual lewat field
+                            // "Tanggal Bayar" (mis. salah input tanggal). Kalau
+                            // diisi, pakai itu; kalau kosong, pertahankan
+                            // paid_at asli, atau default ke jatuh tempo kalau
+                            // baru ditandai lunas sekarang.
+                            $attrs['paid_at'] = $markPaid
+                                ? (! empty($row['paid_at']) ? $row['paid_at'] : ($inst->paid_at ?: $row['due_date']))
+                                : null;
                             $inst->update($attrs);
                         } else {
-                            $attrs['paid_at'] = $markPaid ? $row['due_date'] : null;
+                            $attrs['paid_at'] = $markPaid ? (! empty($row['paid_at']) ? $row['paid_at'] : $row['due_date']) : null;
                             Installment::create(['enrollment_id' => $id] + $attrs);
                         }
                     }

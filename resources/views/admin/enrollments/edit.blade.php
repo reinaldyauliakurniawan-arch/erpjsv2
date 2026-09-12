@@ -24,6 +24,7 @@
                     'due_date'        => optional($i->due_date)->format('Y-m-d'),
                     'payment_channel' => $i->payment_channel ?? $enrollment->payment_channel,
                     'paid'            => (bool) $i->paid_at,
+                    'paid_at'         => optional($i->paid_at)->format('Y-m-d'),
                     'locked'          => $lockedInstallmentIds->contains($i->id),
                 ])->values()
             ),
@@ -34,7 +35,7 @@
                 return this.installments.reduce((s, i) => s + (parseFloat(i.amount) || 0), 0);
             },
             addInstallment() {
-                this.installments.push({ id: null, amount: '', due_date: '', payment_channel: @js($enrollment->payment_channel), paid: false, locked: false });
+                this.installments.push({ id: null, amount: '', due_date: '', payment_channel: @js($enrollment->payment_channel), paid: false, paid_at: '', locked: false });
             },
             removeInstallment(i) {
                 if (this.installments[i].locked) { alert('Cicilan ini punya jurnal pembayaran resmi dan tidak bisa dihapus di sini.'); return; }
@@ -213,27 +214,33 @@
                         </p>
                     </div>
                     <template x-for="(inst, i) in installments" :key="i">
-                        <div class="grid gap-sm items-end" style="grid-template-columns: 1fr 1fr 0.8fr auto auto">
+                        <div class="grid gap-sm items-end" style="grid-template-columns: 1fr 1fr 0.8fr 1fr auto auto">
                             <div class="fieldset">
                                 <label class="fieldset-legend text-on-surface-variant" x-show="i === 0">Jumlah</label>
                                 <input type="number" min="0" step="1" class="input input-sm w-full"
-                                    :name="`installments[${i}][amount]`" x-model="inst.amount" :disabled="inst.locked">
+                                    :name="`installments[${i}][amount]`" x-model="inst.amount">
                             </div>
                             <div class="fieldset">
                                 <label class="fieldset-legend text-on-surface-variant" x-show="i === 0">Jatuh Tempo</label>
                                 <input type="date" class="input input-sm w-full"
-                                    :name="`installments[${i}][due_date]`" x-model="inst.due_date" :disabled="inst.locked">
+                                    :name="`installments[${i}][due_date]`" x-model="inst.due_date">
                             </div>
                             <div class="fieldset">
                                 <label class="fieldset-legend text-on-surface-variant" x-show="i === 0">Terima</label>
-                                <select class="select select-sm w-full" :name="`installments[${i}][payment_channel]`" x-model="inst.payment_channel" :disabled="inst.locked">
+                                <select class="select select-sm w-full" :name="`installments[${i}][payment_channel]`" x-model="inst.payment_channel">
                                     <option value="cash">Kas</option>
                                     <option value="bank">Bank</option>
                                 </select>
                             </div>
+                            <div class="fieldset">
+                                <label class="fieldset-legend text-on-surface-variant" x-show="i === 0">Tanggal Bayar</label>
+                                <input type="date" class="input input-sm w-full"
+                                    :name="`installments[${i}][paid_at]`" x-model="inst.paid_at" :disabled="!inst.paid"
+                                    :placeholder="inst.due_date">
+                            </div>
                             <label class="flex items-center gap-xs text-body-sm mb-xs cursor-pointer">
                                 <input type="checkbox" class="checkbox checkbox-sm" :name="`installments[${i}][paid]`" value="1"
-                                    x-model="inst.paid" :disabled="inst.locked">
+                                    x-model="inst.paid">
                                 Lunas
                             </label>
                             <template x-if="inst.id">
@@ -244,7 +251,11 @@
                             </button>
                         </div>
                     </template>
-                    <p class="text-body-sm text-on-surface-variant">Centang "Lunas" mencatat cicilan dibayar (tanggal = jatuh tempo). Tidak membuat jurnal kas otomatis.</p>
+                    <p class="text-body-sm text-on-surface-variant">
+                        Centang "Lunas" mencatat cicilan sudah dibayar. Isi "Tanggal Bayar" untuk tanggal yang benar
+                        (kalau dikosongkan, dipakai tanggal jatuh tempo). Salah input tanggal pembayaran sebelumnya?
+                        Ubah di sini lalu simpan — jurnal kas ikut disesuaikan otomatis.
+                    </p>
                 </div>
             </section>
 

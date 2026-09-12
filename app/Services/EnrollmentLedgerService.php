@@ -8,6 +8,7 @@ use App\Exceptions\DomainException;
 use App\Models\Enrollment;
 use App\Models\Installment;
 use App\Models\Journal;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -73,8 +74,21 @@ class EnrollmentLedgerService
             $cashCode = $enrollment->payment_channel === 'cash'
                 ? AccountCode::CASH->value
                 : AccountCode::BANK->value;
+
+            // Untuk metode cicilan, tanggal jurnal kas ikut tanggal
+            // pembayaran cicilan TERAKHIR yang lunas (bukan selalu tanggal
+            // transaksi awal) — supaya koreksi tanggal bayar di form edit
+            // enrollment benar-benar "nyambung" ke jurnalnya.
+            $cashDate = $date;
+            if ($enrollment->payment_method === 'installment') {
+                $latestPaidAt = $enrollment->installments()->whereNotNull('paid_at')->max('paid_at');
+                if ($latestPaidAt) {
+                    $cashDate = Carbon::parse($latestPaidAt)->toDateString();
+                }
+            }
+
             $this->accounting->createJournal(
-                $date,
+                $cashDate,
                 "Pembayaran enrollment #{$enrollment->id}",
                 'PAYMENT-ENROLL-'.$enrollment->id,
                 [

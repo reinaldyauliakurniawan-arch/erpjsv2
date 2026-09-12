@@ -43,6 +43,7 @@ class UpdateEnrollmentRequest extends FormRequest
             'installments.*.due_date' => 'required_with:installments|date',
             'installments.*.payment_channel' => 'nullable|in:cash,bank',
             'installments.*.paid' => 'nullable|boolean',
+            'installments.*.paid_at' => 'nullable|date',
         ];
     }
 
