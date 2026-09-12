@@ -99,16 +99,22 @@
             document.getElementById('modal-import').showModal();
         @endif
 
+        // Filter aktif disimpan di sini, BUKAN diteruskan lewat setData(url, params)
+        // -- itu cuma dipakai sekali oleh Tabulator, hilang lagi begitu user pindah
+        // halaman (pindah halaman = ajaxRequestFunc dipanggil ulang oleh Tabulator
+        // sendiri tanpa params filter, jadi query jadi tanpa filter = nampilin semua).
+        // ajaxRequestFunc selalu baca dari sini supaya filter ikut di setiap halaman.
+        window.journalFilters = { search: '', date_from: '', date_to: '' };
+
         window.journalTable = new Tabulator('#journals-table', {
             ajaxURL: '{{ route("finance.journals.data") }}',
-            ajaxParams: {},
             ajaxRequestFunc: function (url, config, params) {
                 const query = new URLSearchParams({
                     page:      params.page || 1,
                     size:      params.size || 20,
-                    search:    params.search || '',
-                    date_from: params.date_from || '',
-                    date_to:   params.date_to || '',
+                    search:    window.journalFilters.search || '',
+                    date_from: window.journalFilters.date_from || '',
+                    date_to:   window.journalFilters.date_to || '',
                 });
                 return fetch(`${url}?${query}`, {
                     headers: {
@@ -180,19 +186,18 @@
     });
 
     function applyFilter() {
-        const search   = document.getElementById('search-journal').value;
-        const dateFrom = document.getElementById('date-from').value;
-        const dateTo   = document.getElementById('date-to').value;
-        window.journalTable.setData('{{ route("finance.journals.data") }}', {
-            search, date_from: dateFrom, date_to: dateTo
-        });
+        window.journalFilters.search    = document.getElementById('search-journal').value;
+        window.journalFilters.date_from = document.getElementById('date-from').value;
+        window.journalFilters.date_to   = document.getElementById('date-to').value;
+        window.journalTable.setData();
     }
 
     function clearFilter() {
         document.getElementById('search-journal').value = '';
         document.getElementById('date-from').value      = '';
         document.getElementById('date-to').value        = '';
-        window.journalTable.setData('{{ route("finance.journals.data") }}', {});
+        window.journalFilters = { search: '', date_from: '', date_to: '' };
+        window.journalTable.setData();
     }
     </script>
 

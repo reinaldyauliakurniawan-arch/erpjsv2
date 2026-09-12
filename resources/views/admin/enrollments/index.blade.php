@@ -73,17 +73,22 @@
         pending: 'badge-error',
     };
 
+    // Filter aktif disimpan di sini (bukan lewat setData(url, params)) supaya
+    // tetap terpakai saat Tabulator memanggil ulang ajaxRequestFunc sendiri
+    // ketika user pindah halaman (kalau tidak, pindah halaman = filter hilang,
+    // query jadi tanpa filter = nampilin semua data).
+    window.enrollmentFilters = { search: '', status: '', payment_status: '' };
+
     document.addEventListener('DOMContentLoaded', function () {
         window.enrollmentTable = new Tabulator('#enrollments-table', {
             ajaxURL: '{{ route("admin.enrollments.data") }}',
-            ajaxParams: {},
             ajaxRequestFunc: function(url, config, params) {
                 const query = new URLSearchParams({
                     page:           params.page || 1,
                     size:           params.size || 20,
-                    search:         params.search || '',
-                    status:         params.status || '',
-                    payment_status: params.payment_status || '',
+                    search:         window.enrollmentFilters.search || '',
+                    status:         window.enrollmentFilters.status || '',
+                    payment_status: window.enrollmentFilters.payment_status || '',
                 });
                 return fetch(url + '?' + query, {
                     headers: {
@@ -177,21 +182,20 @@
     });
 
     function applyFilter() {
-        var search  = document.getElementById('search-enrollment').value;
-        var status  = document.getElementById('filter-status').value;
-        var payment = document.getElementById('filter-payment').value;
-        window.enrollmentTable.setData('{{ route("admin.enrollments.data") }}', {
-            search: search,
-            status: status,
-            payment_status: payment,
-        });
+        window.enrollmentFilters = {
+            search: document.getElementById('search-enrollment').value,
+            status: document.getElementById('filter-status').value,
+            payment_status: document.getElementById('filter-payment').value,
+        };
+        window.enrollmentTable.setData();
     }
 
     function clearFilter() {
         document.getElementById('search-enrollment').value = '';
         document.getElementById('filter-status').value     = '';
         document.getElementById('filter-payment').value    = '';
-        window.enrollmentTable.setData('{{ route("admin.enrollments.data") }}', {});
+        window.enrollmentFilters = { search: '', status: '', payment_status: '' };
+        window.enrollmentTable.setData();
     }
     function rupiah(n) {
         return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');

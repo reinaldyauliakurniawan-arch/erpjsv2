@@ -207,17 +207,21 @@
             document.getElementById('modal-manual').showModal();
         @endif
 
+        // Filter aktif disimpan di sini (bukan lewat setData(url, params)) supaya
+        // tetap terpakai saat Tabulator memanggil ulang ajaxRequestFunc sendiri
+        // ketika user pindah halaman -- lihat catatan yang sama di journals/index.
+        window.ajpFilters = { type: '', status: '', period_from: '', period_to: '' };
+
         window.ajpTable = new Tabulator('#ajp-table', {
             ajaxURL: '{{ route("finance.adjusting-journals.data") }}',
-            ajaxParams: {},
             ajaxRequestFunc: function (url, config, params) {
                 const query = new URLSearchParams({
                     page:        params.page || 1,
                     size:        params.size || 20,
-                    type:        params.type || '',
-                    status:      params.status || '',
-                    period_from: params.period_from || '',
-                    period_to:   params.period_to || '',
+                    type:        window.ajpFilters.type || '',
+                    status:      window.ajpFilters.status || '',
+                    period_from: window.ajpFilters.period_from || '',
+                    period_to:   window.ajpFilters.period_to || '',
                 });
                 return fetch(`${url}?${query}`, {
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' }
@@ -338,21 +342,22 @@
     });
 
     function applyFilter() {
-        const type       = document.getElementById('filter-type').value;
-        const status     = document.getElementById('filter-status').value;
         const periodFrom = document.getElementById('filter-period-from').value;
         const periodTo   = document.getElementById('filter-period-to').value;
-        window.ajpTable.setData('{{ route("finance.adjusting-journals.data") }}', {
-            type, status,
+        window.ajpFilters = {
+            type:   document.getElementById('filter-type').value,
+            status: document.getElementById('filter-status').value,
             period_from: periodFrom ? periodFrom + '-01' : '',
             period_to:   periodTo   ? periodTo   + '-31' : '',
-        });
+        };
+        window.ajpTable.setData();
     }
 
     function clearFilter() {
         ['filter-type','filter-status','filter-period-from','filter-period-to']
             .forEach(id => document.getElementById(id).value = '');
-        window.ajpTable.setData('{{ route("finance.adjusting-journals.data") }}', {});
+        window.ajpFilters = { type: '', status: '', period_from: '', period_to: '' };
+        window.ajpTable.setData();
     }
 
     // ── Dynamic rows untuk modal manual ──────────────────────────────────────
