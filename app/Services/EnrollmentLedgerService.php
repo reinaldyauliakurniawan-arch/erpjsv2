@@ -8,6 +8,7 @@ use App\Exceptions\DomainException;
 use App\Models\Enrollment;
 use App\Models\Installment;
 use App\Models\Journal;
+use App\Support\LedgerStart;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -60,6 +61,13 @@ class EnrollmentLedgerService
         $enrollment->loadMissing('program');
         $date ??= optional($enrollment->enrollment_date)->toDateString() ?? now()->toDateString();
 
+        // Tanggal mulai pembukuan: tidak ada jurnal enrollment sebelum tanggal ini.
+        $start = LedgerStart::date();
+        if ($start !== null && $date < $start) {
+            $date = $start;
+        }
+        $opening = $this->openingPosition($enrollment, $start);
+
         // 1. hapus jurnal lama milik enrollment ini
         $jids = Journal::where('enrollment_id', $enrollment->id)->pluck('id');
         if ($jids->isNotEmpty()) {
@@ -68,8 +76,42 @@ class EnrollmentLedgerService
             Journal::whereIn('id', $jids)->delete();
         }
 
-        // 2. jurnal kas = uang yang benar-benar sudah diterima
-        $cash = $this->revenueRecognition->totalPaid($enrollment);
+        // 2a. saldo awal per tanggal mulai pembukuan: sisa uang titipan &
+        //     sisa tagihan dari riwayat sebelumnya, lawannya Ekuitas Saldo Awal.
+        //     (Kasnya sendiri masuk saldo kas awal yang dicatat CFO.)
+        if ($start !== null
+            && (bccomp($opening['deferred'], '0', 2) > 0 || bccomp($opening['receivable'], '0', 2) > 0)) {
+            $items = [];
+            if (bccomp($opening['receivable'], '0', 2) > 0) {
+                $items[] = ['account_code' => AccountCode::ACCOUNTS_RECEIVABLE->value, 'debit' => $opening['receivable'], 'credit' => 0];
+            }
+            if (bccomp($opening['deferred'], '0', 2) > 0) {
+                $items[] = ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => 0, 'credit' => $opening['deferred']];
+            }
+            $equity = bcsub($opening['deferred'], $opening['receivable'], 2);
+            if (bccomp($equity, '0', 2) !== 0) {
+                $positive = bccomp($equity, '0', 2) > 0;
+                $items[] = [
+                    'account_code' => AccountCode::OPENING_BALANCE_EQUITY->value,
+                    'debit' => $positive ? $equity : '0',
+                    'credit' => $positive ? '0' : bcmul($equity, '-1', 2),
+                ];
+            }
+
+            $this->accounting->createJournal(
+                $start,
+                "Saldo awal enrollment #{$enrollment->id} per {$start}",
+                'SALDO-AWAL-ENR-'.$enrollment->id,
+                $items,
+                'opening',
+                $enrollment->program_id,
+                $enrollment->id,
+            );
+        }
+
+        // 2b. jurnal kas = uang yang benar-benar diterima (sejak tanggal mulai
+        //     pembukuan, kalau ada). Pelunasan tagihan saldo awal didahulukan.
+        $cash = $opening['paidAfter'];
         if (bccomp($cash, '0', 2) > 0) {
             $cashCode = $enrollment->payment_channel === 'cash'
                 ? AccountCode::CASH->value
@@ -87,30 +129,40 @@ class EnrollmentLedgerService
                 }
             }
 
+            $toReceivable = bccomp($opening['receivable'], $cash, 2) >= 0 ? $cash : $opening['receivable'];
+            $toDeferred = bcsub($cash, $toReceivable, 2);
+            $items = [['account_code' => $cashCode, 'debit' => $cash, 'credit' => 0]];
+            if (bccomp($toReceivable, '0', 2) > 0) {
+                $items[] = ['account_code' => AccountCode::ACCOUNTS_RECEIVABLE->value, 'debit' => 0, 'credit' => $toReceivable];
+            }
+            if (bccomp($toDeferred, '0', 2) > 0) {
+                $items[] = ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => 0, 'credit' => $toDeferred];
+            }
+
             $this->accounting->createJournal(
                 $cashDate,
                 "Pembayaran enrollment #{$enrollment->id}",
                 'PAYMENT-ENROLL-'.$enrollment->id,
-                [
-                    ['account_code' => $cashCode, 'debit' => $cash, 'credit' => 0],
-                    ['account_code' => AccountCode::DEFERRED_REVENUE->value, 'debit' => 0, 'credit' => $cash],
-                ],
+                $items,
                 'payment',
                 $enrollment->program_id,
                 $enrollment->id,
             );
         }
 
-        // 3. replay revenue recognition per pertemuan (urut tanggal)
+        // 3. replay revenue recognition per pertemuan (urut tanggal) — hanya
+        //    pertemuan sejak tanggal mulai pembukuan; yang sebelumnya sudah
+        //    terhitung di saldo awal.
         $meetings = DB::table('attendance_student as ats')
             ->join('attendance as a', 'a.id', '=', 'ats.attendance_id')
             ->where('ats.enrollment_id', $enrollment->id)
+            ->when($start !== null, fn ($q) => $q->where('a.date', '>=', $start))
             ->orderBy('a.date')->orderBy('a.id')
             ->get(['a.id as att_id', 'a.date']);
 
-        $meetingCount = $meetings->count();
-        foreach ($meetings as $i => $m) {
-            $split = $this->revenueRecognition->splitForNextMeeting($enrollment, $i);
+        $meetingCount = $opening['meetingsBefore'] + $meetings->count();
+        foreach ($meetings->values() as $i => $m) {
+            $split = $this->revenueRecognition->splitForNextMeeting($enrollment, $opening['meetingsBefore'] + $i);
             if (bccomp($split['revenueThisMeeting'], '0', 2) <= 0) {
                 continue;
             }
@@ -169,9 +221,7 @@ class EnrollmentLedgerService
         $totalMeetings = (int) ($enrollment->program->total_meetings ?? 0);
         $totalAmount = (string) ($enrollment->total_amount ?? '0');
 
-        $meetings = (int) DB::table('attendance_student')
-            ->where('enrollment_id', $enrollment->id)
-            ->count();
+        $meetings = $this->revenueRecognition->meetingsRecognizedSoFar($enrollment);
 
         $perMeeting = $totalMeetings > 0 ? bcdiv($totalAmount, (string) $totalMeetings, 2) : '0';
         // Kalau semua pertemuan sudah jalan, revenue = TEPAT total_amount (sisa
@@ -194,7 +244,70 @@ class EnrollmentLedgerService
         $deferred = bccomp(bcsub($cash, $revenue, 2), '0', 2) > 0 ? bcsub($cash, $revenue, 2) : '0';
         $receivable = bccomp(bcsub($revenue, $cash, 2), '0', 2) > 0 ? bcsub($revenue, $cash, 2) : '0';
 
+        // Dengan tanggal mulai pembukuan, buku besar hanya memuat kas yang masuk
+        // & pendapatan yang diakui SEJAK tanggal itu; riwayat sebelumnya sudah
+        // diringkas jadi saldo awal (piutang/uang titipan) di jurnal SALDO-AWAL.
+        $start = LedgerStart::date();
+        if ($start !== null) {
+            $opening = $this->openingPosition($enrollment, $start);
+            $cash = $opening['paidAfter'];
+            $revenue = bcsub($revenue, $opening['revenueBefore'], 2);
+        }
+
         return compact('cash', 'receivable', 'deferred', 'revenue');
+    }
+
+    /**
+     * Pembagian posisi enrollment di tanggal mulai pembukuan.
+     *
+     * - paidBefore / paidAfter: uang diterima sebelum / sejak tanggal mulai
+     *   (cicilan menurut paid_at; bayar penuh menurut tanggal enrollment).
+     * - meetingsBefore: pertemuan terpakai sebelum tanggal mulai (riwayat lama
+     *   `opening_meetings_used` + baris absensi bertanggal sebelumnya).
+     * - revenueBefore, deferred, receivable: posisi saldo awal hasil keduanya.
+     *
+     * Tanpa tanggal mulai: semuanya dianggap "sesudah" (saldo awal nol).
+     *
+     * @return array{paidBefore:string, paidAfter:string, meetingsBefore:int, revenueBefore:string, deferred:string, receivable:string}
+     */
+    public function openingPosition(Enrollment $enrollment, ?string $start): array
+    {
+        $totalPaid = bcadd($this->revenueRecognition->totalPaid($enrollment), '0', 2);
+
+        if ($start === null) {
+            return [
+                'paidBefore' => '0', 'paidAfter' => $totalPaid, 'meetingsBefore' => 0,
+                'revenueBefore' => '0', 'deferred' => '0', 'receivable' => '0',
+            ];
+        }
+
+        if ($enrollment->payment_method === 'full upfront') {
+            $enrolledOn = optional($enrollment->enrollment_date)->toDateString();
+            $paidBefore = ($enrolledOn === null || $enrolledOn < $start) ? $totalPaid : '0';
+        } else {
+            $paidBefore = bcadd((string) $enrollment->installments()
+                ->whereNotNull('paid_at')
+                ->where('paid_at', '<', $start)
+                ->sum('amount'), '0', 2);
+        }
+
+        $meetingsBefore = (int) $enrollment->opening_meetings_used + DB::table('attendance_student as ats')
+            ->join('attendance as a', 'a.id', '=', 'ats.attendance_id')
+            ->where('ats.enrollment_id', $enrollment->id)
+            ->where('a.date', '<', $start)
+            ->count();
+
+        $revenueBefore = $this->revenueRecognition->totalRevenueRecognizedSoFar($enrollment, $meetingsBefore);
+        $diff = bcsub($paidBefore, $revenueBefore, 2);
+
+        return [
+            'paidBefore' => $paidBefore,
+            'paidAfter' => bcsub($totalPaid, $paidBefore, 2),
+            'meetingsBefore' => $meetingsBefore,
+            'revenueBefore' => $revenueBefore,
+            'deferred' => bccomp($diff, '0', 2) > 0 ? $diff : '0',
+            'receivable' => bccomp($diff, '0', 2) < 0 ? bcmul($diff, '-1', 2) : '0',
+        ];
     }
 
     /**

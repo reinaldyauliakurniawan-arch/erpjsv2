@@ -80,7 +80,10 @@ class RevenueRecognitionService
      */
     public function meetingsRecognizedSoFar(Enrollment $enrollment): int
     {
-        return DB::table('attendance_student')->where('enrollment_id', $enrollment->id)->count();
+        // + pertemuan terpakai sebelum tanggal mulai pembukuan yang tidak
+        // punya baris absensi di ERP (lihat App\Support\LedgerStart).
+        return DB::table('attendance_student')->where('enrollment_id', $enrollment->id)->count()
+            + (int) $enrollment->opening_meetings_used;
     }
 
     /**

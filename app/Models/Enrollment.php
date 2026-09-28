@@ -90,6 +90,7 @@ class Enrollment extends Model
 
     protected $casts = [
         'total_amount' => 'decimal:2',
+        'opening_meetings_used' => 'integer',
         'enrollment_date' => 'date',
         'expiry_date' => 'date',
     ];

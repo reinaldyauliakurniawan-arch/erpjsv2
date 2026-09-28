@@ -155,7 +155,8 @@ class EnrollmentController extends Controller
 
         // Dependency guard info untuk UI: kalau revenue sudah diakui via
         // attendance (fase 4), sebagian field dikunci.
-        $recognizedMeetings = DB::table('attendance_student')->where('enrollment_id', $enrollment->id)->count();
+        $recognizedMeetings = DB::table('attendance_student')->where('enrollment_id', $enrollment->id)->count()
+            + (int) $enrollment->opening_meetings_used;
         // Cicilan yang sudah punya jurnal pembayaran resmi (INSTALLMENT-<id>)
         // tidak boleh dihapus dari form ini.
         $lockedInstallmentIds = Journal::where('reference', 'like', 'INSTALLMENT-%')
@@ -183,7 +184,8 @@ class EnrollmentController extends Controller
                 $oldClassSessionId = $enrollment->class_session_id;
                 $oldTutorIds = $enrollment->tutors()->pluck('tutors.id')->map(fn ($v) => (int) $v)->all();
 
-                $recognized = DB::table('attendance_student')->where('enrollment_id', $id)->count();
+                $recognized = DB::table('attendance_student')->where('enrollment_id', $id)->count()
+                    + (int) $enrollment->opening_meetings_used;
 
                 // Ganti siswa = ganti atribusi. Kalau revenue sudah diakui atas
                 // nama siswa lama, ini bukan sesuatu yang bisa dibereskan jurnal

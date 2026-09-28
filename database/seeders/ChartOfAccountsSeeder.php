@@ -110,6 +110,12 @@ class ChartOfAccountsSeeder extends Seeder
                 'cash_flow_category' => 'financing',
             ],
             [
+                'code' => '3003',
+                'name' => 'Ekuitas Saldo Awal',
+                'type' => 'Equity',
+                'cash_flow_category' => 'financing',
+            ],
+            [
                 'code' => '5105',
                 'name' => 'Beban Sewa',
                 'type' => 'Expense',

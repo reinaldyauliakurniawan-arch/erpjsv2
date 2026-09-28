@@ -8,6 +8,7 @@ enum AccountCode: string
     case BANK = '1002';
     case ACCOUNTS_RECEIVABLE = '1003';
     case DEFERRED_REVENUE = '2002';
+    case OPENING_BALANCE_EQUITY = '3003';
     case TUTOR_PAYABLE = '2003';
     case REVENUE_TUITION_FEES = '4101';
     case REVENUE_ADMIN_FEE = '4102';
