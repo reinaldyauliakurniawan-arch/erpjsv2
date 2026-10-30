@@ -13,7 +13,7 @@ use App\Models\PayrollRun;
 use App\Models\RoomBooking;
 use App\Models\Tutor;
 use App\Models\TutorRate;
-use Carbon\Carbon;
+use App\Support\PayrollPeriod;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Facades\DB;
 
@@ -333,14 +333,14 @@ class AttendanceService
                 ]);
                 $count++;
 
-                $monthKey = Carbon::parse($date)->format('Y-m');
+                $payrollMonth = PayrollPeriod::monthFor($date);
+                $monthKey = $payrollMonth->format('Y-m');
                 if (! isset($monthsAlreadyPaid[$monthKey])) {
-                    $monthStart = Carbon::parse($date)->startOfMonth()->toDateString();
-                    $monthsAlreadyPaid[$monthKey] = PayrollRun::whereDate('month', $monthStart)
+                    $monthsAlreadyPaid[$monthKey] = PayrollRun::whereDate('month', $payrollMonth->toDateString())
                         ->where('status', 'approved')->exists();
                 }
                 if ($monthsAlreadyPaid[$monthKey]) {
-                    app(Notifier::class)->feeAfterPayrollApproved($tutor, Carbon::parse($date)->translatedFormat('F Y'));
+                    app(Notifier::class)->feeAfterPayrollApproved($tutor, $payrollMonth->translatedFormat('F Y'));
                 }
             }
 
@@ -349,17 +349,18 @@ class AttendanceService
     }
 
     /**
-     * Kalau payroll bulan pertemuan ini sudah di-approve, honor yang baru
-     * tercatat ini akan terlewat sampai ada pembayaran susulan — kabari CFO.
+     * Kalau payroll periode pertemuan ini (26–25, lihat PayrollPeriod) sudah
+     * di-approve, honor yang baru tercatat ini akan terlewat sampai ada
+     * pembayaran susulan — kabari CFO.
      */
     protected function warnIfPayrollAlreadyRan(Tutor $tutor, string $date): void
     {
-        $monthStart = Carbon::parse($date)->startOfMonth()->toDateString();
-        $ranAlready = PayrollRun::whereDate('month', $monthStart)->where('status', 'approved')->exists();
+        $payrollMonth = PayrollPeriod::monthFor($date);
+        $ranAlready = PayrollRun::whereDate('month', $payrollMonth->toDateString())->where('status', 'approved')->exists();
         if ($ranAlready) {
             app(Notifier::class)->feeAfterPayrollApproved(
                 $tutor,
-                Carbon::parse($date)->translatedFormat('F Y'),
+                $payrollMonth->translatedFormat('F Y'),
             );
         }
     }

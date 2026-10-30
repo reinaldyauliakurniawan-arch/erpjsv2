@@ -8,6 +8,7 @@ use App\Exceptions\IdempotencyException;
 use App\Models\Journal;
 use App\Models\PayrollRun;
 use App\Models\Tutor;
+use App\Support\PayrollPeriod;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -110,14 +111,14 @@ class PayrollService
                 }
 
                 // ── 2. Fee freelance per meeting ──────────────────────────
+                // Periode honor: tanggal 26 bulan lalu s.d. 25 bulan ini.
                 $unpaidAttendances = DB::table('attendance_tutor')
                     ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
                     ->where('attendance_tutor.tutor_id', $tutor->id)
                     ->whereNull('attendance_tutor.paid_at')
                     ->where('attendance_tutor.pending_rate', false)
                     ->where('attendance_tutor.payable_amount', '>', 0)
-                    ->whereYear('attendance.date', Carbon::parse($payrollRun->month)->year)
-                    ->whereMonth('attendance.date', Carbon::parse($payrollRun->month)->month)
+                    ->whereBetween('attendance.date', $this->periodBounds($payrollRun->month))
                     ->select('attendance_tutor.*')
                     ->get();
 
@@ -233,8 +234,7 @@ class PayrollService
                         ->whereNotNull('attendance_tutor.paid_at')
                         ->whereNull('attendance_tutor.payroll_run_id')
                         ->where('attendance_tutor.pending_rate', false)
-                        ->whereYear('attendance.date', Carbon::parse($payrollRun->month)->year)
-                        ->whereMonth('attendance.date', Carbon::parse($payrollRun->month)->month)
+                        ->whereBetween('attendance.date', $this->periodBounds($payrollRun->month))
                         ->update(['attendance_tutor.paid_at' => null]);
                 }
 
@@ -250,5 +250,17 @@ class PayrollService
 
             return $payrollRun;
         });
+    }
+
+    /**
+     * Batas tanggal pertemuan (Y-m-d, inklusif) untuk payroll bulan $month.
+     *
+     * @return array{0: string, 1: string}
+     */
+    private function periodBounds($month): array
+    {
+        [$from, $to] = PayrollPeriod::forMonth($month);
+
+        return [$from->toDateString(), $to->toDateString()];
     }
 }

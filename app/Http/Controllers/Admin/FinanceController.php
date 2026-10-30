@@ -14,7 +14,7 @@ use App\Services\AccountingService;
 use App\Services\FinancialReportService;
 use App\Services\Notifier;
 use App\Services\RevenueRecognitionService;
-use Carbon\Carbon;
+use App\Support\PayrollPeriod;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -374,20 +374,20 @@ class FinanceController extends Controller
             return back()->with('error', $e->getMessage());
         }
 
-        // Kalau payroll bulan pertemuan ini sudah dijalankan, honor yang baru
-        // di-assign ini akan terlewat sampai ada pembayaran susulan — kabari CFO.
+        // Kalau payroll periode pertemuan ini (26–25) sudah dijalankan, honor
+        // yang baru di-assign ini akan terlewat sampai ada pembayaran susulan — kabari CFO.
         $meeting = DB::table('attendance_tutor')
             ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
             ->where('attendance_tutor.id', $attendanceTutorId)
             ->select('attendance.date', 'attendance_tutor.tutor_id')
             ->first();
         if ($meeting) {
-            $monthStart = Carbon::parse($meeting->date)->startOfMonth()->toDateString();
-            $ranAlready = PayrollRun::whereDate('month', $monthStart)->where('status', 'approved')->exists();
+            $payrollMonth = PayrollPeriod::monthFor($meeting->date);
+            $ranAlready = PayrollRun::whereDate('month', $payrollMonth->toDateString())->where('status', 'approved')->exists();
             if ($ranAlready) {
                 app(Notifier::class)->feeAfterPayrollApproved(
                     (int) $meeting->tutor_id,
-                    Carbon::parse($meeting->date)->translatedFormat('F Y'),
+                    $payrollMonth->translatedFormat('F Y'),
                 );
             }
         }

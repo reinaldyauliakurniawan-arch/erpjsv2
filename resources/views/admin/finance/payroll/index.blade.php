@@ -6,7 +6,7 @@
     <div class="flex items-center justify-between gap-md">
         <div class="min-w-0 shrink">
             <h1 class="text-xl font-semibold text-on-surface">Payroll</h1>
-            <p class="text-sm text-on-surface-variant mt-xs">Generate dan approve pembayaran tutor per bulan</p>
+            <p class="text-sm text-on-surface-variant mt-xs">Generate dan approve pembayaran tutor per bulan. Honor per pertemuan dihitung dari tanggal 26 bulan lalu s.d. 25 bulan ini; gaji tutor tetap per bulan penuh.</p>
         </div>
         <button type="button" onclick="document.getElementById('modal-create').showModal()"
             class="btn bg-primary-container text-on-primary border-none hover:opacity-90 flex-shrink-0">
@@ -59,6 +59,7 @@
                 <tr class="border-b border-surface-border">
                     <td class="py-sm text-sm font-medium text-on-surface">
                         {{ \Carbon\Carbon::parse($run->month)->isoFormat('MMMM YYYY') }}
+                        <div class="text-xs font-normal text-on-surface-variant">Pertemuan {{ \App\Support\PayrollPeriod::label($run->month) }}</div>
                     </td>
                     <td class="py-sm">
                         @if($run->status === 'approved')
@@ -139,7 +140,7 @@
                     <input type="month" name="month" class="input w-full"
                         value="{{ old('month', now()->format('Y-m')) }}" required
                         :disabled="submitting">
-                    <p class="text-xs text-on-surface-variant mt-xs">Sistem akan menghitung semua sesi tutor yang belum dibayar di bulan ini</p>
+                    <p class="text-xs text-on-surface-variant mt-xs">Sistem menghitung semua pertemuan tutor yang belum dibayar dari tanggal 26 bulan sebelumnya s.d. tanggal 25 bulan ini (mis. Oktober = 26 Sep – 25 Okt). Pertemuan tanggal 26 ke atas masuk payroll bulan berikutnya.</p>
                 </div>
             </div>
 

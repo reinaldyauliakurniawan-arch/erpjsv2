@@ -14,6 +14,7 @@ use App\Models\PayrollRun;
 use App\Models\Tutor;
 use App\Models\User;
 use App\Services\PayrollService;
+use App\Support\PayrollPeriod;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
 use Tests\TestCase;
@@ -314,6 +315,84 @@ class PayrollServiceTest extends TestCase
         // PayrollRun should be marked approved
         $this->assertSame('approved', $payrollRun->fresh()->status);
         $this->assertSame($approver->id, $payrollRun->fresh()->approved_by);
+    }
+
+    // =========================================================
+    //  PERIODE HONOR 26 – 25
+    // =========================================================
+
+    #[Test]
+    public function payroll_month_pays_meetings_from_26th_of_previous_month_to_25th(): void
+    {
+        $approver = User::factory()->admin()->create();
+        $tutor = $this->createTutorWithUser();
+
+        $before = $this->createUnpaidAttendanceForTutor($tutor, '2026-09-25', 10_000); // payroll September
+        $first = $this->createUnpaidAttendanceForTutor($tutor, '2026-09-26', 20_000);  // payroll Oktober
+        $last = $this->createUnpaidAttendanceForTutor($tutor, '2026-10-25', 40_000);   // payroll Oktober
+        $next = $this->createUnpaidAttendanceForTutor($tutor, '2026-10-26', 80_000);   // payroll November
+
+        $run = $this->service->createPayrollRun('2026-10');
+        $this->service->approvePayrollRun($run->id, $approver->id);
+
+        $journal = Journal::where('reference', "PAYROLL-{$run->id}-TUTOR-{$tutor->id}-PAY")->first();
+        $this->assertNotNull($journal);
+        $this->assertEquals(60_000, $journal->total_amount);
+        $this->assertNotNull($first->fresh()->paid_at);
+        $this->assertNotNull($last->fresh()->paid_at);
+        $this->assertNull($before->fresh()->paid_at);
+        $this->assertNull($next->fresh()->paid_at);
+
+        // Pertemuan 26 Okt baru terbayar di payroll November.
+        $nov = $this->service->createPayrollRun('2026-11');
+        $this->service->approvePayrollRun($nov->id, $approver->id);
+        $this->assertEquals(80_000, Journal::where('reference', "PAYROLL-{$nov->id}-TUTOR-{$tutor->id}-PAY")->value('total_amount'));
+        $this->assertSame($nov->id, $next->fresh()->payroll_run_id);
+        $this->assertNull($before->fresh()->paid_at);
+    }
+
+    #[Test]
+    public function january_payroll_period_starts_on_26_december_of_previous_year(): void
+    {
+        $approver = User::factory()->admin()->create();
+        $tutor = $this->createTutorWithUser();
+        $dec = $this->createUnpaidAttendanceForTutor($tutor, '2026-12-27', 50_000);
+
+        $run = $this->service->createPayrollRun('2027-01');
+        $this->service->approvePayrollRun($run->id, $approver->id);
+
+        $this->assertSame($run->id, $dec->fresh()->payroll_run_id);
+    }
+
+    #[Test]
+    public function reverse_fallback_only_unmarks_meetings_in_the_26_to_25_period(): void
+    {
+        $approver = User::factory()->admin()->create();
+        $tutor = $this->createTutorWithUser();
+        $run = $this->service->createPayrollRun('2026-10');
+        $this->service->approvePayrollRun($run->id, $approver->id);
+
+        // Run lama tanpa payroll_run_id di baris presensi: jalur fallback per periode.
+        Journal::factory()->create(['reference' => "PAYROLL-{$run->id}-TUTOR-{$tutor->id}-PAY", 'total_amount' => 30_000]);
+        $inPeriod = $this->createUnpaidAttendanceForTutor($tutor, '2026-09-28', 30_000);
+        $outPeriod = $this->createUnpaidAttendanceForTutor($tutor, '2026-10-28', 30_000);
+        AttendanceTutor::whereIn('id', [$inPeriod->id, $outPeriod->id])->update(['paid_at' => now()]);
+
+        $this->service->reversePayrollRun($run->id, $approver->id);
+
+        $this->assertNull($inPeriod->fresh()->paid_at);
+        $this->assertNotNull($outPeriod->fresh()->paid_at);
+    }
+
+    #[Test]
+    public function payroll_period_helper_maps_dates_to_payroll_month(): void
+    {
+        $this->assertSame('2026-10-01', PayrollPeriod::monthFor('2026-09-26')->toDateString());
+        $this->assertSame('2026-10-01', PayrollPeriod::monthFor('2026-10-25')->toDateString());
+        $this->assertSame('2026-11-01', PayrollPeriod::monthFor('2026-10-26')->toDateString());
+        $this->assertSame('2027-01-01', PayrollPeriod::monthFor('2026-12-31')->toDateString());
+        [$from, $to] = PayrollPeriod::forMonth('2026-03-01');
+        $this->assertSame(['2026-02-26', '2026-03-25'], [$from->toDateString(), $to->toDateString()]);
     }
 
     #[Test]
