@@ -85,7 +85,7 @@
         <div class="app-card app-card--flush">
             <div class="app-card__header">
                 <h4 class="text-title-sm font-semibold text-on-surface">Occupancy per Ruangan</h4>
-                <span class="badge badge-soft">{{ $from->format('d M') }} – {{ $to->format('d M Y') }}</span>
+                <span class="badge badge-soft">{{ $from->format('d M') }} – {{ $to->format('d M Y') }} · Senin–Sabtu, 6 sesi/hari</span>
             </div>
 
             @if(empty($occupancyStats))

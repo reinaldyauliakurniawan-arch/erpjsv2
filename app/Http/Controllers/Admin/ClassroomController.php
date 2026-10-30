@@ -7,6 +7,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Classroom;
 use App\Models\RoomBooking;
 use App\Models\Schedule;
+use App\Support\ScheduleFormat;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -15,9 +16,10 @@ class ClassroomController extends Controller
 {
     // Note: 'auth' + role enforcement applied via the role:admin route group.
 
-    protected $timeBlocks = ['09:00-10:30', '10:30-12:00', '13:00-14:30', '14:30-16:00', '16:00-17:30', '18:30-20:00'];
-
     protected $dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
+
+    /** Hari operasional Just Speak: Senin–Sabtu (ISO 1–6). Minggu tidak dihitung occupancy. */
+    public const OPERATING_DAYS_ISO = [1, 2, 3, 4, 5, 6];
 
     public function index(Request $request)
     {
@@ -88,9 +90,13 @@ class ClassroomController extends Controller
 
             for ($i = 0; $i < $totalDays; $i++) {
                 $date = $from->copy()->addDays($i);
+                if (! in_array($date->dayOfWeekIso, self::OPERATING_DAYS_ISO, true)) {
+                    continue; // Minggu: tidak beroperasi
+                }
                 $dayName = $this->dayNames[$date->dayOfWeekIso - 1];
 
-                foreach ($this->timeBlocks as $block) {
+                // Slot per hari = sesi kelas yang terdaftar di sistem.
+                foreach (ScheduleFormat::TIME_BLOCKS as $block) {
                     $total++;
                     $dateStr = $date->toDateString();
 

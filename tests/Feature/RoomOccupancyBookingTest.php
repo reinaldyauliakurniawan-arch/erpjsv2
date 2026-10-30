@@ -49,6 +49,23 @@ class RoomOccupancyBookingTest extends TestCase
     }
 
     #[Test]
+    public function sunday_is_not_counted_and_each_day_has_six_sessions(): void
+    {
+        $room = Classroom::factory()->create(['name' => 'Harvard', 'kind' => 'physical']);
+        RoomBooking::create(['classroom_id' => $room->id, 'date' => '2026-11-08', 'time_block' => '09:00-10:30', 'type' => 'temporary']); // Minggu
+
+        // Senin 2 Nov – Minggu 8 Nov 2026: 6 hari operasional x 6 sesi
+        $week = collect(app(ClassroomController::class)->buildOccupancyStats(
+            Carbon::parse('2026-11-02')->startOfDay(), Carbon::parse('2026-11-08')->endOfDay()
+        ))->keyBy('name');
+        $this->assertSame(36, $week['Harvard']['total']);
+        $this->assertSame(0, $week['Harvard']['occupied']);
+
+        $this->assertSame(0, $this->stats('2026-11-08')['Harvard']['total']);
+        $this->assertSame(6, $this->stats('2026-11-07')['Harvard']['total']); // Sabtu
+    }
+
+    #[Test]
     public function online_room_is_excluded_from_occupancy(): void
     {
         Classroom::factory()->create(['name' => 'Harvard', 'kind' => 'physical']);

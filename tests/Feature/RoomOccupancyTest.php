@@ -61,7 +61,7 @@ class RoomOccupancyTest extends TestCase
         // Hanya ruang fisik yang masuk daftar & hitungan.
         $this->assertSame(['Harvard'], $o['rooms']);
         $this->assertSame(1, $o['occupied'], 'hanya kelas di ruang fisik yang dihitung');
-        $this->assertSame(6 * 7, $o['total'], '6 blok jam x 7 hari untuk 1 ruang fisik');
+        $this->assertSame(6 * 6, $o['total'], '6 sesi x 6 hari operasional (Senin–Sabtu) untuk 1 ruang fisik');
     }
 
     #[Test]
