@@ -5,20 +5,19 @@ namespace App\Http\Controllers\Admin;
 use App\Enums\ClassroomKind;
 use App\Http\Controllers\Controller;
 use App\Models\Classroom;
-use App\Models\Schedule;
 use App\Models\RoomBooking;
+use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Validation\Rule;
 
 class ClassroomController extends Controller
 {
     // Note: 'auth' + role enforcement applied via the role:admin route group.
 
-    protected $timeBlocks = ['09:00-10:30','10:30-12:00','13:00-14:30','14:30-16:00','16:00-17:30','18:30-20:00'];
-    protected $dayNames   = ['Senin','Selasa','Rabu','Kamis','Jumat','Sabtu','Minggu'];
+    protected $timeBlocks = ['09:00-10:30', '10:30-12:00', '13:00-14:30', '14:30-16:00', '16:00-17:30', '18:30-20:00'];
+
+    protected $dayNames = ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'];
 
     public function index(Request $request)
     {
@@ -40,7 +39,7 @@ class ClassroomController extends Controller
         $occupancyStats = $this->buildOccupancyStats($from, $to);
 
         $totalOccupied = array_sum(array_column($occupancyStats, 'occupied'));
-        $totalSlots    = array_sum(array_column($occupancyStats, 'total'));
+        $totalSlots = array_sum(array_column($occupancyStats, 'total'));
         $occupancyRate = $totalSlots > 0 ? round($totalOccupied / $totalSlots * 100) : 0;
 
         return view('admin.classrooms.index', compact('classrooms', 'occupancyStats', 'occupancyRate', 'from', 'to'));
@@ -59,17 +58,22 @@ class ClassroomController extends Controller
             ->distinct()
             ->get();
 
-        $skippedSlots = RoomBooking::whereIn('classroom_id', $physicalIds)
-            ->where('type', 'regular_skip')
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
-            ->select('classroom_id', 'time_block', 'date')
-            ->get();
+        // `date` di-cast ke Carbon (bisa "Y-m-d 00:00:00") — normalisasi ke
+        // "Y-m-d" supaya cocok dengan $dateStr di bawah; tanpa ini booking
+        // sementara & skip tidak pernah terhitung.
+        $bookingSlots = fn (string $type) => RoomBooking::whereIn('classroom_id', $physicalIds)
+            ->where('type', $type)
+            ->whereDate('date', '>=', $from->toDateString())
+            ->whereDate('date', '<=', $to->toDateString())
+            ->get(['classroom_id', 'time_block', 'date'])
+            ->map(fn ($b) => [
+                'classroom_id' => $b->classroom_id,
+                'time_block' => $b->time_block,
+                'date' => $b->date->toDateString(),
+            ]);
 
-        $tempSlots = RoomBooking::whereIn('classroom_id', $physicalIds)
-            ->where('type', 'temporary')
-            ->whereBetween('date', [$from->toDateString(), $to->toDateString()])
-            ->select('classroom_id', 'time_block', 'date')
-            ->get();
+        $skippedSlots = $bookingSlots('regular_skip');
+        $tempSlots = $bookingSlots('temporary');
 
         // Hitung per hari kalender. `diffInDays` bisa mengembalikan pecahan
         // (mis. Senin 00:00 -> Minggu 23:59 = 6.99) yang kalau tidak dibulatkan
@@ -105,7 +109,7 @@ class ClassroomController extends Controller
                         ->where('date', $dateStr)
                         ->isNotEmpty();
 
-                    if (($hasSchedule && !$isSkipped) || $isTemp) {
+                    if (($hasSchedule && ! $isSkipped) || $isTemp) {
                         $occupied++;
                     }
                 }
@@ -114,11 +118,11 @@ class ClassroomController extends Controller
             $rate = $total > 0 ? round($occupied / $total * 100) : 0;
 
             $result[] = [
-                'id'       => $room->id,
-                'name'     => $room->name,
+                'id' => $room->id,
+                'name' => $room->name,
                 'occupied' => $occupied,
-                'total'    => $total,
-                'rate'     => $rate,
+                'total' => $total,
+                'rate' => $rate,
             ];
         }
 
@@ -146,8 +150,8 @@ class ClassroomController extends Controller
     {
         $this->authorize('delete', $classroom);
 
-        $hasActiveSchedule = \App\Models\Schedule::where('classroom_id', $classroom->id)
-            ->whereHas('enrollment', fn($q) => $q->whereIn('status', ['active', 'waitlist']))
+        $hasActiveSchedule = Schedule::where('classroom_id', $classroom->id)
+            ->whereHas('enrollment', fn ($q) => $q->whereIn('status', ['active', 'waitlist']))
             ->exists();
 
         if ($hasActiveSchedule) {
@@ -156,6 +160,7 @@ class ClassroomController extends Controller
         }
 
         $classroom->delete();
+
         return redirect()->route('admin.classrooms.index')->with('success', 'Classroom deleted.');
     }
 
@@ -177,11 +182,11 @@ class ClassroomController extends Controller
     private function validatedData(Request $request): array
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
+            'name' => 'required|string|max:255',
             // Kolom `capacity` NOT NULL di database — wajib diisi supaya tidak
             // gagal insert di MySQL dan supaya cek kapasitas kelas selalu benar.
             'capacity' => 'required|integer|min:1',
-            'kind'     => ['nullable', Rule::in(ClassroomKind::values())],
+            'kind' => ['nullable', Rule::in(ClassroomKind::values())],
         ]);
 
         $validated['kind'] = $validated['kind']
