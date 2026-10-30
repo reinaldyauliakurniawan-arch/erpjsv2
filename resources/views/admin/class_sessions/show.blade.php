@@ -32,6 +32,9 @@
                     <span class="badge badge-soft {{ $classSession->status ==='active' ? 'badge-success' : 'badge-error' }}">
                         {{ $classSession->status }}
                     </span>
+                    <span class="badge badge-soft">
+                        Pertemuan {{ $classSession->meetingsHeld() }}@if($classSession->total_meetings) dari {{ $classSession->total_meetings }} · sisa {{ $classSession->meetingsRemaining() }}@endif
+                    </span>
                 </div>
             </div>
             <a href="{{ route('admin.class-sessions.edit', $classSession->id) }}"

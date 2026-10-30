@@ -111,6 +111,8 @@
                         </select>
                         @error('status')<p class="label text-error">{{ $message }}</p>@enderror
                     </div>
+
+                    @include('admin.class_sessions._meeting_fields', ['classSession' => null])
                 </div>
             </div>
 

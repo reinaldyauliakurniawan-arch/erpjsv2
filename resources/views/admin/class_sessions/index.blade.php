@@ -56,6 +56,7 @@
                                 <th>Program</th>
                                 <th>Tipe</th>
                                 <th>Jumlah Siswa</th>
+                                <th>Pertemuan</th>
                                 <th>Status</th>
                                 <th></th>
                             </tr>
@@ -67,6 +68,9 @@
                                 <td class="text-on-surface-variant">{{ $cs->program->name }}</td>
                                 <td><span class="badge badge-soft">{{ ucfirst($cs->class_type) }}</span></td>
                                 <td class="text-on-surface">{{ $cs->enrollments_count }}</td>
+                                <td class="text-on-surface">
+                                    {{ $cs->meetingsHeld() }}@if($cs->total_meetings) <span class="text-on-surface-variant">/ {{ $cs->total_meetings }}</span>@endif
+                                </td>
                                 <td>
                                     <span class="badge badge-soft {{ $cs->status ==='active' ? 'badge-success' : 'badge-error' }}">
                                         {{ $cs->status }}

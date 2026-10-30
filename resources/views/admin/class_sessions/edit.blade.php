@@ -61,6 +61,8 @@
                     @error('status')<p class="label text-error">{{ $message }}</p>@enderror
                 </div>
 
+                @include('admin.class_sessions._meeting_fields', ['classSession' => $classSession])
+
                 <div class="fieldset">
                     <label class="fieldset-legend text-on-surface">Tipe Kelas</label>
                     <select name="class_type"

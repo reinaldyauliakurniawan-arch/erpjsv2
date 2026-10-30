@@ -53,7 +53,7 @@ class ClassSessionController extends Controller
         $filter = $request->query('filter', 'all');
 
         $classSessions = ClassSession::with('program')
-            ->withCount('enrollments')
+            ->withCount(['enrollments', 'attendances'])
             ->when($filter !== 'all', fn ($q) => $q->where('class_type', $filter))
             ->orderBy('name')
             ->paginate(15)
@@ -142,7 +142,7 @@ class ClassSessionController extends Controller
             'enrollments.student.user',
             'tutors.user',
             'schedules.classroom',
-        ])->findOrFail($id);
+        ])->withCount('attendances')->findOrFail($id);
 
         $this->authorize('view', $classSession);
 
@@ -598,6 +598,8 @@ class ClassSessionController extends Controller
             'program_id' => 'required|exists:programs,id',
             'class_type' => 'required|in:private,semi-private,group',
             'status' => 'required|in:active,inactive',
+            'total_meetings' => 'nullable|integer|min:1|max:1000',
+            'meetings_before_start' => 'nullable|integer|min:0|max:1000',
             'tutor_ids' => 'nullable|array',
             'tutor_ids.*' => 'exists:tutors,id',
             'enrollment_ids' => 'nullable|array',
@@ -609,7 +611,7 @@ class ClassSessionController extends Controller
         ]);
 
         return [
-            'session' => $request->only('name', 'program_id', 'class_type', 'status'),
+            'session' => $this->sessionFields($request),
             'tutor_ids' => $request->input('tutor_ids', []),
             'enrollment_ids' => $request->input('enrollment_ids', []),
             'schedules' => $request->input('schedules', []),
@@ -620,8 +622,16 @@ class ClassSessionController extends Controller
      * Validate the update request.
      *
      * @param  int  $id
-     * @return array
      */
+    /** Kolom class session dari form; jumlah pertemuan kelas boleh kosong. */
+    protected function sessionFields(Request $request): array
+    {
+        return $request->only('name', 'program_id', 'class_type', 'status') + [
+            'total_meetings' => $request->filled('total_meetings') ? (int) $request->input('total_meetings') : null,
+            'meetings_before_start' => (int) $request->input('meetings_before_start', 0),
+        ];
+    }
+
     protected function validateUpdate(Request $request, $id)
     {
         $validated = $request->validate([
@@ -629,10 +639,12 @@ class ClassSessionController extends Controller
             'program_id' => 'required|exists:programs,id',
             'class_type' => 'required|in:private,semi-private,group',
             'status' => 'required|in:active,inactive',
+            'total_meetings' => 'nullable|integer|min:1|max:1000',
+            'meetings_before_start' => 'nullable|integer|min:0|max:1000',
         ]);
 
         return [
-            'session' => $request->only('name', 'program_id', 'class_type', 'status'),
+            'session' => $this->sessionFields($request),
         ];
     }
 
