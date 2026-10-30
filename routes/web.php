@@ -197,6 +197,8 @@ Route::middleware('auth')->group(function () {
         Route::post('/payroll', [PayrollController::class, 'store'])->name('payroll.store')->middleware('idempotent');
         Route::post('/payroll/{id}/approve', [PayrollController::class, 'approve'])->name('payroll.approve')->middleware('idempotent');
         Route::post('/payroll/{id}/reverse', [PayrollController::class, 'reverse'])->name('payroll.reverse')->middleware('idempotent');
+        Route::post('/payroll/adjustments', [PayrollController::class, 'storeAdjustment'])->name('payroll.adjustments.store')->middleware('idempotent');
+        Route::delete('/payroll/adjustments/{id}', [PayrollController::class, 'destroyAdjustment'])->name('payroll.adjustments.destroy');
 
         // RAB
         Route::get('/rab', [RabController::class, 'index'])->name('rab.index');

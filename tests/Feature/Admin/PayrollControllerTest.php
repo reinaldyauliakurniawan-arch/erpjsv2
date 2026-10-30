@@ -3,7 +3,10 @@
 namespace Tests\Feature\Admin;
 
 use App\Models\PayrollRun;
+use App\Models\Tutor;
+use App\Models\TutorFeeAdjustment;
 use App\Models\User;
+use App\Support\PayrollPeriod;
 use Database\Seeders\ChartOfAccountsSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use PHPUnit\Framework\Attributes\Test;
@@ -97,5 +100,48 @@ class PayrollControllerTest extends TestCase
         $this->actingAs($admin)
             ->get(route('finance.payroll.index'))
             ->assertForbidden();
+    }
+
+    #[Test]
+    public function cfo_can_add_and_delete_fee_adjustment_and_see_it_in_period_recap()
+    {
+        $tutor = Tutor::factory()->forUser(User::factory()->tutor()->create(['name' => 'Ayu Tes']))->create();
+
+        $this->actingAs($this->cfo)
+            ->post(route('finance.payroll.adjustments.store'), [
+                'tutor_id' => $tutor->id, 'date' => '2026-10-20', 'kind' => 'honor',
+                'amount' => 855000, 'description' => 'B2B RU PUTRI 9 pertemuan',
+            ])
+            ->assertRedirect(route('finance.payroll.index', ['period' => '2026-10']))
+            ->assertSessionHas('success');
+
+        $adj = TutorFeeAdjustment::firstOrFail();
+        $this->assertNotNull($adj->journal_id);
+
+        $this->actingAs($this->cfo)
+            ->get(route('finance.payroll.index', ['period' => '2026-10']))
+            ->assertOk()
+            ->assertSee(PayrollPeriod::label('2026-10-01'))
+            ->assertSee('B2B RU PUTRI 9 pertemuan')
+            ->assertSee('Ayu Tes');
+
+        $this->actingAs($this->cfo)
+            ->delete(route('finance.payroll.adjustments.destroy', $adj->id))
+            ->assertSessionHas('success');
+        $this->assertDatabaseCount('tutor_fee_adjustments', 0);
+    }
+
+    #[Test]
+    public function admin_cannot_add_fee_adjustment()
+    {
+        $admin = User::factory()->create(['role' => 'admin']);
+        $tutor = Tutor::factory()->forUser(User::factory()->tutor()->create())->create();
+
+        $this->actingAs($admin)
+            ->post(route('finance.payroll.adjustments.store'), [
+                'tutor_id' => $tutor->id, 'date' => '2026-10-20', 'kind' => 'honor', 'amount' => 1000, 'description' => 'x',
+            ])
+            ->assertForbidden();
+        $this->assertDatabaseCount('tutor_fee_adjustments', 0);
     }
 }

@@ -8,8 +8,10 @@ use App\Exceptions\IdempotencyException;
 use App\Models\Journal;
 use App\Models\PayrollRun;
 use App\Models\Tutor;
+use App\Models\TutorFeeAdjustment;
 use App\Support\PayrollPeriod;
 use Carbon\Carbon;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class PayrollService
@@ -122,11 +124,26 @@ class PayrollService
                     ->select('attendance_tutor.*')
                     ->get();
 
-                if ($unpaidAttendances->isEmpty()) {
+                // ── 3. Penyesuaian honor (B2B, tunjangan, koreksi, saldo awal) ─
+                $unpaidAdjustments = TutorFeeAdjustment::where('tutor_id', $tutor->id)
+                    ->whereNull('paid_at')
+                    ->inPayrollPeriod($this->periodBounds($payrollRun->month))
+                    ->get();
+
+                if ($unpaidAttendances->isEmpty() && $unpaidAdjustments->isEmpty()) {
                     continue;
                 }
 
-                $totalAmount = $unpaidAttendances->sum('payable_amount');
+                $totalAmount = bcadd(
+                    (string) $unpaidAttendances->sum('payable_amount'),
+                    (string) $unpaidAdjustments->sum('amount'),
+                    2
+                );
+                if (bccomp($totalAmount, '0', 2) <= 0) {
+                    // Koreksi negatif lebih besar dari honornya — tidak ada yang
+                    // dibayar; biarkan semuanya terbuka untuk periode berikutnya.
+                    continue;
+                }
                 $reference = "PAYROLL-{$payrollRun->id}-TUTOR-{$tutor->id}";
 
                 // Jurnal: Pembayaran hutang ke tutor. try/catch simetris dengan
@@ -148,6 +165,8 @@ class PayrollService
 
                 DB::table('attendance_tutor')
                     ->whereIn('id', $unpaidAttendances->pluck('id'))
+                    ->update(['paid_at' => $paidAt, 'payroll_run_id' => $payrollRun->id]);
+                TutorFeeAdjustment::whereIn('id', $unpaidAdjustments->pluck('id'))
                     ->update(['paid_at' => $paidAt, 'payroll_run_id' => $payrollRun->id]);
 
                 $this->notifier->payrollPaid($tutor, Carbon::parse($payrollRun->month)->translatedFormat('F Y'), (float) $totalAmount);
@@ -221,6 +240,9 @@ class PayrollService
                     ->where('tutor_id', $tutor->id)
                     ->where('payroll_run_id', $payrollRun->id)
                     ->update(['paid_at' => null, 'payroll_run_id' => null]);
+                $tied += TutorFeeAdjustment::where('tutor_id', $tutor->id)
+                    ->where('payroll_run_id', $payrollRun->id)
+                    ->update(['paid_at' => null, 'payroll_run_id' => null]);
                 if ($tied > 0) {
                     $reversedSomething = true;
                 } elseif ($payJournal) {
@@ -250,6 +272,111 @@ class PayrollService
 
             return $payrollRun;
         });
+    }
+
+    /**
+     * Catat penyesuaian honor tutor + jurnalnya.
+     *
+     *   honor / tunjangan : Dr Beban Gaji Tutor (5001)   / Cr Utang Tutor (2003)
+     *   saldo_awal        : Dr Ekuitas Saldo Awal (3003) / Cr Utang Tutor (2003)
+     *                       — honor periode sebelum tanggal mulai pembukuan yang
+     *                       baru dibayar sekarang (bebannya milik periode lama).
+     * Nominal negatif = koreksi kelebihan klaim (jurnalnya dibalik).
+     */
+    public function addAdjustment(int $tutorId, string $date, string $amount, string $kind, string $description, ?int $createdBy = null): TutorFeeAdjustment
+    {
+        if (! array_key_exists($kind, TutorFeeAdjustment::KINDS)) {
+            throw new DomainException("Jenis penyesuaian tidak dikenal: {$kind}");
+        }
+        $amount = bcadd($amount, '0', 2);
+        if (bccomp($amount, '0', 2) === 0) {
+            throw new DomainException('Nominal penyesuaian tidak boleh 0.');
+        }
+
+        return DB::transaction(function () use ($tutorId, $date, $amount, $kind, $description, $createdBy) {
+            $tutor = Tutor::with('user')->findOrFail($tutorId);
+            $adj = TutorFeeAdjustment::create([
+                'tutor_id' => $tutor->id, 'date' => $date, 'kind' => $kind,
+                'amount' => $amount, 'description' => $description, 'created_by' => $createdBy,
+            ]);
+
+            $debitCode = $kind === 'saldo_awal'
+                ? AccountCode::OPENING_BALANCE_EQUITY->value
+                : AccountCode::EXPENSE_TUTOR_FEE->value;
+            $abs = ltrim($amount, '-');
+            $positive = bccomp($amount, '0', 2) > 0;
+            $journal = $this->accountingService->createJournal(
+                Carbon::parse($date)->toDateString(),
+                TutorFeeAdjustment::KINDS[$kind].": {$tutor->user->name} — {$description}",
+                "TUTOR-ADJ-{$adj->id}",
+                [
+                    ['account_code' => $debitCode,                        'debit' => $positive ? $abs : 0, 'credit' => $positive ? 0 : $abs],
+                    ['account_code' => AccountCode::TUTOR_PAYABLE->value, 'debit' => $positive ? 0 : $abs, 'credit' => $positive ? $abs : 0],
+                ],
+                $kind === 'saldo_awal' ? 'opening' : 'tutor_accrual',
+            );
+            $adj->update(['journal_id' => $journal->id]);
+
+            $payrollMonth = PayrollPeriod::monthFor($date);
+            if (PayrollRun::whereDate('month', $payrollMonth->toDateString())->where('status', 'approved')->exists()) {
+                $this->notifier->feeAfterPayrollApproved($tutor, $payrollMonth->translatedFormat('F Y'));
+            }
+
+            return $adj;
+        });
+    }
+
+    /** Hapus penyesuaian yang belum dibayar beserta jurnalnya. */
+    public function deleteAdjustment(int $id): void
+    {
+        DB::transaction(function () use ($id) {
+            $adj = TutorFeeAdjustment::lockForUpdate()->findOrFail($id);
+            if ($adj->paid_at) {
+                throw new DomainException('Penyesuaian ini sudah dibayar oleh payroll run — reverse payroll-nya dulu.');
+            }
+            if ($adj->journal_id) {
+                DB::table('journal_items')->where('journal_id', $adj->journal_id)->delete();
+                Journal::whereKey($adj->journal_id)->delete();
+            }
+            $adj->delete();
+        });
+    }
+
+    /**
+     * Rekap yang AKAN dibayar payroll bulan $month per tutor (belum dibayar):
+     * honor per pertemuan + penyesuaian + gaji tetap.
+     *
+     * @return Collection<int, array{tutor: string, meetings: int, fee: float, adjustments: float, salary: float, total: float}>
+     */
+    public function preview($month)
+    {
+        $bounds = $this->periodBounds($month);
+        $salaryPaid = PayrollRun::whereDate('month', Carbon::parse($month)->startOfMonth()->toDateString())
+            ->where('status', 'approved')->pluck('id');
+
+        return Tutor::with('user')->get()->map(function (Tutor $tutor) use ($bounds, $month, $salaryPaid) {
+            $fees = DB::table('attendance_tutor')
+                ->join('attendance', 'attendance_tutor.attendance_id', '=', 'attendance.id')
+                ->where('attendance_tutor.tutor_id', $tutor->id)
+                ->whereNull('attendance_tutor.paid_at')
+                ->where('attendance_tutor.pending_rate', false)
+                ->where('attendance_tutor.payable_amount', '>', 0)
+                ->whereBetween('attendance.date', $bounds)
+                ->selectRaw('COUNT(*) n, COALESCE(SUM(attendance_tutor.payable_amount), 0) s')->first();
+            $adj = (float) TutorFeeAdjustment::where('tutor_id', $tutor->id)->whereNull('paid_at')
+                ->inPayrollPeriod($bounds)->sum('amount');
+            $salaryAlreadyPaid = $salaryPaid->contains(
+                fn ($rid) => Journal::where('reference', "PAYROLL-{$rid}-TUTOR-{$tutor->id}-SALARY")->exists()
+            );
+            $salary = $salaryAlreadyPaid ? 0.0 : (float) $tutor->proratedSalaryForMonth($month);
+            $fee = (float) $fees->s;
+            $variable = max(0, $fee + $adj);
+
+            return [
+                'tutor' => $tutor->user->name, 'meetings' => (int) $fees->n, 'fee' => $fee,
+                'adjustments' => $adj, 'salary' => $salary, 'total' => $variable + $salary,
+            ];
+        })->filter(fn ($r) => $r['total'] > 0 || $r['adjustments'] != 0)->sortBy('tutor')->values();
     }
 
     /**

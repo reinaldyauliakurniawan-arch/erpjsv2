@@ -58,6 +58,10 @@ class PayrollServiceTest extends TestCase
         Account::factory()->create(['code' => AccountCode::DEFERRED_REVENUE->value, 'name' => 'Deferred Revenue', 'type' => 'Liability']);
         Account::factory()->create(['code' => AccountCode::REVENUE_TUITION_FEES->value, 'name' => 'Revenue - Tuition Fees', 'type' => 'Revenue']);
         Account::factory()->create(['code' => AccountCode::EXPENSE_TUTOR_FEE->value,   'name' => 'Expense - Tutor Fee',    'type' => 'Expense']);
+        Account::firstOrCreate(
+            ['code' => AccountCode::OPENING_BALANCE_EQUITY->value],
+            ['name' => 'Ekuitas Saldo Awal', 'type' => 'Equity']
+        );
         // Account 5006 is seeded by a migration, so guard against a duplicate.
         Account::firstOrCreate(
             ['code' => AccountCode::EXPENSE_TUTOR_PERMANENT_SALARY->value],
@@ -382,6 +386,93 @@ class PayrollServiceTest extends TestCase
 
         $this->assertNull($inPeriod->fresh()->paid_at);
         $this->assertNotNull($outPeriod->fresh()->paid_at);
+    }
+
+    // =========================================================
+    //  PENYESUAIAN HONOR (B2B, tunjangan, koreksi, saldo awal)
+    // =========================================================
+
+    #[Test]
+    public function adjustment_posts_expense_or_opening_journal_against_tutor_payable(): void
+    {
+        $tutor = $this->createTutorWithUser();
+        $payable = Account::where('code', AccountCode::TUTOR_PAYABLE->value)->value('id');
+
+        $honor = $this->service->addAdjustment($tutor->id, '2026-10-20', '855000', 'honor', 'B2B RU PUTRI 9 pertemuan');
+        $this->assertDatabaseHas('journal_items', ['journal_id' => $honor->journal_id, 'account_id' => Account::where('code', AccountCode::EXPENSE_TUTOR_FEE->value)->value('id'), 'debit' => 855000]);
+        $this->assertDatabaseHas('journal_items', ['journal_id' => $honor->journal_id, 'account_id' => $payable, 'credit' => 855000]);
+
+        $opening = $this->service->addAdjustment($tutor->id, '2026-10-01', '120000', 'saldo_awal', 'Honor 26–30 Sep');
+        $this->assertDatabaseHas('journal_items', ['journal_id' => $opening->journal_id, 'account_id' => Account::where('code', AccountCode::OPENING_BALANCE_EQUITY->value)->value('id'), 'debit' => 120000]);
+
+        $minus = $this->service->addAdjustment($tutor->id, '2026-10-20', '-60000', 'honor', 'Klaim dobel');
+        $this->assertDatabaseHas('journal_items', ['journal_id' => $minus->journal_id, 'account_id' => $payable, 'debit' => 60000]);
+
+        $tb = JournalItem::query()->selectRaw('SUM(debit) - SUM(credit) v')->value('v');
+        $this->assertEquals(0, (float) $tb);
+    }
+
+    #[Test]
+    public function approve_pays_meeting_fees_plus_adjustments_in_period_only(): void
+    {
+        $approver = User::factory()->admin()->create();
+        $tutor = $this->createTutorWithUser();
+        $this->createUnpaidAttendanceForTutor($tutor, '2026-10-10', 300_000);
+        $in = $this->service->addAdjustment($tutor->id, '2026-10-25', '50000', 'tunjangan', 'Tunjangan prestasi');
+        $minus = $this->service->addAdjustment($tutor->id, '2026-09-28', '-60000', 'honor', 'Klaim dobel');
+        $out = $this->service->addAdjustment($tutor->id, '2026-10-26', '70000', 'honor', 'Masuk November');
+
+        $run = $this->service->createPayrollRun('2026-10');
+        $this->service->approvePayrollRun($run->id, $approver->id);
+
+        $this->assertEquals(290_000, Journal::where('reference', "PAYROLL-{$run->id}-TUTOR-{$tutor->id}-PAY")->value('total_amount'));
+        $this->assertSame($run->id, $in->fresh()->payroll_run_id);
+        $this->assertSame($run->id, $minus->fresh()->payroll_run_id);
+        $this->assertNull($out->fresh()->paid_at);
+
+        $this->service->reversePayrollRun($run->id, $approver->id);
+        $this->assertNull($in->fresh()->paid_at);
+        $this->assertNull($minus->fresh()->payroll_run_id);
+    }
+
+    #[Test]
+    public function paid_adjustment_cannot_be_deleted_but_unpaid_one_removes_its_journal(): void
+    {
+        $approver = User::factory()->admin()->create();
+        $tutor = $this->createTutorWithUser();
+        $paid = $this->service->addAdjustment($tutor->id, '2026-10-05', '100000', 'honor', 'B2B');
+        $run = $this->service->createPayrollRun('2026-10');
+        $this->service->approvePayrollRun($run->id, $approver->id);
+
+        $this->expectException(DomainException::class);
+        try {
+            $this->service->deleteAdjustment($paid->id);
+        } finally {
+            $later = $this->service->addAdjustment($tutor->id, '2026-10-27', '40000', 'honor', 'Susulan');
+            $jid = $later->journal_id;
+            $this->service->deleteAdjustment($later->id);
+            $this->assertDatabaseMissing('journals', ['id' => $jid]);
+            $this->assertDatabaseMissing('tutor_fee_adjustments', ['id' => $later->id]);
+        }
+    }
+
+    #[Test]
+    public function preview_matches_what_approve_will_pay(): void
+    {
+        $approver = User::factory()->admin()->create();
+        $tutor = $this->createTutorWithUser();
+        $permanent = $this->createTutorWithUser();
+        $permanent->update(['employment_type' => 'permanent', 'monthly_salary' => 3_000_000, 'salaried_since' => '2026-10-01']);
+        $this->createUnpaidAttendanceForTutor($tutor, '2026-09-30', 60_000);
+        $this->service->addAdjustment($tutor->id, '2026-10-20', '40000', 'tunjangan', 'Tunjangan');
+
+        $preview = $this->service->preview('2026-10-01')->keyBy('tutor');
+        $this->assertEquals(100_000, $preview[$tutor->user->name]['total']);
+        $this->assertEquals(3_000_000, $preview[$permanent->user->name]['total']);
+
+        $run = $this->service->createPayrollRun('2026-10');
+        $this->service->approvePayrollRun($run->id, $approver->id);
+        $this->assertTrue($this->service->preview('2026-10-01')->isEmpty());
     }
 
     #[Test]
